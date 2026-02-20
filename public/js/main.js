@@ -266,6 +266,12 @@
       }
     });
 
+    UI.els.homeLevelPill.addEventListener('click', () => {
+      if (currentUser) {
+        UI.showProfile(currentUser);
+      }
+    });
+
     UI.els.btnHomeAuth.addEventListener('click', () => {
       UI.showWelcomeStep('username');
       UI.showScreen('welcome');

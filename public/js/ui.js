@@ -728,6 +728,6 @@ const UI = (() => {
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
     showProfile, isPlaceholderEmail, getRankTier,
-    xpToLevel, renderXpBar, showXpGain, showLevelUp, getLevelBadge
+    xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge
   };
 })();
