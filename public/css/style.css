@@ -2261,68 +2261,160 @@ body::after {
   .vs-intro-right::before { display: none; }
 }
 
-/* ===== XP BAR (HOME SCREEN) ===== */
+/* ===== COMPACT LEVEL PILL (HEADER) ===== */
 
-.xp-bar-area {
-  width: 100%;
-  max-width: 420px;
-  margin: 12px auto 8px;
-}
-
-.xp-bar-header {
-  display: flex;
+.home-level-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.xp-level-badge {
+.home-level-pill:hover {
+  background: var(--surface-hover);
+  border-color: rgba(108, 99, 255, 0.3);
+}
+
+.home-level-badge-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
-.xp-level-badge svg {
+.home-level-badge-icon svg {
   width: 100%;
   height: 100%;
 }
 
-.xp-level-label {
+.home-level-text {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
   color: var(--text);
   text-transform: uppercase;
 }
 
-.xp-numbers {
-  margin-left: auto;
-  color: var(--text-dim);
-  font-size: 0.7rem;
-  font-weight: 500;
-}
+/* ===== PROFILE XP BREAKDOWN ===== */
 
-.xp-bar-track {
-  width: 100%;
-  height: 8px;
-  background: var(--surface);
-  border-radius: 4px;
+.profile-xp-card {
+  background: var(--bg);
   border: 1px solid var(--border);
-  overflow: hidden;
+  border-radius: 6px;
+  padding: 20px;
   position: relative;
 }
 
-.xp-bar-fill {
+.profile-xp-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.25), transparent);
+}
+
+.profile-xp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.profile-xp-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.profile-xp-badge-icon svg {
+  width: 100%;
   height: 100%;
-  border-radius: 4px;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.profile-xp-level-label {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.profile-xp-pct {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.profile-xp-bar-track {
+  width: 100%;
+  height: 10px;
+  background: var(--surface);
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.profile-xp-bar-fill {
+  height: 100%;
+  border-radius: 5px;
   background: linear-gradient(90deg, var(--accent), #8b5cf6);
   transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   min-width: 0;
   box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.profile-xp-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.profile-xp-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-xp-detail-row:last-child {
+  border-bottom: none;
+}
+
+.profile-xp-detail-label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profile-xp-detail-value {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
 }
 
 /* ===== LEVEL BADGE SHAPES ===== */

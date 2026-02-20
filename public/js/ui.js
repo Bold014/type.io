@@ -82,27 +82,19 @@ const UI = (() => {
     return 'LEVEL UP!';
   }
 
-  function renderXpBar(xp) {
-    if (!els.xpBarArea) return;
+  function renderHeaderLevel(xp) {
+    if (!els.homeLevelPill) return;
     const level = xpToLevel(xp || 0);
-    const currentLevelXp = xpForLevel(level);
-    const nextLevelXp = xpForLevel(level + 1);
-    const progress = nextLevelXp > currentLevelXp
-      ? ((xp || 0) - currentLevelXp) / (nextLevelXp - currentLevelXp)
-      : 0;
-
     const badge = getLevelBadge(level);
 
-    els.xpLevelBadge.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor);
-    els.xpLevelNum.textContent = level;
-    els.xpLevelNum.style.color = badge.tagColor;
-    els.xpNumbers.textContent = `${(xp || 0).toLocaleString()} / ${nextLevelXp.toLocaleString()} XP`;
-    els.xpBarFill.style.width = `${Math.max(0, Math.min(100, progress * 100))}%`;
-    els.xpBarArea.style.display = '';
+    els.homeLevelBadgeIcon.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor, 16);
+    els.homeLevelNum.textContent = level;
+    els.homeLevelNum.style.color = badge.tagColor;
+    els.homeLevelPill.style.display = '';
   }
 
-  function hideXpBar() {
-    if (els.xpBarArea) els.xpBarArea.style.display = 'none';
+  function hideHeaderLevel() {
+    if (els.homeLevelPill) els.homeLevelPill.style.display = 'none';
   }
 
   function showXpGain(xpGainData) {

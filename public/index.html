@@ -60,6 +60,10 @@
     <header class="home-header">
       <span class="home-header-left">HOME</span>
       <div class="home-user-area">
+        <span class="home-level-pill" id="home-level-pill" style="display:none">
+          <span class="home-level-badge-icon" id="home-level-badge-icon"></span>
+          <span class="home-level-text">LV. <span id="home-level-num">1</span></span>
+        </span>
         <span class="home-user-info" id="home-user-info">
           <span class="home-username" id="home-username">GUEST</span>
           <span class="home-badge" id="home-badge">GUEST</span>
@@ -72,16 +76,6 @@
     <div class="home-wrapper">
       <div class="home-hero">
         <h1 class="logo home-logo">type<span class="logo-dot">duel.</span>io</h1>
-        <div class="xp-bar-area" id="xp-bar-area" style="display:none">
-          <div class="xp-bar-header">
-            <span class="xp-level-badge" id="xp-level-badge"></span>
-            <span class="xp-level-label">LV. <span id="xp-level-num">1</span></span>
-            <span class="xp-numbers" id="xp-numbers">0 / 0 XP</span>
-          </div>
-          <div class="xp-bar-track">
-            <div class="xp-bar-fill" id="xp-bar-fill"></div>
-          </div>
-        </div>
         <p class="home-select-label">SELECT MODE</p>
       </div>
 
@@ -150,16 +144,36 @@
         </div>
 
         <div class="profile-section">
+          <h3 class="profile-section-title">PROGRESSION</h3>
+          <div class="profile-xp-card">
+            <div class="profile-xp-header">
+              <span class="profile-xp-badge-icon" id="profile-xp-badge-icon"></span>
+              <span class="profile-xp-level-label">LEVEL <span id="profile-xp-level-num">1</span></span>
+              <span class="profile-xp-pct" id="profile-xp-pct">0%</span>
+            </div>
+            <div class="profile-xp-bar-track">
+              <div class="profile-xp-bar-fill" id="profile-xp-bar-fill"></div>
+            </div>
+            <div class="profile-xp-details">
+              <div class="profile-xp-detail-row">
+                <span class="profile-xp-detail-label">Total XP</span>
+                <span class="profile-xp-detail-value" id="profile-xp-total">0</span>
+              </div>
+              <div class="profile-xp-detail-row">
+                <span class="profile-xp-detail-label">Current Level XP</span>
+                <span class="profile-xp-detail-value" id="profile-xp-current">0 / 0</span>
+              </div>
+              <div class="profile-xp-detail-row">
+                <span class="profile-xp-detail-label">XP to Next Level</span>
+                <span class="profile-xp-detail-value" id="profile-xp-remaining">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
           <h3 class="profile-section-title">STATS</h3>
           <div class="account-stats">
-            <div class="account-stat-row">
-              <span class="account-stat-label">Level</span>
-              <span class="account-stat-value" id="profile-level">1</span>
-            </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">XP</span>
-              <span class="account-stat-value" id="profile-xp">0</span>
-            </div>
             <div class="account-stat-row">
               <span class="account-stat-label">Best WPM</span>
               <span class="account-stat-value" id="profile-best-wpm">0</span>
