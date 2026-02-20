@@ -1,4 +1,4 @@
-# type.io
+# typeduel.io
 
 1v1 real-time typing duel game. Two players are matched together and race to type the same sentence. Best of 3 rounds wins the match.
 
@@ -38,4 +38,4 @@ Highest score wins the round. Best of 3 rounds wins the match.
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3000` | Server port |
-| `SESSION_SECRET` | `type-io-secret-key-change-in-prod` | Session encryption secret |
+| `SESSION_SECRET` | `typeduel-secret-key-change-in-prod` | Session encryption secret |

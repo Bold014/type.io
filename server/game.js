@@ -79,7 +79,8 @@ function createGame(roomId, player1, player2, mode) {
     graceTimeout: null,
     playerSentences: {},
     comboState: {},
-    injectedRanges: {}
+    injectedRanges: {},
+    lastTypingState: {}
   };
 
   games.set(roomId, game);
@@ -103,6 +104,7 @@ function startCountdown(io, game) {
   const sentence = sentenceObj.text;
   game.roundState = 'countdown';
   game.roundCompletions = {};
+  game.lastTypingState = {};
 
   const playerIds = Object.keys(game.players);
   playerIds.forEach(id => {
@@ -227,6 +229,14 @@ function handleTypingUpdate(io, game, socketId, data) {
   if (game.roundState !== 'playing') return;
   const opponent = Object.keys(game.players).find(id => id !== socketId);
   if (!opponent) return;
+
+  game.lastTypingState[socketId] = {
+    position: data.position || 0,
+    typed: data.typed || '',
+    wpm: data.wpm || 0,
+    errors: data.errors || 0,
+    corrections: data.corrections || 0
+  };
 
   const playerSentence = game.playerSentences[socketId];
   const progress = Math.min(1, (data.position || 0) / playerSentence.length);
@@ -375,12 +385,33 @@ function endRound(io, game) {
   const playerIds = Object.keys(game.players);
   playerIds.forEach(id => {
     if (!game.roundCompletions[id]) {
-      game.roundCompletions[id] = {
-        wpm: 0, uncorrectedErrors: 0, correctedErrors: 0,
-        score: 0, time: ROUND_TIMEOUT_MS,
-        username: game.players[id].username,
-        timedOut: true
-      };
+      const last = game.lastTypingState?.[id];
+      if (last && last.typed) {
+        const sentence = game.playerSentences[id];
+        let uncorrectedErrors = 0;
+        for (let i = 0; i < last.typed.length && i < sentence.length; i++) {
+          if (last.typed[i] !== sentence[i]) uncorrectedErrors++;
+        }
+        const elapsedMs = ROUND_TIMEOUT_MS;
+        const elapsedMin = elapsedMs / 60000;
+        const wpm = elapsedMin > 0 ? Math.round((last.typed.length / 5) / elapsedMin) : 0;
+        const correctedErrors = Math.max(0, last.corrections || 0);
+        const score = computeScore(wpm, uncorrectedErrors, correctedErrors);
+
+        game.roundCompletions[id] = {
+          wpm, uncorrectedErrors, correctedErrors, score,
+          time: elapsedMs,
+          username: game.players[id].username,
+          timedOut: true
+        };
+      } else {
+        game.roundCompletions[id] = {
+          wpm: 0, uncorrectedErrors: 0, correctedErrors: 0,
+          score: 0, time: ROUND_TIMEOUT_MS,
+          username: game.players[id].username,
+          timedOut: true
+        };
+      }
     }
   });
 

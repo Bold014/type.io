@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 const sessionMiddleware = session({
   store: new ConnectSQLite({ db: 'sessions.sqlite', dir: path.join(__dirname, '..') }),
-  secret: process.env.SESSION_SECRET || 'type-io-secret-key-change-in-prod',
+  secret: process.env.SESSION_SECRET || 'typeduel-secret-key-change-in-prod',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
@@ -37,5 +37,5 @@ io.engine.use(sessionMiddleware);
 setupSocketHandlers(io);
 
 server.listen(PORT, () => {
-  console.log(`type.io running on http://localhost:${PORT}`);
+  console.log(`typeduel.io running on http://localhost:${PORT}`);
 });

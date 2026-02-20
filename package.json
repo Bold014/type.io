@@ -1,5 +1,5 @@
 {
-  "name": "type.io",
+  "name": "typeduel.io",
   "version": "1.0.0",
   "description": "1v1 real-time typing duel IO game",
   "main": "server/index.js",
