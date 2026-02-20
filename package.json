@@ -21,6 +21,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "supabase": "^2.76.11"
   }
 }

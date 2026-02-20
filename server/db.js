@@ -21,21 +21,24 @@ function computeXpGain(mode, totalTimeMs, won, wpm, currentBestWpm, lastPbAt) {
   if (won) xpGained += 200;
 
   let isPb = false;
+  let pbBonusXp = false;
   let newBestWpm = currentBestWpm || 0;
 
   if (wpm > newBestWpm) {
+    isPb = true;
+    newBestWpm = wpm;
+
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const lastPb = lastPbAt ? new Date(lastPbAt) : null;
 
     if (!lastPb || lastPb < oneDayAgo) {
       xpGained += 500;
-      isPb = true;
-      newBestWpm = wpm;
+      pbBonusXp = true;
     }
   }
 
-  return { xpGained, newBestWpm, isPb };
+  return { xpGained, newBestWpm, isPb, pbBonusXp };
 }
 
 const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, last_pb_at';
@@ -77,7 +80,7 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   const newRating = Math.max(0, user.rating + ratingDelta);
 
   const oldLevel = xpToLevel(user.xp || 0);
-  const { xpGained, newBestWpm, isPb } = computeXpGain(
+  const { xpGained, newBestWpm, isPb, pbBonusXp } = computeXpGain(
     mode || 'ranked', totalTimeMs || 0, won, wpm, user.best_wpm, user.last_pb_at
   );
   const newXp = (user.xp || 0) + xpGained;
@@ -94,6 +97,8 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
 
   if (isPb) {
     updatePayload.best_wpm = newBestWpm;
+  }
+  if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
@@ -115,7 +120,7 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
   if (!user) return null;
 
   const oldLevel = xpToLevel(user.xp || 0);
-  const { xpGained, newBestWpm, isPb } = computeXpGain(
+  const { xpGained, newBestWpm, isPb, pbBonusXp } = computeXpGain(
     mode || 'quick', totalTimeMs || 0, won, wpm, user.best_wpm, user.last_pb_at
   );
   const newXp = (user.xp || 0) + xpGained;
@@ -134,6 +139,8 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
 
   if (isPb) {
     updatePayload.best_wpm = newBestWpm;
+  }
+  if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
@@ -260,7 +267,34 @@ async function getMatchHistory(userId, limit = 10) {
   return data;
 }
 
+async function getAscendLeaderboard(limit = 50) {
+  const { data, error } = await supabase
+    .from('ascend_runs')
+    .select('user_id, username, height, tier')
+    .order('height', { ascending: false })
+    .limit(limit * 3);
+
+  if (error) {
+    console.error('getAscendLeaderboard error:', error);
+    return [];
+  }
+
+  const best = new Map();
+  for (const row of data || []) {
+    if (!best.has(row.user_id) || row.height > best.get(row.user_id).height) {
+      best.set(row.user_id, { user_id: row.user_id, username: row.username, height: row.height, tier: row.tier });
+    }
+  }
+  return Array.from(best.values())
+    .sort((a, b) => b.height - a.height)
+    .slice(0, limit);
+}
+
 async function getLeaderboard(category = 'rating', limit = 50) {
+  if (category === 'ascend') {
+    return getAscendLeaderboard(limit);
+  }
+
   const validCategories = {
     rating: { column: 'rating', ascending: false },
     best_wpm: { column: 'best_wpm', ascending: false },

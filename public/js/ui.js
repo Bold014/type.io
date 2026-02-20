@@ -781,36 +781,47 @@ const UI = (() => {
       rating: 'SR',
       best_wpm: 'WPM',
       wins: 'WINS',
-      xp: 'LEVEL'
+      xp: 'LEVEL',
+      ascend: 'HEIGHT'
     };
 
     const headerStat = document.querySelector('.lb-col-stat');
     if (headerStat) headerStat.textContent = categoryLabels[category] || 'VALUE';
+
+    const headerTier = document.querySelector('.lb-table-header .lb-col-tier');
+    if (headerTier) headerTier.textContent = category === 'ascend' ? 'TIER' : 'RANK';
 
     if (!data || data.length === 0) {
       els.lbTableBody.innerHTML = '<div class="lb-empty">No players found</div>';
       return;
     }
 
+    const isAscend = category === 'ascend';
     let html = '';
     for (let i = 0; i < data.length; i++) {
       const p = data[i];
-      const tier = getRankTier(p.rating || 1000);
-      const level = xpToLevel(p.xp || 0);
-      let statValue;
-      switch (category) {
-        case 'best_wpm': statValue = Math.round(p.best_wpm || 0); break;
-        case 'wins': statValue = p.wins || 0; break;
-        case 'xp': statValue = level; break;
-        default: statValue = p.rating || 1000;
+      let tierDisplay, statValue;
+      if (isAscend) {
+        tierDisplay = 'Tier ' + (p.tier ?? 0);
+        statValue = p.height != null ? p.height.toFixed(1) + 'm' : '—';
+      } else {
+        const tier = getRankTier(p.rating || 1000);
+        tierDisplay = tier.name;
+        switch (category) {
+          case 'best_wpm': statValue = Math.round(p.best_wpm || 0); break;
+          case 'wins': statValue = p.wins || 0; break;
+          case 'xp': statValue = xpToLevel(p.xp || 0); break;
+          default: statValue = p.rating || 1000;
+        }
       }
 
       const rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : '';
+      const tierColor = isAscend ? 'var(--gold)' : (getRankTier(p.rating || 1000).color);
 
       html += `<div class="lb-row ${rankClass}">
         <span class="lb-col-rank">${i + 1}</span>
         <span class="lb-col-name">${escapeHtml(p.username)}</span>
-        <span class="lb-col-tier" style="color:${tier.color}">${tier.name}</span>
+        <span class="lb-col-tier" style="color:${tierColor}">${tierDisplay}</span>
         <span class="lb-col-stat">${statValue}</span>
       </div>`;
     }
