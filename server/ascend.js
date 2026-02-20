@@ -429,6 +429,7 @@ function tickGameLoop(io, lobby) {
     const gap = Math.round((player.height - player.floorHeight) * 10) / 10;
     player.socket.emit('ascend:floor', {
       floorHeight: Math.round(player.floorHeight * 10) / 10,
+      height: Math.round(player.height * 10) / 10,
       gap
     });
   });

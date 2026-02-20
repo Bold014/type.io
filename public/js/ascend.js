@@ -470,6 +470,7 @@ const AscendClient = (() => {
     cacheEls();
     floorHeight = data.floorHeight;
     floorGap = data.gap;
+    if (data.height != null) updateHeight(data.height);
 
     const playerHeight = floorHeight + floorGap;
     const floorRatio = playerHeight > 0 ? floorHeight / playerHeight : 0;
