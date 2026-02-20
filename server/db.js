@@ -121,7 +121,16 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
-  const updatePayload = { xp: newXp };
+  const newGamesPlayed = (user.games_played || 0) + 1;
+  const newAvgWpm = ((user.avg_wpm || 0) * (user.games_played || 0) + wpm) / newGamesPlayed;
+
+  const updatePayload = {
+    xp: newXp,
+    games_played: newGamesPlayed,
+    avg_wpm: newAvgWpm,
+    wins: (user.wins || 0) + (won ? 1 : 0),
+    losses: (user.losses || 0) + (won ? 0 : 1)
+  };
 
   if (isPb) {
     updatePayload.best_wpm = newBestWpm;
@@ -261,10 +270,19 @@ async function getLeaderboard(category = 'rating', limit = 50) {
 
   const config = validCategories[category] || validCategories.rating;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('profiles')
-    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm')
-    .gt('games_played', 0)
+    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm');
+
+  if (category === 'wins') {
+    query = query.gt('wins', 0);
+  } else if (category === 'best_wpm') {
+    query = query.gt('best_wpm', 0);
+  } else {
+    query = query.gt('xp', 0);
+  }
+
+  const { data, error } = await query
     .order(config.column, { ascending: config.ascending })
     .limit(limit);
 
