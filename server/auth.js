@@ -97,7 +97,9 @@ function setupAuthRoutes(app) {
       const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { email });
       if (updateError) {
         let msg = updateError.message;
-        if (msg.includes('already been registered')) msg = 'Email already in use';
+        if (msg.includes('already been registered') || msg.includes('Error updating user')) {
+          msg = 'That email is already associated with another account';
+        }
         return res.status(400).json({ error: msg });
       }
 
