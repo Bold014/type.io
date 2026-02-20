@@ -2792,6 +2792,304 @@ body::after {
   100% { transform: translate(0, 0); }
 }
 
+/* ===== ASCEND LOBBY SCREEN ===== */
+
+.ascend-lobby {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ascend-lobby-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(16, 16, 24, 0.6) 0%, transparent 100%);
+}
+
+.ascend-lobby-title {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: #f04444;
+}
+
+.ascend-lobby-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+}
+
+.ascend-lobby-hero {
+  text-align: center;
+  max-width: 560px;
+}
+
+.ascend-lobby-heading {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.ascend-lobby-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.ascend-lobby-attacks {
+  width: 100%;
+  max-width: 720px;
+}
+
+.ascend-lobby-section-title {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.ascend-lobby-section-sub {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ascend-lobby-section-sub strong {
+  color: var(--text);
+}
+
+/* --- Attack Cards Grid --- */
+
+.attack-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .attack-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.attack-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.attack-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.attack-card[data-attack="inject"]::before {
+  background: radial-gradient(ellipse at 50% 0%, var(--red), transparent 70%);
+}
+
+.attack-card[data-attack="scramble"]::before {
+  background: radial-gradient(ellipse at 50% 0%, var(--gold), transparent 70%);
+}
+
+.attack-card[data-attack="chaos"]::before {
+  background: radial-gradient(ellipse at 50% 0%, var(--accent), transparent 70%);
+}
+
+.attack-card[data-attack="inject"] {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.attack-card[data-attack="scramble"] {
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.attack-card[data-attack="chaos"] {
+  border-color: rgba(108, 99, 255, 0.2);
+}
+
+.attack-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.attack-card-name {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+.attack-card[data-attack="inject"] .attack-card-name { color: var(--red); }
+.attack-card[data-attack="scramble"] .attack-card-name { color: var(--gold); }
+.attack-card[data-attack="chaos"] .attack-card-name { color: var(--accent); }
+
+.attack-card-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.inject-badge {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.scramble-badge {
+  background: var(--gold-dim);
+  color: var(--gold);
+}
+
+.chaos-badge {
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--accent);
+}
+
+.attack-card-desc {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* --- Attack Demo Visuals --- */
+
+.attack-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.attack-demo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attack-demo-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.attack-demo-sentence {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.attack-hl {
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.attack-hl-subtle {
+  opacity: 0.5;
+}
+
+.inject-hl {
+  background: var(--red-dim);
+  color: var(--red);
+  box-shadow: 0 0 8px var(--red-glow);
+}
+
+.scramble-hl {
+  background: var(--gold-dim);
+  color: var(--gold);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+.chaos-hl {
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* --- Start Button --- */
+
+.ascend-lobby-start-area {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.ascend-lobby-start-btn {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  color: #fff;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  border-radius: 10px;
+  padding: 16px 64px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow:
+    0 0 20px rgba(239, 68, 68, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.ascend-lobby-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 30px rgba(239, 68, 68, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.ascend-lobby-start-btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 0 12px rgba(239, 68, 68, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== ASCEND GAME SCREEN ===== */
+
 .ascend-layout {
   width: 100%;
   height: 100%;

@@ -288,10 +288,20 @@
       const name = getUsername();
       if (!name) return;
       currentMode = 'ascend';
+      UI.showScreen('ascendLobby');
+    });
+
+    UI.els.btnAscendLobbyStart.addEventListener('click', () => {
+      const name = getUsername();
+      if (!name) return;
       GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
       AscendClient.setMyUsername(name);
       UI.showScreen('ascend');
       GameSocket.emit('ascend:join');
+    });
+
+    UI.els.btnAscendLobbyBack.addEventListener('click', () => {
+      UI.showScreen('home');
     });
 
     UI.els.btnHomeLogout.addEventListener('click', () => doLogout());

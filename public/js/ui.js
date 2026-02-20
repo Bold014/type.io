@@ -160,6 +160,7 @@ const UI = (() => {
     game: document.getElementById('screen-game'),
     roundResult: document.getElementById('screen-round-result'),
     matchResult: document.getElementById('screen-match-result'),
+    ascendLobby: document.getElementById('screen-ascend-lobby'),
     ascend: document.getElementById('screen-ascend'),
     ascendResult: document.getElementById('screen-ascend-result')
   };
@@ -195,6 +196,9 @@ const UI = (() => {
     cardLeaderboard: document.getElementById('card-leaderboard'),
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
+
+    btnAscendLobbyBack: document.getElementById('btn-ascend-lobby-back'),
+    btnAscendLobbyStart: document.getElementById('btn-ascend-lobby-start'),
 
     btnLeaderboardBack: document.getElementById('btn-leaderboard-back'),
     lbTableBody: document.getElementById('lb-table-body'),
