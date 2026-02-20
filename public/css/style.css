@@ -1847,6 +1847,56 @@ body::after {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
 
+/* ===== FINISH TIMER ===== */
+
+.finish-timer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(108, 99, 255, 0.08);
+  border: 1px solid rgba(108, 99, 255, 0.2);
+  border-radius: 6px;
+  animation: timerFadeIn 0.3s ease-out;
+}
+
+.finish-timer-label {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.finish-timer-count {
+  font-family: var(--mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  min-width: 28px;
+  text-align: center;
+}
+
+.finish-timer-count.urgent {
+  color: var(--red);
+  animation: timerPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes timerFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 900px) {

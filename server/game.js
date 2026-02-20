@@ -5,6 +5,7 @@ const ROUNDS_TO_WIN = 2;
 const TOTAL_ROUNDS = 3;
 const COUNTDOWN_SECONDS = 3;
 const ROUND_TIMEOUT_MS = 60000;
+const FINISH_GRACE_MS = 10000;
 const COMBO_THRESHOLD = 20;
 const TARGET_PROMPT_LENGTH = 200;
 
@@ -75,6 +76,7 @@ function createGame(roomId, player1, player2, mode) {
     roundResults: [],
     roundCompletions: {},
     roundTimeout: null,
+    graceTimeout: null,
     playerSentences: {},
     comboState: {},
     injectedRanges: {}
@@ -334,7 +336,26 @@ function handleRoundComplete(io, game, socketId, data) {
 
   const allDone = Object.keys(game.players).every(id => game.roundCompletions[id]);
   if (allDone) {
+    if (game.graceTimeout) {
+      clearTimeout(game.graceTimeout);
+      game.graceTimeout = null;
+    }
     endRound(io, game);
+  } else if (!game.graceTimeout) {
+    if (game.roundTimeout) {
+      clearTimeout(game.roundTimeout);
+      game.roundTimeout = null;
+    }
+
+    io.to(game.roomId).emit('round:timer', {
+      seconds: FINISH_GRACE_MS / 1000,
+      finisher: game.players[socketId].username
+    });
+
+    game.graceTimeout = setTimeout(() => {
+      game.graceTimeout = null;
+      endRound(io, game);
+    }, FINISH_GRACE_MS);
   }
 }
 
@@ -345,6 +366,10 @@ function endRound(io, game) {
   if (game.roundTimeout) {
     clearTimeout(game.roundTimeout);
     game.roundTimeout = null;
+  }
+  if (game.graceTimeout) {
+    clearTimeout(game.graceTimeout);
+    game.graceTimeout = null;
   }
 
   const playerIds = Object.keys(game.players);
@@ -466,6 +491,7 @@ function handleDisconnect(io, socketId) {
   if (!opponent) { games.delete(game.roomId); return; }
 
   if (game.roundTimeout) clearTimeout(game.roundTimeout);
+  if (game.graceTimeout) clearTimeout(game.graceTimeout);
 
   game.players[opponent].socket.emit('opponent:disconnected', {
     username: game.players[socketId].username

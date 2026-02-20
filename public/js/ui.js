@@ -57,6 +57,9 @@ const UI = (() => {
     opponentSentenceDisplay: document.getElementById('opponent-sentence-display'),
     opponentNamePanel: document.getElementById('opponent-name-panel'),
     opponentWpmPanel: document.getElementById('opponent-wpm-panel'),
+    finishTimer: document.getElementById('finish-timer'),
+    finishTimerLabel: document.getElementById('finish-timer-label'),
+    finishTimerCount: document.getElementById('finish-timer-count'),
 
     roundResultTitle: document.getElementById('round-result-title'),
     roundWinnerText: document.getElementById('round-winner-text'),
@@ -405,6 +408,35 @@ const UI = (() => {
     spawnNotification(text, 'attack-notification attack-sent');
   }
 
+  let finishTimerInterval = null;
+
+  function showFinishTimer(seconds, label) {
+    hideFinishTimer();
+    els.finishTimerLabel.textContent = label;
+    els.finishTimerCount.textContent = seconds;
+    els.finishTimerCount.classList.toggle('urgent', seconds <= 3);
+    els.finishTimer.style.display = 'flex';
+
+    let remaining = seconds;
+    finishTimerInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        hideFinishTimer();
+        return;
+      }
+      els.finishTimerCount.textContent = remaining;
+      els.finishTimerCount.classList.toggle('urgent', remaining <= 3);
+    }, 1000);
+  }
+
+  function hideFinishTimer() {
+    if (finishTimerInterval) {
+      clearInterval(finishTimerInterval);
+      finishTimerInterval = null;
+    }
+    if (els.finishTimer) els.finishTimer.style.display = 'none';
+  }
+
   return {
     screens, els, showScreen, showAuthModal, hideAuthModal,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
@@ -412,6 +444,6 @@ const UI = (() => {
     flashSentenceRange, flashOpponentRange,
     setMatchHeader, showRoundResult, showMatchResult,
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
-    showVsIntro, hideVsIntro, setSentenceHidden
+    showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer
   };
 })();

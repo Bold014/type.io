@@ -261,6 +261,7 @@
 
       const myUsername = getUsername();
 
+      UI.hideFinishTimer();
       UI.hideVsIntro();
       UI.setSentenceHidden(true);
 
@@ -370,8 +371,18 @@
       }
     });
 
+    GameSocket.on('round:timer', (data) => {
+      const myUsername = getUsername();
+      const iFinished = data.finisher === myUsername;
+      const label = iFinished
+        ? `${opponentUsername} has ${data.seconds}s to finish`
+        : `You have ${data.seconds}s to finish!`;
+      UI.showFinishTimer(data.seconds, label);
+    });
+
     GameSocket.on('round:result', (data) => {
       TypingEngine.reset();
+      UI.hideFinishTimer();
       UI.els.typingInput.disabled = true;
       const myUsername = getUsername();
       UI.showRoundResult(data, myUsername);
