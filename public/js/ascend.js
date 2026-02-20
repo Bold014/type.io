@@ -83,6 +83,17 @@ const AscendClient = (() => {
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    if (scoreboardRafId) {
+      clearTimeout(scoreboardRafId);
+      scoreboardRafId = null;
+    }
+    // #region agent log
+    if (posTracker) { clearInterval(posTracker); posTracker = null; }
+    lastFrameTop = null;
+    // #endregion
+    pendingScoreboardList = null;
+    lastScoreboardJson = '';
+    lastScoreboardRenderTime = 0;
     startTime = null;
     TypingEngine.reset();
   }
@@ -125,6 +136,11 @@ const AscendClient = (() => {
     }, 1000);
   }
 
+  // #region agent log
+  let posTracker = null;
+  let lastFrameTop = null;
+  // #endregion
+
   function startGame(data) {
     cacheEls();
     active = true;
@@ -143,6 +159,19 @@ const AscendClient = (() => {
       const sec = totalSec % 60;
       els.timer.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
     }, 1000);
+
+    // #region agent log
+    const frameEl = document.querySelector('.ascend-typing-panel .typing-area-frame');
+    if (frameEl && !posTracker) {
+      posTracker = setInterval(() => {
+        const r = frameEl.getBoundingClientRect();
+        if (lastFrameTop !== null && Math.abs(r.top - lastFrameTop) > 0.5) {
+          fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:posTracker',message:'FRAME SHIFTED',data:{oldTop:lastFrameTop,newTop:r.top,delta:r.top-lastFrameTop,height:r.height},timestamp:Date.now(),hypothesisId:'H'})}).catch(()=>{});
+        }
+        lastFrameTop = r.top;
+      }, 100);
+    }
+    // #endregion
 
     if (data.sentence) {
       handleSentence(data);
@@ -245,6 +274,9 @@ const AscendClient = (() => {
 
   function renderSentence(charStates) {
     if (!els.sentenceDisplay) return;
+    // #region agent log
+    const t0 = performance.now();
+    // #endregion
     let html = '';
     for (let i = 0; i < currentSentence.length; i++) {
       let cls = charStates[i] || 'pending';
@@ -262,6 +294,10 @@ const AscendClient = (() => {
       html += `<span class="char ${cls}">${char}</span>`;
     }
     els.sentenceDisplay.innerHTML = html;
+    // #region agent log
+    const newH = els.sentenceDisplay.offsetHeight;
+    fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:renderSentence',message:'render time',data:{durationMs:performance.now()-t0,charCount:currentSentence.length,floorCharIndex,displayHeight:newH},timestamp:Date.now(),hypothesisId:'A+G'})}).catch(()=>{});
+    // #endregion
   }
 
   function isInInjectedRange(index) {
@@ -313,6 +349,9 @@ const AscendClient = (() => {
   function triggerScreenShake() {
     if (!els.screenAscend) cacheEls();
     if (!els.screenAscend) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:triggerScreenShake',message:'screen shake fired',data:{},timestamp:Date.now(),hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
     els.screenAscend.classList.remove('screen-shake');
     void els.screenAscend.offsetHeight;
     els.screenAscend.classList.add('screen-shake');
@@ -343,13 +382,48 @@ const AscendClient = (() => {
   }
 
   let lastScoreboardJson = '';
+  let lastScoreboardRenderTime = 0;
+  let pendingScoreboardList = null;
+  let scoreboardRafId = null;
+  const SCOREBOARD_THROTTLE_MS = 500;
 
   function renderScoreboard(list) {
     if (!els.scoreboard) return;
 
+    const now = Date.now();
+    const currentJson = JSON.stringify(list);
+    if (currentJson === lastScoreboardJson) return;
+
+    if (now - lastScoreboardRenderTime < SCOREBOARD_THROTTLE_MS) {
+      pendingScoreboardList = list;
+      if (!scoreboardRafId) {
+        scoreboardRafId = setTimeout(() => {
+          scoreboardRafId = null;
+          if (pendingScoreboardList) {
+            renderScoreboardNow(pendingScoreboardList);
+            pendingScoreboardList = null;
+          }
+        }, SCOREBOARD_THROTTLE_MS - (now - lastScoreboardRenderTime));
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:renderScoreboard',message:'scoreboard update',data:{skipped:false,throttled:true,playerCount:list.length},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+
+    renderScoreboardNow(list);
+  }
+
+  function renderScoreboardNow(list) {
+    if (!els.scoreboard) return;
     const currentJson = JSON.stringify(list);
     if (currentJson === lastScoreboardJson) return;
     lastScoreboardJson = currentJson;
+    lastScoreboardRenderTime = Date.now();
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:renderScoreboardNow',message:'scoreboard render',data:{playerCount:list.length},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
 
     const existingRows = els.scoreboard.children;
 
@@ -440,11 +514,18 @@ const AscendClient = (() => {
     const floorRatio = playerHeight > 0 ? floorHeight / playerHeight : 0;
     const state = TypingEngine.isActive() ? TypingEngine.getState() : null;
     const typedPos = state ? state.position : 0;
-    floorCharIndex = Math.floor(typedPos * floorRatio);
+    const newFloorCharIndex = Math.floor(typedPos * floorRatio);
 
-    if (TypingEngine.isActive()) {
-      const charStates = TypingEngine.getCharStates();
-      renderSentence(charStates);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:handleFloorUpdate',message:'floor tick',data:{gap:data.gap,oldFloorCharIdx:floorCharIndex,newFloorCharIdx:newFloorCharIndex,typedPos,rerender:newFloorCharIndex!==floorCharIndex,charChanged:newFloorCharIndex!==floorCharIndex},timestamp:Date.now(),hypothesisId:'A+D'})}).catch(()=>{});
+    // #endregion
+
+    if (newFloorCharIndex !== floorCharIndex) {
+      floorCharIndex = newFloorCharIndex;
+      if (TypingEngine.isActive()) {
+        const charStates = TypingEngine.getCharStates();
+        renderSentence(charStates);
+      }
     }
 
     updateFloorWarning(data.gap);
@@ -458,6 +539,12 @@ const AscendClient = (() => {
     if (gap <= FLOOR_CRITICAL_GAP) newLevel = 'critical';
     else if (gap <= FLOOR_DANGER_GAP) newLevel = 'danger';
     else if (gap <= FLOOR_WARNING_GAP) newLevel = 'warning';
+
+    // #region agent log
+    if (newLevel !== 'none') {
+      fetch('http://127.0.0.1:7242/ingest/64a339f7-ad49-430a-a1fc-30bae743ebd6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ascend.js:updateFloorWarning',message:'floor warning',data:{gap,newLevel,oldLevel:floorWarningLevel,changed:newLevel!==floorWarningLevel},timestamp:Date.now(),hypothesisId:'E'})}).catch(()=>{});
+    }
+    // #endregion
 
     if (newLevel !== floorWarningLevel) {
       els.screenAscend.classList.remove('floor-warn', 'floor-danger', 'floor-critical');

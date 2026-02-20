@@ -367,6 +367,10 @@ function tickGameLoop(io, lobby) {
   tickBots(io, lobby, dt);
 
   let aliveCount = 0;
+  // #region agent log
+  let emitCount = 0;
+  const origForEach = lobby.players.forEach.bind(lobby.players);
+  // #endregion
 
   lobby.players.forEach((player, socketId) => {
     if (player.eliminated || !player.started) return;
@@ -436,6 +440,10 @@ function tickGameLoop(io, lobby) {
   if (aliveCount > 0 || lobby.players.size > 0) {
     broadcastScoreboard(io, lobby);
   }
+  // #region agent log
+  const fs = require('fs');
+  fs.appendFileSync('/Users/josephlallier/Desktop/PythonProj/type.io/.cursor/debug.log', JSON.stringify({location:'server/ascend.js:tickGameLoop',message:'tick stats',data:{aliveCount,totalPlayers:lobby.players.size,dt},timestamp:Date.now(),hypothesisId:'C'})+'\n');
+  // #endregion
 }
 
 function buildScoreboard(lobby) {

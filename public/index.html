@@ -505,12 +505,19 @@
       <div class="ascend-lobby-scroll">
         <section class="ascend-lobby-hero">
           <h2 class="ascend-lobby-heading">Battle Royale Typing</h2>
-          <p class="ascend-lobby-desc">Drop into a live match. Type fast, build momentum, and climb higher than everyone else. Slow down and the rising floor will catch you. Outlast every player to win.</p>
+          <p class="ascend-lobby-desc">Drop into a live match. Type fast, build momentum, and climb higher than everyone else. Slow down and the rising floor catches you. Outlast every player to win.</p>
         </section>
 
+        <div class="ascend-lobby-start-area">
+          <button id="btn-ascend-lobby-start" class="ascend-lobby-start-btn">START MATCH</button>
+          <span class="ascend-lobby-start-hint">Press to drop in</span>
+        </div>
+
+        <div class="ascend-lobby-divider"></div>
+
         <section class="ascend-lobby-attacks">
-          <h3 class="ascend-lobby-section-title">ATTACKS</h3>
-          <p class="ascend-lobby-section-sub">Build a <strong>20-character combo</strong> without errors to fire an attack at the closest player.</p>
+          <h3 class="ascend-lobby-section-title">HOW ATTACKS WORK</h3>
+          <p class="ascend-lobby-section-sub">Type <strong>20 correct characters</strong> in a row to launch an attack at the closest player.</p>
 
           <div class="attack-cards">
             <!-- INJECT -->
@@ -519,16 +526,9 @@
                 <span class="attack-card-name">INJECT</span>
                 <span class="attack-card-badge inject-badge">+word</span>
               </div>
-              <p class="attack-card-desc">Inserts a garbage word into your opponent's sentence, forcing them to type extra.</p>
+              <p class="attack-card-desc">Inserts a random word into the opponent's sentence.</p>
               <div class="attack-demo">
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">Before</span>
-                  <div class="attack-demo-sentence">the quick brown fox jumps</div>
-                </div>
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">After</span>
-                  <div class="attack-demo-sentence">the quick brown <span class="attack-hl inject-hl">over</span> fox jumps</div>
-                </div>
+                <div class="attack-demo-sentence">brown <span class="attack-hl inject-hl">over</span> fox</div>
               </div>
             </div>
 
@@ -538,16 +538,9 @@
                 <span class="attack-card-name">SCRAMBLE</span>
                 <span class="attack-card-badge scramble-badge">swap</span>
               </div>
-              <p class="attack-card-desc">Swaps two adjacent letters in the next word, tripping up your muscle memory.</p>
+              <p class="attack-card-desc">Swaps two adjacent letters in the next word.</p>
               <div class="attack-demo">
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">Before</span>
-                  <div class="attack-demo-sentence">the quick <span class="attack-hl-subtle">brown</span> fox jumps</div>
-                </div>
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">After</span>
-                  <div class="attack-demo-sentence">the quick <span class="attack-hl scramble-hl">borwn</span> fox jumps</div>
-                </div>
+                <div class="attack-demo-sentence">the <span class="attack-hl scramble-hl">qucik</span> brown</div>
               </div>
             </div>
 
@@ -557,24 +550,13 @@
                 <span class="attack-card-name">CHAOS</span>
                 <span class="attack-card-badge chaos-badge">CaSe</span>
               </div>
-              <p class="attack-card-desc">Randomly flips the case of up to 10 characters, turning familiar words into an unpredictable mess.</p>
+              <p class="attack-card-desc">Randomizes capitalization of upcoming characters.</p>
               <div class="attack-demo">
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">Before</span>
-                  <div class="attack-demo-sentence">the quick <span class="attack-hl-subtle">brown fox ju</span>mps</div>
-                </div>
-                <div class="attack-demo-row">
-                  <span class="attack-demo-label">After</span>
-                  <div class="attack-demo-sentence">the quick <span class="attack-hl chaos-hl">bRoWn FoX ju</span>mps</div>
-                </div>
+                <div class="attack-demo-sentence">the <span class="attack-hl chaos-hl">qUiCk bRoW</span>n</div>
               </div>
             </div>
           </div>
         </section>
-
-        <div class="ascend-lobby-start-area">
-          <button id="btn-ascend-lobby-start" class="ascend-lobby-start-btn">START</button>
-        </div>
       </div>
     </div>
   </div>
