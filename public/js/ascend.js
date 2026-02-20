@@ -116,6 +116,10 @@ const AscendClient = (() => {
       const sec = totalSec % 60;
       els.timer.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
     }, 1000);
+
+    if (data.sentence) {
+      handleSentence(data);
+    }
   }
 
   function handleSentence(data) {

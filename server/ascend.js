@@ -158,13 +158,22 @@ function startPlayerRun(io, lobby, socketId) {
   player.lastActivityTime = now;
   player.started = true;
 
-  player.socket.emit('ascend:start', { startTime: now });
-  assignSentence(io, lobby, socketId);
+  const sentenceData = prepareSentence(lobby, socketId);
+
+  player.socket.emit('ascend:start', {
+    startTime: now,
+    sentence: sentenceData.sentence,
+    source: sentenceData.source,
+    tier: sentenceData.tier,
+    height: sentenceData.height,
+    hp: sentenceData.hp,
+    momentum: sentenceData.momentum
+  });
 }
 
-function assignSentence(io, lobby, socketId) {
+function prepareSentence(lobby, socketId) {
   const player = lobby.players.get(socketId);
-  if (!player || player.eliminated) return;
+  if (!player) return null;
 
   const tier = getTier(player.height);
   player.tier = tier;
@@ -179,14 +188,22 @@ function assignSentence(io, lobby, socketId) {
   player.injectedRanges = [];
   player.lastTypingState = null;
 
-  player.socket.emit('ascend:sentence', {
+  return {
     sentence: sentenceObj.text,
     source: sentenceObj.source,
     tier: player.tier,
     height: Math.round(player.height * 10) / 10,
     hp: Math.round(player.hp),
     momentum: player.momentum
-  });
+  };
+}
+
+function assignSentence(io, lobby, socketId) {
+  const data = prepareSentence(lobby, socketId);
+  if (!data) return;
+
+  const player = lobby.players.get(socketId);
+  player.socket.emit('ascend:sentence', data);
 }
 
 function tickGameLoop(io, lobby) {
