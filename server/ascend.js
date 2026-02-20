@@ -238,6 +238,8 @@ function tickGameLoop(io, lobby) {
       }
     }
 
+    const hpBefore = player.hp;
+
     const idle = now - player.lastActivityTime;
     if (idle > IDLE_THRESHOLD_MS) {
       player.hp -= 5 * dt;
@@ -252,6 +254,12 @@ function tickGameLoop(io, lobby) {
 
     if (burnout.drain > 0) {
       player.hp -= burnout.drain * dt;
+    }
+
+    player.hp = Math.max(0, player.hp);
+
+    if (Math.round(player.hp) !== Math.round(hpBefore)) {
+      player.socket.emit('ascend:hp', { hp: Math.round(player.hp) });
     }
 
     if (player.hp <= 0) {
@@ -310,6 +318,7 @@ function handleTypingUpdate(io, lobby, socketId, data) {
     const newErrors = errors - combo.lastErrors;
     player.hp -= newErrors * 2;
     player.hp = Math.max(0, player.hp);
+    player.socket.emit('ascend:hp', { hp: Math.round(player.hp) });
     if (player.hp <= 0) {
       eliminatePlayer(io, lobby, socketId, null);
       return;

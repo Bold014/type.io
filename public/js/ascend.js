@@ -390,6 +390,11 @@ const AscendClient = (() => {
     updateMomentum(data.momentum);
   }
 
+  function handleHpUpdate(data) {
+    cacheEls();
+    updateHP(data.hp);
+  }
+
   function handleKnockout(data) {
     cacheEls();
     updateHP(data.hp);
@@ -565,7 +570,7 @@ const AscendClient = (() => {
     handleJoined, startCountdown, startGame,
     handleSentence, handleInput,
     handleAttackReceived, handleAttackSent,
-    handleScoreboardUpdate, handleTierUp, handleMomentumUp,
+    handleScoreboardUpdate, handleTierUp, handleMomentumUp, handleHpUpdate,
     handleKnockout, handleEliminated, handleBurnout, handleRunEnd,
     isActive, getInput
   };

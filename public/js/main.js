@@ -726,6 +726,10 @@
       AscendClient.handleMomentumUp(data);
     });
 
+    GameSocket.on('ascend:hp', (data) => {
+      AscendClient.handleHpUpdate(data);
+    });
+
     GameSocket.on('ascend:knockout', (data) => {
       AscendClient.handleKnockout(data);
     });
