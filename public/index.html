@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>type.io</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="error-flash" class="error-flash"></div>
+
+  <!-- WELCOME SCREEN (first thing you see) -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-wrapper">
+      <h1 class="logo logo-large">type<span class="logo-dot">.</span>io</h1>
+      <p class="welcome-tagline">real-time 1v1 typing duels</p>
+
+      <div class="welcome-card">
+        <h2 class="welcome-heading">WELCOME TO TYPE.IO</h2>
+        <p class="welcome-desc">Race head-to-head against another player. Type the same sentence simultaneously. Highest score wins. Best of three takes the match.</p>
+        <p class="welcome-prompt">ENTER A USERNAME TO JOIN, OR LEAVE IT BLANK FOR A RANDOM ONE</p>
+        <input type="text" id="welcome-username" class="welcome-input" placeholder="USERNAME" maxlength="20" autocomplete="off" spellcheck="false">
+        <button id="btn-join" class="btn btn-join">JOIN</button>
+      </div>
+
+      <p class="welcome-login-hint">
+        Already have an account? <a href="#" id="welcome-login-link">Log in</a>
+      </p>
+
+      <footer class="welcome-footer">&copy; 2026 type.io</footer>
+    </div>
+  </div>
+
+  <!-- HOME SCREEN (after joining) -->
+  <div id="screen-home" class="screen">
+    <div class="home-wrapper">
+      <header class="home-header">
+        <span class="home-title">HOME</span>
+        <div class="home-user-area">
+          <span class="home-username" id="home-username">GUEST</span>
+          <span class="home-badge" id="home-badge">GUEST</span>
+          <button id="btn-home-auth" class="btn btn-small">Log In</button>
+          <button id="btn-home-logout" class="btn btn-small" style="display:none">Log Out</button>
+        </div>
+      </header>
+
+      <div class="home-cards">
+        <button class="menu-card" id="card-quickplay" data-accent="accent">
+          <span class="menu-card-code">QP</span>
+          <div class="menu-card-text">
+            <span class="menu-card-title">QUICK PLAY</span>
+            <span class="menu-card-sub">Find an opponent and duel it out</span>
+          </div>
+          <span class="menu-card-arrow">&rsaquo;</span>
+        </button>
+
+        <button class="menu-card" id="card-ranked" data-accent="gold">
+          <span class="menu-card-code">RK</span>
+          <div class="menu-card-text">
+            <span class="menu-card-title">RANKED</span>
+            <span class="menu-card-sub" id="ranked-sub">Climb the leaderboard</span>
+          </div>
+          <span class="menu-card-lock" id="ranked-lock" style="display:none">&#x1f512;</span>
+          <span class="menu-card-arrow">&rsaquo;</span>
+        </button>
+
+        <div class="menu-card disabled" data-accent="red">
+          <span class="menu-card-code">BR</span>
+          <div class="menu-card-text">
+            <span class="menu-card-title">BATTLE ROYALE</span>
+            <span class="menu-card-sub">Last typer standing &mdash; coming soon</span>
+          </div>
+          <span class="menu-card-soon">SOON</span>
+        </div>
+
+        <div class="menu-card disabled" data-accent="green">
+          <span class="menu-card-code">LB</span>
+          <div class="menu-card-text">
+            <span class="menu-card-title">LEADERBOARD</span>
+            <span class="menu-card-sub">Top players &mdash; coming soon</span>
+          </div>
+        </div>
+
+        <div class="menu-card disabled" data-accent="dim">
+          <span class="menu-card-code">CFG</span>
+          <div class="menu-card-text">
+            <span class="menu-card-title">CONFIG</span>
+            <span class="menu-card-sub">Tweak your experience &mdash; coming soon</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal (global) -->
+  <div id="auth-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h2 id="auth-modal-title">LOG IN</h2>
+      <form id="auth-form">
+        <input type="text" id="auth-username" placeholder="USERNAME" autocomplete="username" required>
+        <input type="password" id="auth-password" placeholder="PASSWORD" autocomplete="current-password" required>
+        <p id="auth-error" class="form-error"></p>
+        <div class="modal-buttons">
+          <button type="submit" class="btn btn-join" id="auth-submit">LOG IN</button>
+          <button type="button" class="btn btn-small" id="auth-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MATCHMAKING SCREEN -->
+  <div id="screen-matchmaking" class="screen">
+    <div class="matchmaking-container">
+      <div class="matchmaking-glow"></div>
+      <h2>Searching for opponent<span class="dots"></span></h2>
+      <div class="matchmaking-rings">
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring-2"></div>
+      </div>
+      <p class="mode-label" id="matchmaking-mode">Quick Play</p>
+      <button id="btn-cancel-queue" class="btn btn-small">Cancel</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <div class="match-score" id="match-score"></div>
+      <div class="round-indicator" id="round-indicator"></div>
+    </div>
+
+    <div class="duel-meter-area">
+      <div class="duel-labels">
+        <span class="duel-label you">You <span id="player-wpm-bar">0</span> WPM</span>
+        <span class="duel-label opp"><span id="opponent-wpm-bar">0</span> WPM <span id="opponent-name-bar"></span></span>
+      </div>
+      <div class="duel-meter">
+        <div class="duel-fill-you" id="duel-fill-you"></div>
+        <div class="duel-divider"></div>
+        <div class="duel-fill-opp" id="duel-fill-opp"></div>
+      </div>
+    </div>
+
+    <div class="vs-intro-overlay" id="vs-intro-overlay" style="display:none">
+      <div class="vs-intro-bg"></div>
+      <div class="vs-intro-content">
+        <div class="vs-intro-player vs-intro-left" id="vs-intro-left"></div>
+        <div class="vs-intro-center">
+          <div class="vs-intro-vs">VS</div>
+        </div>
+        <div class="vs-intro-player vs-intro-right" id="vs-intro-right"></div>
+      </div>
+      <div class="vs-intro-flash" id="vs-intro-flash"></div>
+    </div>
+
+    <div class="countdown-overlay" id="countdown-overlay" style="display:none">
+      <div class="countdown-rings">
+        <span id="countdown-number"></span>
+      </div>
+    </div>
+
+    <div class="game-split">
+      <div class="game-panel game-panel-you">
+        <div class="panel-header">
+          <span class="panel-name panel-name-you">YOU</span>
+        </div>
+        <div class="typing-area" id="typing-area">
+          <div class="typing-area-frame">
+            <div class="sentence-display" id="sentence-display"></div>
+            <div class="quote-source" id="quote-source"></div>
+          </div>
+          <input type="text" id="typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="player-stats">
+          <div class="stat">
+            <span class="stat-value" id="player-wpm">0</span>
+            <span class="stat-label">WPM</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="player-errors">0</span>
+            <span class="stat-label">Errors</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="player-score">0</span>
+            <span class="stat-label">Score</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-divider"></div>
+
+      <div class="game-panel game-panel-opp">
+        <div class="panel-header">
+          <span class="panel-name panel-name-opp" id="opponent-name-panel"></span>
+          <span class="panel-wpm" id="opponent-wpm-panel">0 WPM</span>
+        </div>
+        <div class="typing-area opp-typing-area">
+          <div class="typing-area-frame opp-frame">
+            <div class="sentence-display" id="opponent-sentence-display"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attack-notifications" id="attack-notifications"></div>
+  </div>
+
+  <!-- ROUND RESULT SCREEN -->
+  <div id="screen-round-result" class="screen">
+    <div class="result-container">
+      <h2 class="round-result-title" id="round-result-title">Round 1</h2>
+      <p class="round-winner-text" id="round-winner-text"></p>
+      <div class="score-comparison">
+        <div class="score-card you">
+          <h3>You</h3>
+          <div class="score-detail"><span class="label">WPM</span><span id="result-you-wpm" class="value">0</span></div>
+          <div class="score-detail"><span class="label">Errors</span><span id="result-you-errors" class="value">0</span></div>
+          <div class="score-detail"><span class="label">Corrections</span><span id="result-you-corrections" class="value">0</span></div>
+          <div class="score-detail total"><span class="label">Score</span><span id="result-you-score" class="value">0</span></div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="score-card opponent">
+          <h3 id="result-opp-name">Opponent</h3>
+          <div class="score-detail"><span class="label">WPM</span><span id="result-opp-wpm" class="value">0</span></div>
+          <div class="score-detail"><span class="label">Errors</span><span id="result-opp-errors" class="value">0</span></div>
+          <div class="score-detail"><span class="label">Corrections</span><span id="result-opp-corrections" class="value">0</span></div>
+          <div class="score-detail total"><span class="label">Score</span><span id="result-opp-score" class="value">0</span></div>
+        </div>
+      </div>
+      <p class="next-round-text" id="next-round-text">Next round starting...</p>
+    </div>
+  </div>
+
+  <!-- MATCH RESULT SCREEN -->
+  <div id="screen-match-result" class="screen">
+    <div class="result-container">
+      <h2 class="match-result-title" id="match-result-title">Match Over</h2>
+      <p class="match-winner-text" id="match-winner-text"></p>
+      <div class="final-match-score" id="final-match-score"></div>
+      <p class="rating-change" id="rating-change"></p>
+      <div class="match-result-buttons">
+        <button id="btn-play-again" class="btn btn-primary">Play Again</button>
+        <button id="btn-quit" class="btn btn-small">Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/socket.js"></script>
+  <script src="/js/typing.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
