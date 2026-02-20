@@ -13,8 +13,6 @@ const TIER_THRESHOLDS = [0, 50, 150, 300, 450, 650, 850, 1100, 1350, 1650];
 
 const MOMENTUM_THRESHOLDS = [20, 45, 75, 110, 150, 200, 260, 330, 410, 500];
 
-const ATTACK_HP_COST = { inject: 15, scramble: 10, chaos: 8 };
-
 const FLOOR_BASE_SPEED = 0.5;
 const FLOOR_HEIGHT_FACTOR = 0.015;
 const FLOOR_GRACE_PERIOD_MS = 10000;
@@ -354,7 +352,6 @@ function processAttack(io, lobby, attackerId) {
   if (!target || !target.currentSentence) return;
 
   const attackType = pickAttackType(attacker.comboState.attackCount);
-  const damage = ATTACK_HP_COST[attackType];
 
   let result = null;
 
@@ -365,9 +362,7 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       word: result.word,
       insertPos: result.insertIdx,
-      injectedRanges: target.injectedRanges,
-      damage,
-      hp: Math.round(Math.max(0, target.hp - damage))
+      injectedRanges: target.injectedRanges
     });
   } else if (attackType === 'scramble') {
     result = scrambleWord(target);
@@ -379,9 +374,7 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       range: result.range,
       word: result.word,
-      injectedRanges: target.injectedRanges,
-      damage,
-      hp: Math.round(Math.max(0, target.hp - damage))
+      injectedRanges: target.injectedRanges
     });
   } else {
     result = caseChaos(target);
@@ -393,20 +386,11 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       range: result.range,
       word: result.word,
-      injectedRanges: target.injectedRanges,
-      damage,
-      hp: Math.round(Math.max(0, target.hp - damage))
+      injectedRanges: target.injectedRanges
     });
   }
 
-  target.hp -= damage;
-  target.hp = Math.max(0, target.hp);
-
   attacker.socket.emit('ascend:attack:sent', { type: attackType, target: target.username });
-
-  if (target.hp <= 0) {
-    eliminatePlayer(io, lobby, targetId, attackerId);
-  }
 }
 
 function injectWord(player) {

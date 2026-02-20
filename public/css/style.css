@@ -2816,8 +2816,19 @@ body::after {
 .ascend-header-left,
 .ascend-header-right {
   display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ascend-header-left {
+  flex-direction: column;
+}
+
+.ascend-header-right {
+  justify-content: flex-end;
   align-items: center;
-  gap: 10px;
 }
 
 .ascend-header-center {
@@ -2826,6 +2837,57 @@ body::after {
   justify-content: center;
   flex-direction: column;
   gap: 2px;
+}
+
+.ascend-header-left-labels {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ascend-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  animation: exitBtnFadeIn 0.4s ease-out both;
+}
+
+.ascend-exit-btn svg {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.25s ease;
+}
+
+.ascend-exit-btn:hover {
+  color: #f04444;
+  border-color: rgba(240, 68, 68, 0.4);
+  background: rgba(240, 68, 68, 0.08);
+  box-shadow: 0 0 12px rgba(240, 68, 68, 0.1);
+  letter-spacing: 0.18em;
+}
+
+.ascend-exit-btn:hover svg {
+  transform: translateX(3px);
+}
+
+.ascend-exit-btn:active {
+  transform: scale(0.94);
+}
+
+@keyframes exitBtnFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .ascend-mode-label {

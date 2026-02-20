@@ -295,7 +295,8 @@ const UI = (() => {
     levelupLevel: document.getElementById('levelup-level'),
 
     btnAscendAgain: document.getElementById('btn-ascend-again'),
-    btnAscendQuit: document.getElementById('btn-ascend-quit')
+    btnAscendQuit: document.getElementById('btn-ascend-quit'),
+    btnAscendExit: document.getElementById('btn-ascend-exit')
   };
 
   function showScreen(name) {

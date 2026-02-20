@@ -368,7 +368,7 @@ const AscendClient = (() => {
       if (!row) {
         row = document.createElement('div');
         row.innerHTML = `
-          <span class="ascend-sb-rank"><span class="ascend-sb-tier-dot"></span></span>
+          <span class="ascend-sb-rank"><span class="ascend-sb-tier-dot"></span><span class="ascend-sb-rank-num"></span></span>
           <div class="ascend-sb-name-cell">
             <span class="ascend-sb-name"></span>
             <div class="ascend-sb-hp-mini"><div class="ascend-sb-hp-mini-fill"></div></div>
@@ -380,7 +380,7 @@ const AscendClient = (() => {
 
       row.className = `ascend-sb-row ${tierClass} ${elimClass} ${selfClass}`.replace(/\s+/g, ' ').trim();
 
-      const rankEl = row.querySelector('.ascend-sb-rank');
+      const rankNumEl = row.querySelector('.ascend-sb-rank-num');
       const dotEl = row.querySelector('.ascend-sb-tier-dot');
       const nameEl = row.querySelector('.ascend-sb-name');
       const hpFill = row.querySelector('.ascend-sb-hp-mini-fill');
@@ -388,7 +388,7 @@ const AscendClient = (() => {
       const wpmEl = row.querySelector('.ascend-sb-wpm');
 
       if (dotEl) dotEl.className = `ascend-sb-tier-dot ${dotClass}`;
-      if (rankEl) rankEl.lastChild.textContent = i + 1;
+      if (rankNumEl) rankNumEl.textContent = i + 1;
       if (nameEl) nameEl.textContent = p.username;
       if (hpFill) hpFill.style.width = hpPct + '%';
       if (heightEl) heightEl.textContent = p.height + 'm';

@@ -774,6 +774,14 @@
       AscendClient.reset();
       UI.showScreen('home');
     });
+
+    if (UI.els.btnAscendExit) {
+      UI.els.btnAscendExit.addEventListener('click', () => {
+        GameSocket.emit('ascend:leave');
+        AscendClient.reset();
+        UI.showScreen('home');
+      });
+    }
   }
 
   init();
