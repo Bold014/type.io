@@ -6,7 +6,6 @@ const COMBO_THRESHOLD = 20;
 const TICK_MS = 200;
 const MAX_HP = 100;
 const IDLE_THRESHOLD_MS = 5000;
-const LOBBY_MAX_PLAYERS = 10;
 const LOBBY_EMPTY_TIMEOUT_MS = 30000;
 
 const TIER_THRESHOLDS = [0, 50, 150, 300, 450, 650, 850, 1100, 1350, 1650];
@@ -16,6 +15,37 @@ const MOMENTUM_THRESHOLDS = [20, 45, 75, 110, 150, 200, 260, 330, 410, 500];
 const FLOOR_BASE_SPEED = 0.5;
 const FLOOR_HEIGHT_FACTOR = 0.015;
 const FLOOR_GRACE_PERIOD_MS = 10000;
+const FLOOR_MAX_SPEED = 5.0;
+
+const BOT_INITIAL_MIN = 10;
+const BOT_INITIAL_MAX = 20;
+const BOT_RETIRE_AT_REAL_PLAYERS = 10;
+const BOT_WPM_MIN = 30;
+const BOT_WPM_MAX = 95;
+const BOT_ERROR_CHANCE = 0.03;
+
+const BOT_NAMES = [
+  'liam', 'ava', 'noah', 'olivia', 'ethan', 'sophia', 'mason', 'isabella',
+  'lucas', 'mia', 'randomguy', 'pixelpancake', 'nightowl', 'coffeeaddict',
+  'tinyfrog', 'fastfingers', 'keyboardhero', 'stormrunner', 'ghosttoast',
+  'rainyday', 'moonwalker', 'hyperpotato', 'snackbandit', 'voidwalker',
+  'spicynugget', 'bananabread', 'lostinspace', 'epicpotato', 'sneakycat',
+  'neontiger', 'justvibing', 'tinydragon', 'electricgoose', 'megamind',
+  'nightshift', 'darkmatter', 'hyperdrive', 'lasershark', 'tinyrobot',
+  'stormchaser', 'ghostnoodles', 'supernova', 'pixelwizard', 'randomhero',
+  'megachicken', 'midnightsnack', 'speedrunner', 'tinywizard', 'cosmicbanana',
+  'bananaenjoyer', 'keyboardninja', 'silentstorm', 'chaoticenergy',
+  'stormbreaker', 'voidninja', 'pixelknight', 'sleepycoder', 'turbotoaster',
+  'electricpanda', 'shadowhunter', 'fastbooster', 'cheeseoverlord',
+  'turbofalcon', 'bananaknight', 'stormrunner77', 'keyboardsmash',
+  'nightcoder', 'coffeelover99', 'tinypenguin', 'mysterybox',
+  'randompenguin', 'pixelghost', 'mooncheese', 'rainrunner', 'ghostrider',
+  'speedydude', 'lazywizard', 'tinyhamster', 'electricstorm', 'cosmicwizard',
+  'shadowblade', 'darkphoenix', 'ultrainstinct', 'TurboTurtle', 'SpeedDemon',
+  'PixelSamurai', 'ChaosWizard', 'LaserFalcon', 'SilentEcho', 'MegaMind',
+  'StormRunnerX', 'NeonPhantom', 'ShadowNinja', 'HyperNova', 'GhostHunter',
+  'IronVelocity', 'RapidPulse'
+];
 
 const GARBAGE_WORDS = [
   'the', 'and', 'but', 'from', 'with', 'over', 'just',
@@ -43,7 +73,7 @@ function pickAttackType(attackCount) {
 }
 
 function getOrCreateLobby() {
-  if (activeLobby && activeLobby.playerCount() < LOBBY_MAX_PLAYERS) {
+  if (activeLobby) {
     return activeLobby;
   }
 
@@ -54,6 +84,7 @@ function getOrCreateLobby() {
     players: new Map(),
     gameLoop: null,
     emptyTimer: null,
+    initialBotCount: 0,
     playerCount() {
       let count = 0;
       this.players.forEach(p => { if (!p.eliminated) count++; });
@@ -63,6 +94,148 @@ function getOrCreateLobby() {
   lobbies.set(lobbyId, lobby);
   activeLobby = lobby;
   return lobby;
+}
+
+function createBotSocket(botId, username) {
+  return {
+    id: botId,
+    data: { username, userId: null },
+    emit() {},
+    join() {},
+    leave() {}
+  };
+}
+
+function spawnBots(io, lobby) {
+  const count = BOT_INITIAL_MIN + Math.floor(Math.random() * (BOT_INITIAL_MAX - BOT_INITIAL_MIN + 1));
+  lobby.initialBotCount = count;
+
+  const shuffled = BOT_NAMES.slice().sort(() => Math.random() - 0.5);
+  const names = shuffled.slice(0, count);
+
+  const botIds = [];
+
+  for (let i = 0; i < count; i++) {
+    const botId = `bot_${lobby.lobbyId}_${i}`;
+    const username = names[i];
+    const botSocket = createBotSocket(botId, username);
+    const wpm = BOT_WPM_MIN + Math.floor(Math.random() * (BOT_WPM_MAX - BOT_WPM_MIN + 1));
+
+    const player = {
+      socket: botSocket,
+      username,
+      userId: null,
+      height: 0,
+      momentum: 1,
+      momentumProgress: 0,
+      momentumDecayPause: 0,
+      hp: MAX_HP,
+      tier: 1,
+      currentSentence: null,
+      currentSentenceSource: null,
+      sentenceStartTime: null,
+      comboState: { lastPosition: 0, lastErrors: 0, comboChars: 0, attackCount: 0 },
+      injectedRanges: [],
+      lastTypingState: null,
+      lastActivityTime: Date.now(),
+      eliminated: false,
+      finalHeight: 0,
+      finalTier: 0,
+      startTime: null,
+      knockouts: 0,
+      floorHeight: 0,
+      started: false,
+      isBot: true,
+      botWpm: wpm,
+      botTypedPosition: 0,
+      botErrors: 0
+    };
+
+    lobby.players.set(botId, player);
+    botIds.push(botId);
+  }
+
+  let countdownLeft = COUNTDOWN_SECONDS;
+  const interval = setInterval(() => {
+    countdownLeft--;
+    if (countdownLeft <= 0) {
+      clearInterval(interval);
+      for (const botId of botIds) {
+        const bot = lobby.players.get(botId);
+        if (bot && !bot.eliminated) {
+          startPlayerRun(io, lobby, botId);
+        }
+      }
+    }
+  }, 1000);
+}
+
+function retireBots(io, lobby) {
+  if (lobby.initialBotCount === 0) return;
+
+  let realCount = 0;
+  lobby.players.forEach(p => {
+    if (!p.isBot && !p.eliminated) realCount++;
+  });
+
+  let targetBots;
+  if (realCount >= BOT_RETIRE_AT_REAL_PLAYERS) {
+    targetBots = 0;
+  } else {
+    targetBots = Math.max(0, Math.round(
+      lobby.initialBotCount * (1 - (realCount - 1) / (BOT_RETIRE_AT_REAL_PLAYERS - 1))
+    ));
+  }
+
+  const aliveBots = [];
+  lobby.players.forEach((p, sid) => {
+    if (p.isBot && !p.eliminated) aliveBots.push({ sid, height: p.height });
+  });
+
+  const toRemove = aliveBots.length - targetBots;
+  if (toRemove <= 0) return;
+
+  aliveBots.sort((a, b) => a.height - b.height);
+  for (let i = 0; i < toRemove; i++) {
+    eliminatePlayer(io, lobby, aliveBots[i].sid, null);
+  }
+}
+
+function tickBots(io, lobby, dt) {
+  lobby.players.forEach((player, socketId) => {
+    if (!player.isBot || player.eliminated || !player.started || !player.currentSentence) return;
+
+    const charsPerSecond = (player.botWpm * 5) / 60;
+    player.botTypedPosition += charsPerSecond * dt;
+
+    if (Math.random() < BOT_ERROR_CHANCE) {
+      player.botErrors++;
+    }
+
+    const newPos = Math.min(Math.floor(player.botTypedPosition), player.currentSentence.length);
+    const jitter = Math.floor(Math.random() * 11) - 5;
+
+    handleTypingUpdate(io, lobby, socketId, {
+      position: newPos,
+      typed: player.currentSentence.substring(0, newPos),
+      wpm: Math.max(1, player.botWpm + jitter),
+      errors: player.botErrors,
+      corrections: 0
+    });
+
+    if (player.eliminated) return;
+
+    if (newPos >= player.currentSentence.length) {
+      handleSentenceComplete(io, lobby, socketId, {
+        typed: player.currentSentence,
+        wpm: player.botWpm,
+        corrections: 0,
+        time: Date.now() - (player.sentenceStartTime || Date.now())
+      });
+      player.botTypedPosition = 0;
+      player.botErrors = 0;
+    }
+  });
 }
 
 function joinLobby(io, socket) {
@@ -104,6 +277,12 @@ function joinLobby(io, socket) {
 
   lobby.players.set(socket.id, player);
   socket.join(lobby.lobbyId);
+
+  if (lobby.initialBotCount === 0) {
+    spawnBots(io, lobby);
+  } else {
+    retireBots(io, lobby);
+  }
 
   const currentScoreboard = buildScoreboard(lobby);
   socket.emit('ascend:joined', { scoreboard: currentScoreboard });
@@ -185,6 +364,8 @@ function tickGameLoop(io, lobby) {
   const now = Date.now();
   const dt = TICK_MS / 1000;
 
+  tickBots(io, lobby, dt);
+
   let aliveCount = 0;
 
   lobby.players.forEach((player, socketId) => {
@@ -233,8 +414,10 @@ function tickGameLoop(io, lobby) {
 
     const elapsed = now - player.startTime;
     if (elapsed > FLOOR_GRACE_PERIOD_MS) {
-      const floorSpeed = FLOOR_BASE_SPEED
-        + player.height * FLOOR_HEIGHT_FACTOR;
+      const floorSpeed = Math.min(
+        FLOOR_MAX_SPEED,
+        FLOOR_BASE_SPEED + player.height * FLOOR_HEIGHT_FACTOR
+      );
       player.floorHeight += floorSpeed * dt;
 
       if (player.floorHeight >= player.height) {
