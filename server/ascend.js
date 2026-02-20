@@ -545,7 +545,8 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       word: result.word,
       insertPos: result.insertIdx,
-      injectedRanges: target.injectedRanges
+      injectedRanges: target.injectedRanges,
+      hp: Math.round(target.hp)
     });
   } else if (attackType === 'scramble') {
     result = scrambleWord(target);
@@ -557,7 +558,8 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       range: result.range,
       word: result.word,
-      injectedRanges: target.injectedRanges
+      injectedRanges: target.injectedRanges,
+      hp: Math.round(target.hp)
     });
   } else {
     result = caseChaos(target);
@@ -569,7 +571,8 @@ function processAttack(io, lobby, attackerId) {
       updatedSentence: result.updatedSentence,
       range: result.range,
       word: result.word,
-      injectedRanges: target.injectedRanges
+      injectedRanges: target.injectedRanges,
+      hp: Math.round(target.hp)
     });
   }
 
