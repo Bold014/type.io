@@ -1,7 +1,168 @@
 const UI = (() => {
+  function getRankTier(rating) {
+    if (rating >= 1700) return { name: 'Diamond', color: '#a29bfe' };
+    if (rating >= 1400) return { name: 'Platinum', color: '#00cec9' };
+    if (rating >= 1100) return { name: 'Gold', color: '#ffd700' };
+    if (rating >= 800) return { name: 'Silver', color: '#c0c0c0' };
+    return { name: 'Bronze', color: '#cd7f32' };
+  }
+
+  // --- XP / LEVEL SYSTEM ---
+
+  const RAINBOW = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6'];
+  const SHAPES = ['circle','triangle','diamond','pentagon','hexagon'];
+
+  function xpToLevel(xp) {
+    return Math.floor(
+      Math.pow(xp / 500, 0.6) + xp / 5000 + Math.max(0, xp - 4000000) / 5000 + 1
+    );
+  }
+
+  function xpForLevel(level) {
+    if (level <= 1) return 0;
+    let lo = 0, hi = 200000000;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (xpToLevel(mid) >= level) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  }
+
+  function getLevelBadge(level) {
+    const colorIdx = Math.floor((level % 100) / 10) % RAINBOW.length;
+    const shapeIdx = Math.floor((level % 500) / 100) % SHAPES.length;
+    const tagColorIdx = Math.floor(level / 500) % RAINBOW.length;
+    return {
+      shape: SHAPES[shapeIdx],
+      shapeColor: RAINBOW[colorIdx],
+      tagColor: level >= 500 ? RAINBOW[tagColorIdx] : RAINBOW[colorIdx]
+    };
+  }
+
+  function buildBadgeSvg(shape, color, size) {
+    const s = size || 22;
+    const half = s / 2;
+    let path;
+    switch (shape) {
+      case 'triangle':
+        path = `<polygon points="${half},${s*0.1} ${s*0.9},${s*0.85} ${s*0.1},${s*0.85}" fill="${color}" />`;
+        break;
+      case 'diamond':
+        path = `<polygon points="${half},${s*0.05} ${s*0.9},${half} ${half},${s*0.95} ${s*0.1},${half}" fill="${color}" />`;
+        break;
+      case 'pentagon': {
+        const pts = [];
+        for (let i = 0; i < 5; i++) {
+          const a = (Math.PI * 2 * i / 5) - Math.PI / 2;
+          pts.push(`${half + half * 0.85 * Math.cos(a)},${half + half * 0.85 * Math.sin(a)}`);
+        }
+        path = `<polygon points="${pts.join(' ')}" fill="${color}" />`;
+        break;
+      }
+      case 'hexagon': {
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI * 2 * i / 6) - Math.PI / 6;
+          pts.push(`${half + half * 0.85 * Math.cos(a)},${half + half * 0.85 * Math.sin(a)}`);
+        }
+        path = `<polygon points="${pts.join(' ')}" fill="${color}" />`;
+        break;
+      }
+      default:
+        path = `<circle cx="${half}" cy="${half}" r="${half * 0.75}" fill="${color}" />`;
+    }
+    return `<svg viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">${path}</svg>`;
+  }
+
+  function getLevelUpMessage(newLevel) {
+    if (newLevel % 500 === 0) return 'DISTINGUISHED!';
+    if (newLevel % 100 === 0) return 'PROMOTED!';
+    if (newLevel % 10 === 0) return 'BADGE UP!';
+    return 'LEVEL UP!';
+  }
+
+  function renderXpBar(xp) {
+    if (!els.xpBarArea) return;
+    const level = xpToLevel(xp || 0);
+    const currentLevelXp = xpForLevel(level);
+    const nextLevelXp = xpForLevel(level + 1);
+    const progress = nextLevelXp > currentLevelXp
+      ? ((xp || 0) - currentLevelXp) / (nextLevelXp - currentLevelXp)
+      : 0;
+
+    const badge = getLevelBadge(level);
+
+    els.xpLevelBadge.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor);
+    els.xpLevelNum.textContent = level;
+    els.xpLevelNum.style.color = badge.tagColor;
+    els.xpNumbers.textContent = `${(xp || 0).toLocaleString()} / ${nextLevelXp.toLocaleString()} XP`;
+    els.xpBarFill.style.width = `${Math.max(0, Math.min(100, progress * 100))}%`;
+    els.xpBarArea.style.display = '';
+  }
+
+  function hideXpBar() {
+    if (els.xpBarArea) els.xpBarArea.style.display = 'none';
+  }
+
+  function showXpGain(xpGainData) {
+    if (!els.xpGainDisplay || !xpGainData) {
+      if (els.xpGainDisplay) els.xpGainDisplay.style.display = 'none';
+      return;
+    }
+
+    els.xpGainAmount.textContent = `+${xpGainData.xpGained} XP`;
+    els.xpGainPb.style.display = xpGainData.isPb ? '' : 'none';
+
+    if (xpGainData.newLevel > xpGainData.oldLevel) {
+      const msg = getLevelUpMessage(xpGainData.newLevel);
+      const badge = getLevelBadge(xpGainData.newLevel);
+      els.xpGainLevelup.textContent = `${msg} LV. ${xpGainData.newLevel}`;
+      els.xpGainLevelup.style.color = badge.tagColor;
+      els.xpGainLevelup.style.display = '';
+    } else {
+      els.xpGainLevelup.style.display = 'none';
+    }
+
+    els.xpGainDisplay.style.display = '';
+  }
+
+  function showLevelUp(oldLevel, newLevel) {
+    if (!els.levelupOverlay || newLevel <= oldLevel) return;
+
+    const badge = getLevelBadge(newLevel);
+    const msg = getLevelUpMessage(newLevel);
+
+    els.levelupBadge.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor, 80);
+    els.levelupBadge.style.color = badge.shapeColor;
+    els.levelupMessage.textContent = msg;
+    els.levelupMessage.style.color = badge.tagColor;
+    els.levelupLevel.textContent = `LV. ${newLevel}`;
+    els.levelupLevel.style.color = badge.tagColor;
+    els.levelupLevel.style.textShadow = `0 0 24px ${badge.tagColor}60`;
+
+    els.levelupOverlay.classList.remove('fade-out');
+    els.levelupOverlay.style.display = 'flex';
+
+    setTimeout(() => {
+      els.levelupOverlay.classList.add('fade-out');
+      setTimeout(() => {
+        els.levelupOverlay.style.display = 'none';
+        els.levelupOverlay.classList.remove('fade-out');
+      }, 500);
+    }, 2500);
+  }
+
+  const PLACEHOLDER_EMAIL_SUFFIX = '@noemail.typeduel.io';
+
+  function isPlaceholderEmail(email) {
+    return !email || email.endsWith(PLACEHOLDER_EMAIL_SUFFIX);
+  }
+
   const screens = {
     welcome: document.getElementById('screen-welcome'),
     home: document.getElementById('screen-home'),
+    profile: document.getElementById('screen-profile'),
     matchmaking: document.getElementById('screen-matchmaking'),
     game: document.getElementById('screen-game'),
     roundResult: document.getElementById('screen-round-result'),
@@ -10,9 +171,25 @@ const UI = (() => {
 
   const els = {
     welcomeUsername: document.getElementById('welcome-username'),
-    btnJoin: document.getElementById('btn-join'),
-    welcomeLoginLink: document.getElementById('welcome-login-link'),
+    welcomeHeading: document.getElementById('welcome-heading'),
+    welcomeDesc: document.getElementById('welcome-desc'),
+    welcomeStep1: document.getElementById('welcome-step-1'),
+    welcomeStepSignup: document.getElementById('welcome-step-signup'),
+    welcomeStepLogin: document.getElementById('welcome-step-login'),
+    btnContinue: document.getElementById('btn-continue'),
+    welcomeUsernameLocked: document.getElementById('welcome-username-locked'),
+    welcomeUsernameLockedLogin: document.getElementById('welcome-username-locked-login'),
+    welcomeEmail: document.getElementById('welcome-email'),
+    welcomePassword: document.getElementById('welcome-password'),
+    welcomePasswordLogin: document.getElementById('welcome-password-login'),
+    welcomeError: document.getElementById('welcome-error'),
+    welcomeErrorLogin: document.getElementById('welcome-error-login'),
+    btnCreateAccount: document.getElementById('btn-create-account'),
+    btnSignIn: document.getElementById('btn-sign-in'),
+    btnBackSignup: document.getElementById('btn-back-signup'),
+    btnBackLogin: document.getElementById('btn-back-login'),
 
+    homeUserInfo: document.getElementById('home-user-info'),
     homeUsername: document.getElementById('home-username'),
     homeBadge: document.getElementById('home-badge'),
     btnHomeAuth: document.getElementById('btn-home-auth'),
@@ -22,14 +199,27 @@ const UI = (() => {
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
 
-    authModal: document.getElementById('auth-modal'),
-    authModalTitle: document.getElementById('auth-modal-title'),
-    authForm: document.getElementById('auth-form'),
-    authUsername: document.getElementById('auth-username'),
-    authPassword: document.getElementById('auth-password'),
-    authError: document.getElementById('auth-error'),
-    authSubmit: document.getElementById('auth-submit'),
-    authCancel: document.getElementById('auth-cancel'),
+    btnProfileBack: document.getElementById('btn-profile-back'),
+    profileUsername: document.getElementById('profile-username'),
+    profileRankBadge: document.getElementById('profile-rank-badge'),
+    profileSr: document.getElementById('profile-sr'),
+    profileLevel: document.getElementById('profile-level'),
+    profileXp: document.getElementById('profile-xp'),
+    profileBestWpm: document.getElementById('profile-best-wpm'),
+    profileWins: document.getElementById('profile-wins'),
+    profileLosses: document.getElementById('profile-losses'),
+    profileWinRate: document.getElementById('profile-winrate'),
+    profileAvgWpm: document.getElementById('profile-avg-wpm'),
+    profileGamesPlayed: document.getElementById('profile-games-played'),
+    profileEmailCurrent: document.getElementById('profile-email-current'),
+    profileEmailHint: document.getElementById('profile-email-hint'),
+    profileEmailInput: document.getElementById('profile-email-input'),
+    profileEmailError: document.getElementById('profile-email-error'),
+    profileEmailSuccess: document.getElementById('profile-email-success'),
+    btnProfileSaveEmail: document.getElementById('btn-profile-save-email'),
+    btnProfileLogoutHeader: document.getElementById('btn-profile-logout-header'),
+    profileHomeUsername: document.getElementById('profile-home-username'),
+    profileHomeBadge: document.getElementById('profile-home-badge'),
 
     matchmakingMode: document.getElementById('matchmaking-mode'),
     btnCancelQueue: document.getElementById('btn-cancel-queue'),
@@ -79,7 +269,21 @@ const UI = (() => {
     finalMatchScore: document.getElementById('final-match-score'),
     ratingChange: document.getElementById('rating-change'),
     btnPlayAgain: document.getElementById('btn-play-again'),
-    btnQuit: document.getElementById('btn-quit')
+    btnQuit: document.getElementById('btn-quit'),
+
+    xpBarArea: document.getElementById('xp-bar-area'),
+    xpLevelBadge: document.getElementById('xp-level-badge'),
+    xpLevelNum: document.getElementById('xp-level-num'),
+    xpNumbers: document.getElementById('xp-numbers'),
+    xpBarFill: document.getElementById('xp-bar-fill'),
+    xpGainDisplay: document.getElementById('xp-gain-display'),
+    xpGainAmount: document.getElementById('xp-gain-amount'),
+    xpGainPb: document.getElementById('xp-gain-pb'),
+    xpGainLevelup: document.getElementById('xp-gain-levelup'),
+    levelupOverlay: document.getElementById('levelup-overlay'),
+    levelupBadge: document.getElementById('levelup-badge'),
+    levelupMessage: document.getElementById('levelup-message'),
+    levelupLevel: document.getElementById('levelup-level')
   };
 
   function showScreen(name) {
@@ -87,39 +291,58 @@ const UI = (() => {
     if (screens[name]) screens[name].classList.add('active');
   }
 
-  function showAuthModal(mode) {
-    els.authModalTitle.textContent = mode === 'login' ? 'LOG IN' : 'SIGN UP';
-    els.authSubmit.textContent = mode === 'login' ? 'LOG IN' : 'SIGN UP';
-    els.authError.textContent = '';
-    els.authUsername.value = '';
-    els.authPassword.value = '';
-    els.authModal.style.display = 'flex';
-    els.authModal.dataset.mode = mode;
-    els.authUsername.focus();
+  function showWelcomeStep(step, username) {
+    els.welcomeStep1.style.display = step === 'username' ? '' : 'none';
+    els.welcomeStepSignup.style.display = step === 'signup' ? '' : 'none';
+    els.welcomeStepLogin.style.display = step === 'login' ? '' : 'none';
+
+    if (step === 'signup') {
+      els.welcomeUsernameLocked.textContent = username;
+      els.welcomeEmail.value = '';
+      els.welcomePassword.value = '';
+      els.welcomeError.textContent = '';
+      els.welcomeDesc.style.display = 'none';
+      els.welcomeEmail.focus();
+    } else if (step === 'login') {
+      els.welcomeUsernameLockedLogin.textContent = username;
+      els.welcomePasswordLogin.value = '';
+      els.welcomeErrorLogin.textContent = '';
+      els.welcomeDesc.style.display = 'none';
+      els.welcomePasswordLogin.focus();
+    } else {
+      els.welcomeDesc.style.display = '';
+      els.welcomeUsername.value = '';
+      els.welcomeUsername.focus();
+    }
   }
 
-  function hideAuthModal() {
-    els.authModal.style.display = 'none';
-  }
-
-  function setHomeUser(username, isLoggedIn, rating) {
+  function setHomeUser(username, isLoggedIn, rating, xp) {
     els.homeUsername.textContent = username.toUpperCase();
     if (isLoggedIn) {
-      els.homeBadge.textContent = `${rating || 1000} SR`;
+      const tier = getRankTier(rating || 1000);
+      els.homeBadge.textContent = `${tier.name.toUpperCase()} — ${rating || 1000} SR`;
       els.homeBadge.className = 'home-badge ranked';
+      els.homeBadge.style.color = tier.color;
+      els.homeBadge.style.background = tier.color + '1a';
+      els.homeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
       els.btnHomeAuth.style.display = 'none';
       els.btnHomeLogout.style.display = '';
       els.rankedSub.textContent = 'Climb the leaderboard';
       els.rankedLock.style.display = 'none';
       els.cardRanked.classList.remove('disabled');
+      renderXpBar(xp || 0);
     } else {
       els.homeBadge.textContent = 'GUEST';
       els.homeBadge.className = 'home-badge';
+      els.homeBadge.style.color = '';
+      els.homeBadge.style.background = '';
+      els.homeBadge.style.boxShadow = '';
       els.btnHomeAuth.style.display = '';
       els.btnHomeLogout.style.display = 'none';
       els.rankedSub.textContent = 'Log in to unlock ranked play';
       els.rankedLock.style.display = '';
       els.cardRanked.classList.add('disabled');
+      hideXpBar();
     }
   }
 
@@ -437,13 +660,61 @@ const UI = (() => {
     if (els.finishTimer) els.finishTimer.style.display = 'none';
   }
 
+  function showProfile(profile) {
+    const tier = getRankTier(profile.rating || 1000);
+
+    els.profileUsername.textContent = (profile.username || '').toUpperCase();
+    els.profileHomeUsername.textContent = (profile.username || '').toUpperCase();
+    els.profileHomeBadge.textContent = `${tier.name.toUpperCase()} — ${profile.rating || 1000} SR`;
+    els.profileHomeBadge.className = 'home-badge ranked';
+    els.profileHomeBadge.style.color = tier.color;
+    els.profileHomeBadge.style.background = tier.color + '1a';
+    els.profileHomeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
+
+    els.profileRankBadge.textContent = tier.name.toUpperCase();
+    els.profileRankBadge.style.color = tier.color;
+    els.profileRankBadge.style.borderColor = tier.color;
+    els.profileRankBadge.style.textShadow = `0 0 10px ${tier.color}40`;
+    els.profileSr.textContent = profile.rating || 1000;
+
+    els.profileLevel.textContent = xpToLevel(profile.xp || 0);
+    els.profileXp.textContent = (profile.xp || 0).toLocaleString();
+    els.profileBestWpm.textContent = Math.round(profile.best_wpm || 0);
+    els.profileWins.textContent = profile.wins || 0;
+    els.profileLosses.textContent = profile.losses || 0;
+    const total = (profile.wins || 0) + (profile.losses || 0);
+    els.profileWinRate.textContent = total > 0 ? Math.round((profile.wins / total) * 100) + '%' : '—';
+    els.profileAvgWpm.textContent = Math.round(profile.avg_wpm || 0);
+    els.profileGamesPlayed.textContent = profile.games_played || 0;
+
+    if (isPlaceholderEmail(profile.email)) {
+      els.profileEmailCurrent.textContent = 'No email set';
+      els.profileEmailCurrent.style.color = 'var(--text-dim)';
+      els.profileEmailHint.textContent = 'Add an email to enable password recovery';
+      els.profileEmailHint.style.display = '';
+    } else {
+      els.profileEmailCurrent.textContent = profile.email;
+      els.profileEmailCurrent.style.color = 'var(--text)';
+      els.profileEmailHint.textContent = '';
+      els.profileEmailHint.style.display = 'none';
+    }
+
+    els.profileEmailInput.value = '';
+    els.profileEmailError.textContent = '';
+    els.profileEmailSuccess.textContent = '';
+
+    showScreen('profile');
+  }
+
   return {
-    screens, els, showScreen, showAuthModal, hideAuthModal,
+    screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
     updateOpponent, updateDuelMeter, showCountdown, hideCountdown, flashError,
     flashSentenceRange, flashOpponentRange,
     setMatchHeader, showRoundResult, showMatchResult,
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
-    showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer
+    showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
+    showProfile, isPlaceholderEmail, getRankTier,
+    xpToLevel, renderXpBar, showXpGain, showLevelUp, getLevelBadge
   };
 })();

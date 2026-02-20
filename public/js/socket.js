@@ -1,5 +1,5 @@
 const GameSocket = (() => {
-  const socket = io({ autoConnect: true });
+  let socket = io({ autoConnect: true });
   const listeners = {};
 
   function on(event, callback) {
@@ -23,6 +23,30 @@ const GameSocket = (() => {
     socket.emit('auth:set', data);
   }
 
+  function reconnectWithToken(token) {
+    socket.auth = { token };
+    socket.disconnect();
+    socket.connect();
+
+    for (const [event, callbacks] of Object.entries(listeners)) {
+      for (const cb of callbacks) {
+        socket.on(event, cb);
+      }
+    }
+  }
+
+  function clearToken() {
+    socket.auth = {};
+    socket.disconnect();
+    socket.connect();
+
+    for (const [event, callbacks] of Object.entries(listeners)) {
+      for (const cb of callbacks) {
+        socket.on(event, cb);
+      }
+    }
+  }
+
   function joinQueue(mode) {
     socket.emit('queue:join', { mode });
   }
@@ -39,5 +63,9 @@ const GameSocket = (() => {
     socket.emit('round:complete', data);
   }
 
-  return { socket, on, off, emit, setAuth, joinQueue, leaveQueue, sendTypingUpdate, sendRoundComplete };
+  return {
+    socket, on, off, emit, setAuth,
+    reconnectWithToken, clearToken,
+    joinQueue, leaveQueue, sendTypingUpdate, sendRoundComplete
+  };
 })();

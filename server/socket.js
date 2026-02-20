@@ -1,3 +1,4 @@
+const { supabase, findUserById } = require('./db');
 const matchmaking = require('./matchmaking');
 const {
   createGame, startCountdown, handleTypingUpdate,
@@ -7,11 +8,30 @@ const {
 let roomCounter = 0;
 
 function setupSocketHandlers(io) {
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (token) {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          const profile = await findUserById(user.id);
+          if (profile) {
+            socket.data.userId = profile.id;
+            socket.data.username = profile.username;
+            socket.data.rating = profile.rating;
+          }
+        }
+      } catch (_) {}
+    }
+    next();
+  });
+
   io.on('connection', (socket) => {
-    const session = socket.request.session;
-    socket.data.userId = session?.userId || null;
-    socket.data.username = null;
-    socket.data.rating = 1000;
+    if (!socket.data.userId) {
+      socket.data.userId = null;
+      socket.data.username = null;
+      socket.data.rating = 1000;
+    }
 
     socket.on('auth:set', (data) => {
       socket.data.username = data.username;

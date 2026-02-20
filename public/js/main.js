@@ -1,6 +1,12 @@
 (() => {
+  const SUPABASE_URL = 'https://smnhckjzyawgzrgwzjcq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbmhja2p6eWF3Z3pyZ3d6amNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NTI3MzksImV4cCI6MjA4NzEyODczOX0.Hpd_oSIYrCr6zv2OI1CdOpU0vVhaLFhDHRt4G0LLCnc';
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   let currentUser = null;
   let guestUsername = null;
+  let pendingUsername = '';
   let currentMode = 'quick';
   let opponentUsername = '';
   let currentSentence = '';
@@ -22,24 +28,46 @@
     return guestUsername;
   }
 
+  async function fetchProfile(token) {
+    const res = await fetch('/api/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  function loginSuccess(profile, accessToken) {
+    currentUser = profile;
+    GameSocket.reconnectWithToken(accessToken);
+    GameSocket.setAuth({
+      username: currentUser.username,
+      userId: currentUser.id,
+      rating: currentUser.rating
+    });
+    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+    UI.showScreen('home');
+  }
+
   async function init() {
     try {
-      const res = await fetch('/api/me');
-      if (res.ok) {
-        currentUser = await res.json();
-        GameSocket.setAuth({
-          username: currentUser.username,
-          userId: currentUser.id,
-          rating: currentUser.rating
-        });
-        UI.setHomeUser(currentUser.username, true, currentUser.rating);
-        UI.showScreen('home');
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        const profile = await fetchProfile(session.access_token);
+        if (profile) {
+          loginSuccess(profile, session.access_token);
+        }
       }
     } catch (_) {}
 
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED' && session) {
+        GameSocket.reconnectWithToken(session.access_token);
+      }
+    });
+
     bindWelcomeEvents();
     bindHomeEvents();
-    bindAuthEvents();
+    bindProfileEvents();
     bindGameEvents();
     bindResultEvents();
     bindSocketEvents();
@@ -48,24 +76,157 @@
   // --- WELCOME SCREEN ---
 
   function bindWelcomeEvents() {
-    UI.els.btnJoin.addEventListener('click', handleJoin);
+    UI.els.btnContinue.addEventListener('click', handleContinue);
 
     UI.els.welcomeUsername.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleJoin();
+      if (e.key === 'Enter') handleContinue();
     });
 
-    UI.els.welcomeLoginLink.addEventListener('click', (e) => {
+    UI.els.btnCreateAccount.addEventListener('click', handleSignup);
+
+    UI.els.welcomePassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSignup();
+    });
+
+    UI.els.btnSignIn.addEventListener('click', handleLogin);
+
+    UI.els.welcomePasswordLogin.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    UI.els.btnBackSignup.addEventListener('click', (e) => {
       e.preventDefault();
-      UI.showAuthModal('login');
+      UI.showWelcomeStep('username');
+    });
+
+    UI.els.btnBackLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      UI.showWelcomeStep('username');
     });
   }
 
-  function handleJoin() {
+  async function handleContinue() {
     const input = UI.els.welcomeUsername.value.trim();
-    guestUsername = input || generateGuestName();
-    GameSocket.setAuth({ username: guestUsername, userId: null, rating: 1000 });
-    UI.setHomeUser(guestUsername, false, null);
-    UI.showScreen('home');
+
+    if (!input) {
+      guestUsername = generateGuestName();
+      GameSocket.setAuth({ username: guestUsername, userId: null, rating: 1000 });
+      UI.setHomeUser(guestUsername, false, null, null);
+      UI.showScreen('home');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(input)) {
+      UI.els.welcomeUsername.style.borderColor = 'var(--red)';
+      setTimeout(() => { UI.els.welcomeUsername.style.borderColor = ''; }, 2000);
+      return;
+    }
+
+    pendingUsername = input;
+    UI.els.btnContinue.textContent = '...';
+    UI.els.btnContinue.disabled = true;
+
+    try {
+      const res = await fetch('/api/check-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: input })
+      });
+      const data = await res.json();
+
+      if (data.exists) {
+        UI.showWelcomeStep('login', input);
+      } else {
+        UI.showWelcomeStep('signup', input);
+      }
+    } catch (err) {
+      UI.els.welcomeUsername.style.borderColor = 'var(--red)';
+      setTimeout(() => { UI.els.welcomeUsername.style.borderColor = ''; }, 2000);
+    } finally {
+      UI.els.btnContinue.textContent = 'CONTINUE';
+      UI.els.btnContinue.disabled = false;
+    }
+  }
+
+  async function handleSignup() {
+    const rawEmail = UI.els.welcomeEmail.value.trim();
+    const password = UI.els.welcomePassword.value;
+    const email = rawEmail || `${pendingUsername.toLowerCase()}@noemail.typeduel.io`;
+
+    if (password.length < 4) {
+      UI.els.welcomeError.textContent = 'Password must be at least 4 characters';
+      return;
+    }
+
+    UI.els.btnCreateAccount.textContent = '...';
+    UI.els.btnCreateAccount.disabled = true;
+
+    try {
+      const authResult = await sb.auth.signUp({
+        email,
+        password,
+        options: { data: { username: pendingUsername } }
+      });
+
+      if (authResult.error) {
+        let msg = authResult.error.message;
+        if (msg.includes('User already registered')) msg = 'Email already in use';
+        UI.els.welcomeError.textContent = msg;
+        return;
+      }
+
+      const session = authResult.data.session;
+      const profile = await fetchProfile(session.access_token);
+      if (!profile) {
+        UI.els.welcomeError.textContent = 'Account created but profile not found. Try logging in.';
+        return;
+      }
+
+      loginSuccess(profile, session.access_token);
+    } catch (err) {
+      UI.els.welcomeError.textContent = 'Connection error';
+    } finally {
+      UI.els.btnCreateAccount.textContent = 'CREATE ACCOUNT';
+      UI.els.btnCreateAccount.disabled = false;
+    }
+  }
+
+  async function handleLogin() {
+    const password = UI.els.welcomePasswordLogin.value;
+
+    if (!password) {
+      UI.els.welcomeErrorLogin.textContent = 'Password is required';
+      return;
+    }
+
+    UI.els.btnSignIn.textContent = '...';
+    UI.els.btnSignIn.disabled = true;
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: pendingUsername, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        UI.els.welcomeErrorLogin.textContent = data.error || 'Invalid credentials';
+        return;
+      }
+
+      await sb.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token
+      });
+
+      loginSuccess(data.profile, data.access_token);
+    } catch (err) {
+      UI.els.welcomeErrorLogin.textContent = 'Connection error';
+    } finally {
+      UI.els.btnSignIn.textContent = 'SIGN IN';
+      UI.els.btnSignIn.disabled = false;
+    }
   }
 
   // --- HOME SCREEN ---
@@ -83,7 +244,8 @@
 
     UI.els.cardRanked.addEventListener('click', () => {
       if (!currentUser) {
-        UI.showAuthModal('login');
+        UI.showWelcomeStep('username');
+        UI.showScreen('welcome');
         return;
       }
       currentMode = 'ranked';
@@ -98,83 +260,95 @@
       UI.showScreen('home');
     });
 
-    UI.els.btnHomeAuth.addEventListener('click', () => UI.showAuthModal('login'));
+    UI.els.homeUserInfo.addEventListener('click', () => {
+      if (currentUser) {
+        UI.showProfile(currentUser);
+      }
+    });
 
-    UI.els.btnHomeLogout.addEventListener('click', async () => {
-      await fetch('/api/logout', { method: 'POST' });
-      currentUser = null;
-      const name = guestUsername || generateGuestName();
-      guestUsername = name;
-      GameSocket.setAuth({ username: name, userId: null, rating: 1000 });
-      UI.setHomeUser(name, false, null);
+    UI.els.btnHomeAuth.addEventListener('click', () => {
+      UI.showWelcomeStep('username');
+      UI.showScreen('welcome');
+    });
+
+    UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
+  }
+
+  async function doLogout() {
+    await sb.auth.signOut();
+    currentUser = null;
+    GameSocket.clearToken();
+    const name = guestUsername || generateGuestName();
+    guestUsername = name;
+    GameSocket.setAuth({ username: name, userId: null, rating: 1000 });
+    UI.setHomeUser(name, false, null, null);
+    UI.showWelcomeStep('username');
+    UI.showScreen('welcome');
+  }
+
+  // --- PROFILE SCREEN ---
+
+  function bindProfileEvents() {
+    UI.els.btnProfileBack.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    UI.els.btnProfileLogoutHeader.addEventListener('click', () => doLogout());
+
+    UI.els.btnProfileSaveEmail.addEventListener('click', handleUpdateEmail);
+
+    UI.els.profileEmailInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleUpdateEmail();
     });
   }
 
-  // --- AUTH ---
+  async function handleUpdateEmail() {
+    const newEmail = UI.els.profileEmailInput.value.trim();
+    UI.els.profileEmailError.textContent = '';
+    UI.els.profileEmailSuccess.textContent = '';
 
-  function bindAuthEvents() {
-    UI.els.authCancel.addEventListener('click', () => UI.hideAuthModal());
+    if (!newEmail) {
+      UI.els.profileEmailError.textContent = 'Enter an email address';
+      return;
+    }
 
-    UI.els.authModal.addEventListener('click', (e) => {
-      if (e.target === UI.els.authModal) UI.hideAuthModal();
-    });
+    UI.els.btnProfileSaveEmail.textContent = '...';
+    UI.els.btnProfileSaveEmail.disabled = true;
 
-    UI.els.authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const mode = UI.els.authModal.dataset.mode;
-      const username = UI.els.authUsername.value.trim();
-      const password = UI.els.authPassword.value;
-
-      try {
-        const res = await fetch(`/api/${mode}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          UI.els.authError.textContent = data.error;
-          return;
-        }
-        currentUser = data;
-        GameSocket.setAuth({ username: currentUser.username, userId: currentUser.id, rating: currentUser.rating });
-        UI.setHomeUser(currentUser.username, true, currentUser.rating);
-        UI.hideAuthModal();
-        UI.showScreen('home');
-      } catch (err) {
-        UI.els.authError.textContent = 'Connection error';
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        UI.els.profileEmailError.textContent = 'Not logged in';
+        return;
       }
-    });
 
-    const switchLink = document.createElement('p');
-    switchLink.className = 'form-error';
-    switchLink.style.color = 'var(--text-dim)';
-    switchLink.style.cursor = 'pointer';
-    switchLink.style.textAlign = 'center';
-    switchLink.style.marginTop = '8px';
-    switchLink.id = 'auth-switch';
-    UI.els.authForm.appendChild(switchLink);
+      const res = await fetch('/api/update-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ email: newEmail })
+      });
+      const data = await res.json();
 
-    const updateSwitchLink = () => {
-      const mode = UI.els.authModal.dataset.mode;
-      if (mode === 'login') {
-        switchLink.innerHTML = 'No account? <span style="color:var(--accent);font-weight:600">Sign up</span>';
-      } else {
-        switchLink.innerHTML = 'Have an account? <span style="color:var(--accent);font-weight:600">Log in</span>';
+      if (!res.ok) {
+        UI.els.profileEmailError.textContent = data.error || 'Failed to update email';
+        return;
       }
-    };
 
-    const origShow = UI.showAuthModal;
-    UI.showAuthModal = (mode) => {
-      origShow(mode);
-      updateSwitchLink();
-    };
-
-    switchLink.addEventListener('click', () => {
-      const current = UI.els.authModal.dataset.mode;
-      const next = current === 'login' ? 'signup' : 'login';
-      UI.showAuthModal(next);
-    });
+      currentUser.email = newEmail;
+      UI.els.profileEmailCurrent.textContent = newEmail;
+      UI.els.profileEmailCurrent.style.color = 'var(--text)';
+      UI.els.profileEmailHint.style.display = 'none';
+      UI.els.profileEmailInput.value = '';
+      UI.els.profileEmailSuccess.textContent = 'Email updated';
+    } catch (err) {
+      UI.els.profileEmailError.textContent = 'Connection error';
+    } finally {
+      UI.els.btnProfileSaveEmail.textContent = 'SAVE EMAIL';
+      UI.els.btnProfileSaveEmail.disabled = false;
+    }
   }
 
   // --- GAME ---
@@ -391,7 +565,25 @@
     GameSocket.on('match:result', (data) => {
       TypingEngine.reset();
       const myUsername = getUsername();
+
+      if (data.xpGain && currentUser) {
+        currentUser.xp = data.xpGain.newXp;
+      }
+      if (data.ratingChange && currentUser) {
+        currentUser.rating = data.ratingChange.newRating;
+      }
+      if (currentUser) {
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+      }
+
       UI.showMatchResult(data, myUsername);
+      UI.showXpGain(data.xpGain);
+
+      if (data.xpGain && data.xpGain.newLevel > data.xpGain.oldLevel) {
+        setTimeout(() => {
+          UI.showLevelUp(data.xpGain.oldLevel, data.xpGain.newLevel);
+        }, 600);
+      }
     });
 
     GameSocket.on('opponent:disconnected', () => {});

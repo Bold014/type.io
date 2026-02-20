@@ -19,16 +19,37 @@
       <p class="welcome-tagline">real-time 1v1 typing duels</p>
 
       <div class="welcome-card">
-        <h2 class="welcome-heading">WELCOME TO TYPEDUEL.IO</h2>
-        <p class="welcome-desc">Race head-to-head against another player. Type the same sentence simultaneously. Highest score wins. Best of three takes the match.</p>
-        <p class="welcome-prompt">ENTER A USERNAME TO JOIN, OR LEAVE IT BLANK FOR A RANDOM ONE</p>
-        <input type="text" id="welcome-username" class="welcome-input" placeholder="USERNAME" maxlength="20" autocomplete="off" spellcheck="false">
-        <button id="btn-join" class="btn btn-join">JOIN</button>
-      </div>
+        <h2 class="welcome-heading" id="welcome-heading">WELCOME TO TYPEDUEL.IO</h2>
+        <p class="welcome-desc" id="welcome-desc">Race head-to-head against another player. Type the same sentence simultaneously. Highest score wins. Best of three takes the match.</p>
 
-      <p class="welcome-login-hint">
-        Already have an account? <a href="#" id="welcome-login-link">Log in</a>
-      </p>
+        <!-- Step 1: Username -->
+        <div id="welcome-step-1">
+          <p class="welcome-prompt">ENTER A USERNAME, OR LEAVE BLANK TO PLAY AS GUEST</p>
+          <input type="text" id="welcome-username" class="welcome-input" placeholder="USERNAME" maxlength="20" autocomplete="off" spellcheck="false">
+          <button id="btn-continue" class="btn btn-join">CONTINUE</button>
+        </div>
+
+        <!-- Step 2a: Sign Up (new username) -->
+        <div id="welcome-step-signup" style="display:none">
+          <p class="welcome-prompt">CREATE YOUR ACCOUNT</p>
+          <div class="welcome-username-locked" id="welcome-username-locked"></div>
+          <input type="email" id="welcome-email" class="welcome-input" placeholder="EMAIL (OPTIONAL)" autocomplete="email" spellcheck="false">
+          <input type="password" id="welcome-password" class="welcome-input" placeholder="PASSWORD" autocomplete="new-password">
+          <p id="welcome-error" class="form-error"></p>
+          <button id="btn-create-account" class="btn btn-join">CREATE ACCOUNT</button>
+          <p class="welcome-back-link"><a href="#" id="btn-back-signup">Back</a></p>
+        </div>
+
+        <!-- Step 2b: Sign In (existing username) -->
+        <div id="welcome-step-login" style="display:none">
+          <p class="welcome-prompt">WELCOME BACK</p>
+          <div class="welcome-username-locked" id="welcome-username-locked-login"></div>
+          <input type="password" id="welcome-password-login" class="welcome-input" placeholder="PASSWORD" autocomplete="current-password">
+          <p id="welcome-error-login" class="form-error"></p>
+          <button id="btn-sign-in" class="btn btn-join">SIGN IN</button>
+          <p class="welcome-back-link"><a href="#" id="btn-back-login">Back</a></p>
+        </div>
+      </div>
 
       <footer class="welcome-footer">&copy; 2026 typeduel.io</footer>
     </div>
@@ -36,16 +57,33 @@
 
   <!-- HOME SCREEN (after joining) -->
   <div id="screen-home" class="screen">
-    <div class="home-wrapper">
-      <header class="home-header">
-        <span class="home-title">HOME</span>
-        <div class="home-user-area">
+    <header class="home-header">
+      <span class="home-header-left">HOME</span>
+      <div class="home-user-area">
+        <span class="home-user-info" id="home-user-info">
           <span class="home-username" id="home-username">GUEST</span>
           <span class="home-badge" id="home-badge">GUEST</span>
-          <button id="btn-home-auth" class="btn btn-small">Log In</button>
-          <button id="btn-home-logout" class="btn btn-small" style="display:none">Log Out</button>
+        </span>
+        <button id="btn-home-auth" class="btn btn-small">Log In</button>
+        <button id="btn-home-logout" class="btn btn-small" style="display:none">Log Out</button>
+      </div>
+    </header>
+
+    <div class="home-wrapper">
+      <div class="home-hero">
+        <h1 class="logo home-logo">type<span class="logo-dot">duel.</span>io</h1>
+        <div class="xp-bar-area" id="xp-bar-area" style="display:none">
+          <div class="xp-bar-header">
+            <span class="xp-level-badge" id="xp-level-badge"></span>
+            <span class="xp-level-label">LV. <span id="xp-level-num">1</span></span>
+            <span class="xp-numbers" id="xp-numbers">0 / 0 XP</span>
+          </div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" id="xp-bar-fill"></div>
+          </div>
         </div>
-      </header>
+        <p class="home-select-label">SELECT MODE</p>
+      </div>
 
       <div class="home-cards">
         <button class="menu-card" id="card-quickplay" data-accent="accent">
@@ -92,22 +130,83 @@
           </div>
         </div>
       </div>
+
+      <footer class="home-footer">&copy; 2026 typeduel.io</footer>
     </div>
+
   </div>
 
-  <!-- Auth Modal (global) -->
-  <div id="auth-modal" class="modal" style="display:none">
-    <div class="modal-content">
-      <h2 id="auth-modal-title">LOG IN</h2>
-      <form id="auth-form">
-        <input type="text" id="auth-username" placeholder="USERNAME" autocomplete="username" required>
-        <input type="password" id="auth-password" placeholder="PASSWORD" autocomplete="current-password" required>
-        <p id="auth-error" class="form-error"></p>
-        <div class="modal-buttons">
-          <button type="submit" class="btn btn-join" id="auth-submit">LOG IN</button>
-          <button type="button" class="btn btn-small" id="auth-cancel">Cancel</button>
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="screen">
+    <header class="home-header">
+      <button id="btn-profile-back" class="home-header-left home-header-back">HOME</button>
+      <div class="home-user-area">
+        <span class="home-user-info" id="profile-home-user-info">
+          <span class="home-username" id="profile-home-username">USER</span>
+          <span class="home-badge" id="profile-home-badge">GUEST</span>
+        </span>
+        <button id="btn-profile-logout-header" class="btn btn-small">Log Out</button>
+      </div>
+    </header>
+    <div class="profile-wrapper">
+
+      <div class="profile-card">
+        <div class="profile-username" id="profile-username">USERNAME</div>
+        <div class="profile-rank-display">
+          <span class="account-rank-badge" id="profile-rank-badge">BRONZE</span>
+          <span class="account-sr-value"><span id="profile-sr">1000</span> SR</span>
         </div>
-      </form>
+
+        <div class="profile-section">
+          <h3 class="profile-section-title">STATS</h3>
+          <div class="account-stats">
+            <div class="account-stat-row">
+              <span class="account-stat-label">Level</span>
+              <span class="account-stat-value" id="profile-level">1</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">XP</span>
+              <span class="account-stat-value" id="profile-xp">0</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Best WPM</span>
+              <span class="account-stat-value" id="profile-best-wpm">0</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Wins</span>
+              <span class="account-stat-value" id="profile-wins">0</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Losses</span>
+              <span class="account-stat-value" id="profile-losses">0</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Win Rate</span>
+              <span class="account-stat-value" id="profile-winrate">&mdash;</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Avg WPM</span>
+              <span class="account-stat-value" id="profile-avg-wpm">0</span>
+            </div>
+            <div class="account-stat-row">
+              <span class="account-stat-label">Games Played</span>
+              <span class="account-stat-value" id="profile-games-played">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h3 class="profile-section-title">EMAIL</h3>
+          <p class="profile-email-current" id="profile-email-current">No email set</p>
+          <p class="profile-email-hint" id="profile-email-hint">Add an email to enable password recovery</p>
+          <div class="profile-email-form">
+            <input type="email" id="profile-email-input" class="welcome-input" placeholder="NEW EMAIL" autocomplete="email" spellcheck="false">
+            <p id="profile-email-error" class="form-error"></p>
+            <p id="profile-email-success" class="form-success"></p>
+            <button id="btn-profile-save-email" class="btn btn-join">SAVE EMAIL</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -246,6 +345,11 @@
       <p class="match-winner-text" id="match-winner-text"></p>
       <div class="final-match-score" id="final-match-score"></div>
       <p class="rating-change" id="rating-change"></p>
+      <div class="xp-gain-display" id="xp-gain-display" style="display:none">
+        <span class="xp-gain-amount" id="xp-gain-amount"></span>
+        <span class="xp-gain-pb" id="xp-gain-pb" style="display:none">PERSONAL BEST!</span>
+        <span class="xp-gain-levelup" id="xp-gain-levelup" style="display:none"></span>
+      </div>
       <div class="match-result-buttons">
         <button id="btn-play-again" class="btn btn-primary">Play Again</button>
         <button id="btn-quit" class="btn btn-small">Quit</button>
@@ -253,6 +357,16 @@
     </div>
   </div>
 
+  <!-- LEVEL UP OVERLAY -->
+  <div id="levelup-overlay" class="levelup-overlay" style="display:none">
+    <div class="levelup-content">
+      <div class="levelup-badge" id="levelup-badge"></div>
+      <div class="levelup-message" id="levelup-message">LEVEL UP!</div>
+      <div class="levelup-level" id="levelup-level"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/socket.js"></script>
   <script src="/js/typing.js"></script>
