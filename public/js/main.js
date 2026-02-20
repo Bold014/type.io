@@ -229,6 +229,12 @@
     }
   }
 
+  function setMatchmakingText(heading, mode) {
+    const h = document.getElementById('matchmaking-heading');
+    if (h) h.innerHTML = heading + '<span class="dots"></span>';
+    UI.els.matchmakingMode.textContent = mode;
+  }
+
   // --- HOME SCREEN ---
 
   function bindHomeEvents() {
@@ -237,7 +243,7 @@
       if (!name) return;
       currentMode = 'quick';
       GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
-      UI.els.matchmakingMode.textContent = 'QUICK PLAY';
+      setMatchmakingText('Searching for opponent', 'QUICK DUEL');
       UI.showScreen('matchmaking');
       GameSocket.joinQueue('quick');
     });
@@ -250,7 +256,7 @@
       }
       currentMode = 'ranked';
       GameSocket.setAuth({ username: currentUser.username, userId: currentUser.id, rating: currentUser.rating });
-      UI.els.matchmakingMode.textContent = 'RANKED';
+      setMatchmakingText('Searching for opponent', 'RANKED');
       UI.showScreen('matchmaking');
       GameSocket.joinQueue('ranked');
     });
@@ -275,6 +281,15 @@
     UI.els.btnHomeAuth.addEventListener('click', () => {
       UI.showWelcomeStep('username');
       UI.showScreen('welcome');
+    });
+
+    UI.els.cardAscend.addEventListener('click', () => {
+      const name = getUsername();
+      if (!name) return;
+      currentMode = 'ascend';
+      GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
+      UI.showScreen('ascend');
+      GameSocket.emit('ascend:join');
     });
 
     UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
@@ -362,20 +377,22 @@
   function bindGameEvents() {
     const input = UI.els.typingInput;
 
-    input.addEventListener('keydown', (e) => {
+    function wordDeleteHandler(e, inputEl) {
       if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey || e.altKey)) {
         e.preventDefault();
-        const pos = input.selectionStart;
-        const text = input.value;
+        const pos = inputEl.selectionStart;
+        const text = inputEl.value;
         if (pos === 0) return;
         let i = pos - 1;
         while (i > 0 && text[i - 1] === ' ') i--;
         while (i > 0 && text[i - 1] !== ' ') i--;
-        input.value = text.slice(0, i) + text.slice(pos);
-        input.selectionStart = input.selectionEnd = i;
-        input.dispatchEvent(new Event('input'));
+        inputEl.value = text.slice(0, i) + text.slice(pos);
+        inputEl.selectionStart = inputEl.selectionEnd = i;
+        inputEl.dispatchEvent(new Event('input'));
       }
-    });
+    }
+
+    input.addEventListener('keydown', (e) => wordDeleteHandler(e, input));
 
     input.addEventListener('input', () => {
       if (!TypingEngine.isActive()) return;
@@ -405,9 +422,21 @@
       });
     });
 
+    const ascendInput = document.getElementById('ascend-typing-input');
+    if (ascendInput) {
+      ascendInput.addEventListener('keydown', (e) => wordDeleteHandler(e, ascendInput));
+      ascendInput.addEventListener('input', () => {
+        AscendClient.handleInput();
+      });
+    }
+
     document.addEventListener('click', () => {
       if (UI.screens.game.classList.contains('active') && TypingEngine.isActive()) {
         input.focus();
+      }
+      if (UI.screens.ascend && UI.screens.ascend.classList.contains('active') && AscendClient.isActive()) {
+        const ai = AscendClient.getInput();
+        if (ai) ai.focus();
       }
     });
   }
@@ -597,18 +626,87 @@
     GameSocket.on('error:message', (data) => {
       alert(data.message);
     });
+
+    // --- ASCEND SOCKET EVENTS ---
+
+    GameSocket.on('ascend:joined', (data) => {
+      AscendClient.handleJoined(data);
+    });
+
+    GameSocket.on('ascend:countdown', (data) => {
+      AscendClient.startCountdown(data);
+    });
+
+    GameSocket.on('ascend:start', (data) => {
+      AscendClient.startGame(data);
+    });
+
+    GameSocket.on('ascend:sentence', (data) => {
+      AscendClient.handleSentence(data);
+    });
+
+    GameSocket.on('ascend:update', (data) => {
+      AscendClient.handleScoreboardUpdate(data);
+    });
+
+    GameSocket.on('ascend:attack:received', (data) => {
+      AscendClient.handleAttackReceived(data);
+    });
+
+    GameSocket.on('ascend:attack:sent', (data) => {
+      AscendClient.handleAttackSent(data);
+    });
+
+    GameSocket.on('ascend:tier', (data) => {
+      AscendClient.handleTierUp(data);
+    });
+
+    GameSocket.on('ascend:momentum', (data) => {
+      AscendClient.handleMomentumUp(data);
+    });
+
+    GameSocket.on('ascend:knockout', (data) => {
+      AscendClient.handleKnockout(data);
+    });
+
+    GameSocket.on('ascend:eliminated', (data) => {
+      AscendClient.handleEliminated(data);
+    });
+
+    GameSocket.on('ascend:burnout', (data) => {
+      AscendClient.handleBurnout(data);
+    });
+
+    GameSocket.on('ascend:run:end', (data) => {
+      if (data.xpGain && currentUser) {
+        currentUser.xp = data.xpGain.newXp;
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+      }
+      AscendClient.handleRunEnd(data);
+    });
   }
 
   // --- RESULT EVENTS ---
 
   function bindResultEvents() {
     UI.els.btnPlayAgain.addEventListener('click', () => {
-      UI.els.matchmakingMode.textContent = currentMode === 'ranked' ? 'RANKED' : 'QUICK PLAY';
+      setMatchmakingText('Searching for opponent', currentMode === 'ranked' ? 'RANKED' : 'QUICK DUEL');
       UI.showScreen('matchmaking');
       GameSocket.joinQueue(currentMode);
     });
 
     UI.els.btnQuit.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    UI.els.btnAscendAgain.addEventListener('click', () => {
+      AscendClient.reset();
+      UI.showScreen('ascend');
+      GameSocket.emit('ascend:join');
+    });
+
+    UI.els.btnAscendQuit.addEventListener('click', () => {
+      AscendClient.reset();
       UI.showScreen('home');
     });
   }

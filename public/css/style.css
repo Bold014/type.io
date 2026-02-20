@@ -2554,3 +2554,419 @@ body::after {
   from { opacity: 0.85; transform: scale(1); }
   to { opacity: 1; transform: scale(1.04); }
 }
+
+/* ===== ASCEND MODE ===== */
+
+#screen-ascend {
+  flex-direction: column;
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.ascend-layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ascend-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ascend-header-left,
+.ascend-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ascend-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ascend-mode-label {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: #f04444;
+  text-shadow: 0 0 10px rgba(240, 68, 68, 0.3);
+}
+
+.ascend-tier-label {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  padding: 2px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  text-shadow: 0 0 8px var(--gold-glow);
+}
+
+.ascend-height-display {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-shadow: 0 0 20px rgba(108, 99, 255, 0.2);
+}
+
+.ascend-timer {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+/* HP & Momentum Bars */
+
+.ascend-bars {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 10px 24px;
+  display: flex;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.ascend-hp-bar-area,
+.ascend-momentum-bar-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ascend-bar-label {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  min-width: 75px;
+  text-transform: uppercase;
+}
+
+.ascend-hp-track,
+.ascend-momentum-track {
+  flex: 1;
+  height: 10px;
+  background: var(--surface);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.ascend-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #22c55e);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+
+.ascend-hp-fill.critical {
+  background: linear-gradient(90deg, var(--red), #dc2626);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: hpCriticalPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes hpCriticalPulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+.ascend-momentum-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.ascend-hp-text,
+.ascend-momentum-text {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--text);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Burnout Banner */
+
+.ascend-burnout-banner {
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  animation: burnoutPulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.ascend-burnout-banner span {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red-glow);
+}
+
+@keyframes burnoutPulse {
+  0%, 100% { background: rgba(239, 68, 68, 0.06); }
+  50% { background: rgba(239, 68, 68, 0.12); }
+}
+
+/* Game Body */
+
+.ascend-game-body {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  min-height: 0;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 24px;
+}
+
+.ascend-typing-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+}
+
+.ascend-typing-panel .typing-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ascend-typing-panel .player-stats {
+  margin-top: 12px;
+}
+
+/* Scoreboard Panel */
+
+.ascend-scoreboard-panel {
+  width: 260px;
+  flex-shrink: 0;
+  margin-left: 20px;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.ascend-scoreboard-title {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.ascend-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ascend-sb-row {
+  display: grid;
+  grid-template-columns: 20px 1fr 56px 28px 50px 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  transition: opacity 0.3s;
+}
+
+.ascend-sb-row.ascend-sb-eliminated {
+  opacity: 0.35;
+}
+
+.ascend-sb-rank {
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.ascend-sb-name {
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ascend-sb-height {
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+  font-size: 0.68rem;
+}
+
+.ascend-sb-tier {
+  font-weight: 700;
+  color: var(--gold);
+  text-align: center;
+  font-size: 0.65rem;
+}
+
+.ascend-sb-hp-track {
+  height: 5px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ascend-sb-hp-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ascend-sb-wpm {
+  font-weight: 600;
+  color: var(--text-dim);
+  text-align: right;
+  font-size: 0.65rem;
+}
+
+/* Ascend Notifications */
+
+.ascend-tier-notification {
+  color: var(--gold) !important;
+  background: var(--gold-dim) !important;
+  border: 1px solid rgba(251, 191, 36, 0.25) !important;
+  text-shadow: 0 0 12px var(--gold-glow) !important;
+  font-size: 1.3rem !important;
+}
+
+.ascend-ko-notification {
+  color: var(--green) !important;
+  background: var(--green-dim) !important;
+  border: 1px solid rgba(74, 222, 128, 0.25) !important;
+  text-shadow: 0 0 12px var(--green-glow) !important;
+}
+
+/* Ascend Result Screen */
+
+#screen-ascend-result {
+  flex-direction: column;
+}
+
+.ascend-result-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 10px 0;
+}
+
+.ascend-result-big {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.ascend-result-height {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 4rem;
+  color: var(--text);
+  text-shadow: 0 0 30px rgba(108, 99, 255, 0.2);
+  letter-spacing: 0.02em;
+}
+
+.ascend-result-height-unit {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--text-dim);
+}
+
+.ascend-result-details {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 28px;
+  min-width: 220px;
+}
+
+.ascend-result-details .score-detail {
+  padding: 6px 0;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .ascend-game-body {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ascend-scoreboard-panel {
+    width: 100%;
+    margin-left: 0;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    max-height: 180px;
+  }
+  .ascend-bars {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ascend-header {
+    padding: 8px 12px;
+  }
+  .ascend-height-display {
+    font-size: 1.4rem;
+  }
+  .ascend-game-body {
+    padding: 8px 12px;
+  }
+  .ascend-result-height {
+    font-size: 2.5rem;
+  }
+  .ascend-sb-row {
+    grid-template-columns: 18px 1fr 48px 24px 40px 32px;
+    font-size: 0.65rem;
+    padding: 4px 4px;
+  }
+}

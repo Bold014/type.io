@@ -154,7 +154,68 @@ async function updateEmail(userId, email) {
   return true;
 }
 
+async function saveAscendRun(userId, username, height, tier, durationMs) {
+  const { error } = await supabase
+    .from('ascend_runs')
+    .insert({
+      user_id: userId,
+      username,
+      height,
+      tier,
+      duration_ms: durationMs,
+      created_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('saveAscendRun error:', error);
+  }
+}
+
+async function getWeeklyLeaderboard(limit = 20) {
+  const now = new Date();
+  const day = now.getUTCDay();
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() - ((day + 6) % 7));
+  monday.setUTCHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from('ascend_runs')
+    .select('user_id, username, height, tier, duration_ms, created_at')
+    .gte('created_at', monday.toISOString())
+    .order('height', { ascending: false })
+    .limit(limit * 3);
+
+  if (error) {
+    console.error('getWeeklyLeaderboard error:', error);
+    return [];
+  }
+
+  const best = new Map();
+  for (const row of data) {
+    if (!best.has(row.user_id) || row.height > best.get(row.user_id).height) {
+      best.set(row.user_id, row);
+    }
+  }
+
+  return Array.from(best.values())
+    .sort((a, b) => b.height - a.height)
+    .slice(0, limit);
+}
+
+async function getUserBestHeight(userId) {
+  const { data, error } = await supabase
+    .from('ascend_runs')
+    .select('height, tier')
+    .eq('user_id', userId)
+    .order('height', { ascending: false })
+    .limit(1);
+
+  if (error || !data || data.length === 0) return null;
+  return data[0];
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername,
-  updateStats, updateXpOnly, updateEmail, xpToLevel
+  updateStats, updateXpOnly, updateEmail, xpToLevel,
+  saveAscendRun, getWeeklyLeaderboard, getUserBestHeight
 };

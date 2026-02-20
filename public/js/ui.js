@@ -158,7 +158,9 @@ const UI = (() => {
     matchmaking: document.getElementById('screen-matchmaking'),
     game: document.getElementById('screen-game'),
     roundResult: document.getElementById('screen-round-result'),
-    matchResult: document.getElementById('screen-match-result')
+    matchResult: document.getElementById('screen-match-result'),
+    ascend: document.getElementById('screen-ascend'),
+    ascendResult: document.getElementById('screen-ascend-result')
   };
 
   const els = {
@@ -188,6 +190,7 @@ const UI = (() => {
     btnHomeLogout: document.getElementById('btn-home-logout'),
     cardQuickplay: document.getElementById('card-quickplay'),
     cardRanked: document.getElementById('card-ranked'),
+    cardAscend: document.getElementById('card-ascend'),
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
 
@@ -279,7 +282,10 @@ const UI = (() => {
     levelupOverlay: document.getElementById('levelup-overlay'),
     levelupBadge: document.getElementById('levelup-badge'),
     levelupMessage: document.getElementById('levelup-message'),
-    levelupLevel: document.getElementById('levelup-level')
+    levelupLevel: document.getElementById('levelup-level'),
+
+    btnAscendAgain: document.getElementById('btn-ascend-again'),
+    btnAscendQuit: document.getElementById('btn-ascend-quit')
   };
 
   function showScreen(name) {

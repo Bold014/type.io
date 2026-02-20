@@ -8,6 +8,11 @@
   <link rel="canonical" href="https://typeduel.io/">
   <meta name="theme-color" content="#0a0a0f">
 
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
   <!-- Open Graph -->
   <meta property="og:title" content="TypeDuel.io - Free 1v1 Typing Duel Game">
   <meta property="og:description" content="Race head-to-head in real-time 1v1 typing duels. Play free, no download needed. Quick Play or Ranked mode.">
@@ -119,7 +124,7 @@
 
       <div class="mode-grid">
         <button class="mode-key" id="card-quickplay" data-accent="accent">
-          <span class="mode-key-title">QUICK PLAY</span>
+          <span class="mode-key-title">QUICK DUEL</span>
           <span class="mode-key-sub">Find an opponent and duel it out</span>
           <span class="mode-key-hint">ENTER &crarr;</span>
         </button>
@@ -131,11 +136,11 @@
           <span class="mode-key-hint">ENTER &crarr;</span>
         </button>
 
-        <div class="mode-key disabled" data-accent="red">
-          <span class="mode-key-title">BATTLE ROYALE</span>
-          <span class="mode-key-sub">Last typer standing</span>
-          <span class="mode-key-soon">COMING SOON</span>
-        </div>
+        <button class="mode-key" id="card-ascend" data-accent="red">
+          <span class="mode-key-title">QUICK MATCH</span>
+          <span class="mode-key-sub">Drop in, climb, outlast everyone</span>
+          <span class="mode-key-hint">ENTER &crarr;</span>
+        </button>
 
         <div class="mode-key disabled" data-accent="green">
           <span class="mode-key-title">LEADERBOARD</span>
@@ -253,7 +258,7 @@
   <div id="screen-matchmaking" class="screen">
     <div class="matchmaking-container">
       <div class="matchmaking-glow"></div>
-      <h2>Searching for opponent<span class="dots"></span></h2>
+      <h2 id="matchmaking-heading">Searching for opponent<span class="dots"></span></h2>
       <div class="matchmaking-rings">
         <div class="pulse-ring"></div>
         <div class="pulse-ring-2"></div>
@@ -396,6 +401,108 @@
     </div>
   </div>
 
+  <!-- ASCEND GAME SCREEN -->
+  <div id="screen-ascend" class="screen">
+    <div class="ascend-layout">
+      <div class="ascend-header">
+        <div class="ascend-header-left">
+          <span class="ascend-mode-label">QUICK MATCH</span>
+          <span class="ascend-tier-label" id="ascend-tier-label">TIER 1</span>
+        </div>
+        <div class="ascend-header-center">
+          <span class="ascend-height-display" id="ascend-height-display">0.0m</span>
+        </div>
+        <div class="ascend-header-right">
+          <span class="ascend-timer" id="ascend-timer">0:00</span>
+        </div>
+      </div>
+
+      <div class="ascend-bars">
+        <div class="ascend-hp-bar-area">
+          <span class="ascend-bar-label">HP</span>
+          <div class="ascend-hp-track">
+            <div class="ascend-hp-fill" id="ascend-hp-fill" style="width:100%"></div>
+          </div>
+          <span class="ascend-hp-text" id="ascend-hp-text">100</span>
+        </div>
+        <div class="ascend-momentum-bar-area">
+          <span class="ascend-bar-label">MOMENTUM</span>
+          <div class="ascend-momentum-track">
+            <div class="ascend-momentum-fill" id="ascend-momentum-fill" style="width:10%"></div>
+          </div>
+          <span class="ascend-momentum-text" id="ascend-momentum-text">1</span>
+        </div>
+      </div>
+
+      <div class="ascend-burnout-banner" id="ascend-burnout-banner" style="display:none">
+        <span id="ascend-burnout-text"></span>
+      </div>
+
+      <div class="ascend-game-body">
+        <div class="ascend-typing-panel">
+          <div class="typing-area" id="ascend-typing-area">
+            <div class="typing-area-frame">
+              <div class="sentence-display" id="ascend-sentence-display"></div>
+              <div class="quote-source" id="ascend-quote-source"></div>
+            </div>
+            <input type="text" id="ascend-typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="player-stats">
+            <div class="stat">
+              <span class="stat-value" id="ascend-wpm">0</span>
+              <span class="stat-label">WPM</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="ascend-errors">0</span>
+              <span class="stat-label">Errors</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ascend-scoreboard-panel">
+          <h3 class="ascend-scoreboard-title">PLAYERS</h3>
+          <div class="ascend-scoreboard" id="ascend-scoreboard"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="countdown-overlay" id="ascend-countdown-overlay" style="display:none">
+      <div class="countdown-rings">
+        <span id="ascend-countdown-number"></span>
+      </div>
+    </div>
+
+    <div class="attack-notifications" id="ascend-attack-notifications"></div>
+  </div>
+
+  <!-- ASCEND RESULT SCREEN -->
+  <div id="screen-ascend-result" class="screen">
+    <div class="result-container">
+      <h2 class="match-result-title" id="ascend-result-title">RUN COMPLETE</h2>
+      <p class="match-winner-text" id="ascend-result-status"></p>
+      <div class="ascend-result-stats">
+        <div class="ascend-result-big">
+          <span class="ascend-result-height" id="ascend-result-height">0.0</span>
+          <span class="ascend-result-height-unit">m</span>
+        </div>
+        <div class="ascend-result-details">
+          <div class="score-detail"><span class="label">Tier Reached</span><span id="ascend-result-tier" class="value">1</span></div>
+          <div class="score-detail"><span class="label">Duration</span><span id="ascend-result-duration" class="value">0:00</span></div>
+          <div class="score-detail"><span class="label">Knockouts</span><span id="ascend-result-knockouts" class="value">0</span></div>
+        </div>
+      </div>
+      <div class="xp-gain-display" id="ascend-xp-gain-display" style="display:none">
+        <span class="xp-gain-amount" id="ascend-xp-gain-amount"></span>
+        <span class="xp-gain-pb" id="ascend-xp-gain-pb" style="display:none">PERSONAL BEST!</span>
+        <span class="xp-gain-levelup" id="ascend-xp-gain-levelup" style="display:none"></span>
+      </div>
+      <div class="match-result-buttons">
+        <button id="btn-ascend-again" class="btn btn-primary">Play Again</button>
+        <button id="btn-ascend-quit" class="btn btn-small">Quit</button>
+      </div>
+    </div>
+  </div>
+
   <!-- LEVEL UP OVERLAY -->
   <div id="levelup-overlay" class="levelup-overlay" style="display:none">
     <div class="levelup-content">
@@ -410,6 +517,7 @@
   <script src="/js/socket.js"></script>
   <script src="/js/typing.js"></script>
   <script src="/js/ui.js"></script>
+  <script src="/js/ascend.js"></script>
   <script src="/js/main.js"></script>
 </body>
 </html>

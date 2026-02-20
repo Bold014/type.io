@@ -4,6 +4,7 @@ const {
   createGame, startCountdown, handleTypingUpdate,
   handleRoundComplete, handleDisconnect
 } = require('./game');
+const ascend = require('./ascend');
 
 let roomCounter = 0;
 
@@ -73,9 +74,32 @@ function setupSocketHandlers(io) {
       if (game) handleRoundComplete(io, game, socket.id, data);
     });
 
+    socket.on('ascend:join', () => {
+      if (!socket.data.username) {
+        socket.emit('error:message', { message: 'Set a username first' });
+        return;
+      }
+      ascend.joinLobby(io, socket);
+    });
+
+    socket.on('ascend:leave', () => {
+      ascend.leaveLobby(io, socket.id);
+    });
+
+    socket.on('ascend:typing', (data) => {
+      const lobby = ascend.getLobbyBySocketId(socket.id);
+      if (lobby) ascend.handleTypingUpdate(io, lobby, socket.id, data);
+    });
+
+    socket.on('ascend:sentence:complete', (data) => {
+      const lobby = ascend.getLobbyBySocketId(socket.id);
+      if (lobby) ascend.handleSentenceComplete(io, lobby, socket.id, data);
+    });
+
     socket.on('disconnect', () => {
       matchmaking.removeFromQueue(socket.id);
       handleDisconnect(io, socket.id);
+      ascend.handleDisconnect(io, socket.id);
     });
   });
 }
