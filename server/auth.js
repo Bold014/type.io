@@ -1,4 +1,4 @@
-const { supabase, findUserById, findUserByUsername, updateEmail } = require('./db');
+const { supabase, findUserById, findUserByUsername, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats } = require('./db');
 
 function setupAuthRoutes(app) {
   app.post('/api/check-username', async (req, res) => {
@@ -108,6 +108,61 @@ function setupAuthRoutes(app) {
       res.json({ success: true });
     } catch (err) {
       console.error('Update email error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/leaderboard', async (req, res) => {
+    try {
+      const category = req.query.category || 'rating';
+      const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+      const data = await getLeaderboard(category, limit);
+      res.json(data);
+    } catch (err) {
+      console.error('Leaderboard error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/match-history', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+      const history = await getMatchHistory(user.id, limit);
+      res.json(history);
+    } catch (err) {
+      console.error('Match history error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/ascend-stats', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const stats = await getUserAscendStats(user.id);
+      res.json(stats);
+    } catch (err) {
+      console.error('Ascend stats error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

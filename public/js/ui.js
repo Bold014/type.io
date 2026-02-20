@@ -155,6 +155,7 @@ const UI = (() => {
     welcome: document.getElementById('screen-welcome'),
     home: document.getElementById('screen-home'),
     profile: document.getElementById('screen-profile'),
+    leaderboard: document.getElementById('screen-leaderboard'),
     matchmaking: document.getElementById('screen-matchmaking'),
     game: document.getElementById('screen-game'),
     roundResult: document.getElementById('screen-round-result'),
@@ -191,8 +192,12 @@ const UI = (() => {
     cardQuickplay: document.getElementById('card-quickplay'),
     cardRanked: document.getElementById('card-ranked'),
     cardAscend: document.getElementById('card-ascend'),
+    cardLeaderboard: document.getElementById('card-leaderboard'),
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
+
+    btnLeaderboardBack: document.getElementById('btn-leaderboard-back'),
+    lbTableBody: document.getElementById('lb-table-body'),
 
     btnProfileBack: document.getElementById('btn-profile-back'),
     profileUsername: document.getElementById('profile-username'),
@@ -213,6 +218,11 @@ const UI = (() => {
     btnProfileLogoutHeader: document.getElementById('btn-profile-logout-header'),
     profileHomeUsername: document.getElementById('profile-home-username'),
     profileHomeBadge: document.getElementById('profile-home-badge'),
+    profileAscendHeight: document.getElementById('profile-ascend-height'),
+    profileAscendTier: document.getElementById('profile-ascend-tier'),
+    profileAscendRuns: document.getElementById('profile-ascend-runs'),
+    profileAscendAvg: document.getElementById('profile-ascend-avg'),
+    profileHistoryBody: document.getElementById('profile-history-body'),
 
     matchmakingMode: document.getElementById('matchmaking-mode'),
     btnCancelQueue: document.getElementById('btn-cancel-queue'),
@@ -662,7 +672,7 @@ const UI = (() => {
     if (els.finishTimer) els.finishTimer.style.display = 'none';
   }
 
-  function showProfile(profile) {
+  function showProfile(profile, ascendStats, matchHistory) {
     const tier = getRankTier(profile.rating || 1000);
 
     els.profileUsername.textContent = (profile.username || '').toUpperCase();
@@ -706,6 +716,15 @@ const UI = (() => {
     els.profileAvgWpm.textContent = Math.round(profile.avg_wpm || 0);
     els.profileGamesPlayed.textContent = profile.games_played || 0;
 
+    if (ascendStats) {
+      els.profileAscendHeight.textContent = ascendStats.bestHeight ? ascendStats.bestHeight.toFixed(1) + 'm' : '0';
+      els.profileAscendTier.textContent = ascendStats.bestTier || 0;
+      els.profileAscendRuns.textContent = ascendStats.totalRuns || 0;
+      els.profileAscendAvg.textContent = ascendStats.avgHeight ? ascendStats.avgHeight + 'm' : '0';
+    }
+
+    renderMatchHistory(matchHistory || []);
+
     if (isPlaceholderEmail(profile.email)) {
       els.profileEmailCurrent.textContent = 'No email set';
       els.profileEmailCurrent.style.color = 'var(--text-dim)';
@@ -725,6 +744,79 @@ const UI = (() => {
     showScreen('profile');
   }
 
+  function renderMatchHistory(matches) {
+    if (!els.profileHistoryBody) return;
+
+    if (!matches || matches.length === 0) {
+      els.profileHistoryBody.innerHTML = '<div class="profile-history-empty">No matches yet</div>';
+      return;
+    }
+
+    let html = '';
+    for (const m of matches) {
+      const resultClass = m.won ? 'ph-win' : 'ph-loss';
+      const resultText = m.won ? 'WIN' : 'LOSS';
+      const modeText = m.mode === 'ranked' ? 'Ranked' : 'Quick';
+      const srText = m.rating_change != null ? (m.rating_change >= 0 ? '+' + m.rating_change : '' + m.rating_change) : '—';
+      const srClass = m.rating_change > 0 ? 'ph-sr-pos' : m.rating_change < 0 ? 'ph-sr-neg' : '';
+      const date = new Date(m.created_at);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      html += `<div class="profile-history-row">
+        <span class="ph-col-result ${resultClass}">${resultText}</span>
+        <span class="ph-col-opponent">${escapeHtml(m.opponent_username)}</span>
+        <span class="ph-col-mode">${modeText}</span>
+        <span class="ph-col-wpm">${Math.round(m.user_wpm)}</span>
+        <span class="ph-col-sr ${srClass}">${srText}</span>
+        <span class="ph-col-date">${dateStr}</span>
+      </div>`;
+    }
+    els.profileHistoryBody.innerHTML = html;
+  }
+
+  function showLeaderboard(data, category) {
+    if (!els.lbTableBody) return;
+
+    const categoryLabels = {
+      rating: 'SR',
+      best_wpm: 'WPM',
+      wins: 'WINS',
+      xp: 'LEVEL'
+    };
+
+    const headerStat = document.querySelector('.lb-col-stat');
+    if (headerStat) headerStat.textContent = categoryLabels[category] || 'VALUE';
+
+    if (!data || data.length === 0) {
+      els.lbTableBody.innerHTML = '<div class="lb-empty">No players found</div>';
+      return;
+    }
+
+    let html = '';
+    for (let i = 0; i < data.length; i++) {
+      const p = data[i];
+      const tier = getRankTier(p.rating || 1000);
+      const level = xpToLevel(p.xp || 0);
+      let statValue;
+      switch (category) {
+        case 'best_wpm': statValue = Math.round(p.best_wpm || 0); break;
+        case 'wins': statValue = p.wins || 0; break;
+        case 'xp': statValue = level; break;
+        default: statValue = p.rating || 1000;
+      }
+
+      const rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : '';
+
+      html += `<div class="lb-row ${rankClass}">
+        <span class="lb-col-rank">${i + 1}</span>
+        <span class="lb-col-name">${escapeHtml(p.username)}</span>
+        <span class="lb-col-tier" style="color:${tier.color}">${tier.name}</span>
+        <span class="lb-col-stat">${statValue}</span>
+      </div>`;
+    }
+    els.lbTableBody.innerHTML = html;
+  }
+
   return {
     screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
@@ -733,7 +825,7 @@ const UI = (() => {
     setMatchHeader, showRoundResult, showMatchResult,
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
-    showProfile, isPlaceholderEmail, getRankTier,
+    showProfile, showLeaderboard, isPlaceholderEmail, getRankTier,
     xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge
   };
 })();

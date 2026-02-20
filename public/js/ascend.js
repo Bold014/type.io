@@ -5,6 +5,10 @@ const AscendClient = (() => {
   let timerInterval = null;
   let startTime = null;
   let scoreboard = [];
+  let lastHP = 100;
+  let lastMomentum = 0;
+  let lastHeight = -1;
+  let myUsername = null;
 
   const els = {
     tierLabel: null,
@@ -12,8 +16,8 @@ const AscendClient = (() => {
     timer: null,
     hpFill: null,
     hpText: null,
-    momentumFill: null,
-    momentumText: null,
+    hpBarArea: null,
+    momentumSegments: null,
     burnoutBanner: null,
     burnoutText: null,
     sentenceDisplay: null,
@@ -25,7 +29,9 @@ const AscendClient = (() => {
     countdownOverlay: null,
     countdownNumber: null,
     attackNotifications: null,
-    typingArea: null
+    typingArea: null,
+    typingPanel: null,
+    screenAscend: null
   };
 
   function cacheEls() {
@@ -34,8 +40,8 @@ const AscendClient = (() => {
     els.timer = document.getElementById('ascend-timer');
     els.hpFill = document.getElementById('ascend-hp-fill');
     els.hpText = document.getElementById('ascend-hp-text');
-    els.momentumFill = document.getElementById('ascend-momentum-fill');
-    els.momentumText = document.getElementById('ascend-momentum-text');
+    els.hpBarArea = document.getElementById('ascend-hp-bar-area');
+    els.momentumSegments = document.getElementById('ascend-momentum-segments');
     els.burnoutBanner = document.getElementById('ascend-burnout-banner');
     els.burnoutText = document.getElementById('ascend-burnout-text');
     els.sentenceDisplay = document.getElementById('ascend-sentence-display');
@@ -48,6 +54,8 @@ const AscendClient = (() => {
     els.countdownNumber = document.getElementById('ascend-countdown-number');
     els.attackNotifications = document.getElementById('ascend-attack-notifications');
     els.typingArea = document.getElementById('ascend-typing-area');
+    els.typingPanel = document.querySelector('.ascend-typing-panel');
+    els.screenAscend = document.getElementById('screen-ascend');
   }
 
   function reset() {
@@ -55,12 +63,19 @@ const AscendClient = (() => {
     currentSentence = '';
     currentInjectedRanges = [];
     scoreboard = [];
+    lastHP = 100;
+    lastMomentum = 0;
+    lastHeight = -1;
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
     startTime = null;
     TypingEngine.reset();
+  }
+
+  function setMyUsername(name) {
+    myUsername = name;
   }
 
   function handleJoined(data) {
@@ -140,8 +155,15 @@ const AscendClient = (() => {
 
     TypingEngine.start(currentSentence, {
       onUpdate: (state) => {
-        if (els.wpm) els.wpm.textContent = state.wpm;
-        if (els.errors) els.errors.textContent = state.uncorrectedErrors + state.correctedErrors;
+        if (els.wpm) {
+          els.wpm.textContent = state.wpm;
+          updateWpmStyle(state.wpm);
+        }
+        if (els.errors) {
+          const total = state.uncorrectedErrors + state.correctedErrors;
+          els.errors.textContent = total;
+          updateErrorStyle(total);
+        }
       },
       onComplete: (state) => {
         els.typingInput.disabled = true;
@@ -172,8 +194,15 @@ const AscendClient = (() => {
 
     renderSentence(charStates);
 
-    if (els.wpm) els.wpm.textContent = state.wpm;
-    if (els.errors) els.errors.textContent = state.uncorrectedErrors + state.correctedErrors;
+    if (els.wpm) {
+      els.wpm.textContent = state.wpm;
+      updateWpmStyle(state.wpm);
+    }
+    if (els.errors) {
+      const total = state.uncorrectedErrors + state.correctedErrors;
+      els.errors.textContent = total;
+      updateErrorStyle(total);
+    }
 
     GameSocket.emit('ascend:typing', {
       position: state.position,
@@ -182,6 +211,19 @@ const AscendClient = (() => {
       errors: state.uncorrectedErrors,
       corrections: state.correctedErrors
     });
+  }
+
+  function updateWpmStyle(wpm) {
+    if (!els.wpm) return;
+    els.wpm.classList.remove('wpm-hot', 'wpm-fire');
+    if (wpm >= 100) els.wpm.classList.add('wpm-fire');
+    else if (wpm >= 60) els.wpm.classList.add('wpm-hot');
+  }
+
+  function updateErrorStyle(count) {
+    if (!els.errors) return;
+    if (count > 0) els.errors.classList.add('errors-active');
+    else els.errors.classList.remove('errors-active');
   }
 
   function renderSentence(charStates) {
@@ -222,6 +264,8 @@ const AscendClient = (() => {
     renderSentence(charStates);
     updateHP(data.hp);
 
+    triggerScreenShake();
+
     let text;
     if (data.type === 'inject') text = '+' + (data.word || '???');
     else if (data.type === 'scramble') text = 'SCRAMBLED!';
@@ -240,6 +284,15 @@ const AscendClient = (() => {
         }
       }, 1500);
     }
+  }
+
+  function triggerScreenShake() {
+    if (!els.screenAscend) cacheEls();
+    if (!els.screenAscend) return;
+    els.screenAscend.classList.remove('screen-shake');
+    void els.screenAscend.offsetHeight;
+    els.screenAscend.classList.add('screen-shake');
+    setTimeout(() => els.screenAscend.classList.remove('screen-shake'), 450);
   }
 
   function handleAttackSent(data) {
@@ -265,33 +318,76 @@ const AscendClient = (() => {
     renderScoreboard(scoreboard);
   }
 
+  let lastScoreboardJson = '';
+
   function renderScoreboard(list) {
     if (!els.scoreboard) return;
-    let html = '';
+
+    const currentJson = JSON.stringify(list);
+    if (currentJson === lastScoreboardJson) return;
+    lastScoreboardJson = currentJson;
+
+    const existingRows = els.scoreboard.children;
+
+    while (existingRows.length > list.length) {
+      els.scoreboard.removeChild(els.scoreboard.lastChild);
+    }
+
     list.forEach((p, i) => {
       const hpPct = Math.max(0, p.hp);
-      const elim = p.eliminated ? ' ascend-sb-eliminated' : '';
-      html += `<div class="ascend-sb-row${elim}">
-        <span class="ascend-sb-rank">${i + 1}</span>
-        <span class="ascend-sb-name">${escapeHtml(p.username)}</span>
-        <span class="ascend-sb-height">${p.height}m</span>
-        <span class="ascend-sb-tier">T${p.tier}</span>
-        <div class="ascend-sb-hp-track"><div class="ascend-sb-hp-fill" style="width:${hpPct}%"></div></div>
-        <span class="ascend-sb-wpm">${p.wpm || 0}</span>
-      </div>`;
+      const tierClass = p.tier >= 7 ? 'tier-high' : p.tier >= 4 ? 'tier-mid' : 'tier-low';
+      const dotClass = p.tier >= 7 ? 'td-high' : p.tier >= 4 ? 'td-mid' : 'td-low';
+      const elimClass = p.eliminated ? 'ascend-sb-eliminated' : '';
+      const selfClass = myUsername && p.username === myUsername ? 'ascend-sb-self' : '';
+
+      let row = existingRows[i];
+      if (!row) {
+        row = document.createElement('div');
+        row.innerHTML = `
+          <span class="ascend-sb-rank"><span class="ascend-sb-tier-dot"></span></span>
+          <div class="ascend-sb-name-cell">
+            <span class="ascend-sb-name"></span>
+            <div class="ascend-sb-hp-mini"><div class="ascend-sb-hp-mini-fill"></div></div>
+          </div>
+          <span class="ascend-sb-height"></span>
+          <span class="ascend-sb-wpm"></span>`;
+        els.scoreboard.appendChild(row);
+      }
+
+      row.className = `ascend-sb-row ${tierClass} ${elimClass} ${selfClass}`.replace(/\s+/g, ' ').trim();
+
+      const rankEl = row.querySelector('.ascend-sb-rank');
+      const dotEl = row.querySelector('.ascend-sb-tier-dot');
+      const nameEl = row.querySelector('.ascend-sb-name');
+      const hpFill = row.querySelector('.ascend-sb-hp-mini-fill');
+      const heightEl = row.querySelector('.ascend-sb-height');
+      const wpmEl = row.querySelector('.ascend-sb-wpm');
+
+      if (dotEl) dotEl.className = `ascend-sb-tier-dot ${dotClass}`;
+      if (rankEl) rankEl.lastChild.textContent = i + 1;
+      if (nameEl) nameEl.textContent = p.username;
+      if (hpFill) hpFill.style.width = hpPct + '%';
+      if (heightEl) heightEl.textContent = p.height + 'm';
+      if (wpmEl) wpmEl.textContent = p.wpm || 0;
     });
-    els.scoreboard.innerHTML = html;
   }
 
   function handleTierUp(data) {
     updateTier(data.tier);
     updateHeight(data.height);
     spawnNotification(`TIER ${data.tier}`, 'attack-notification ascend-tier-notification');
+    spawnTierFlash();
+  }
+
+  function spawnTierFlash() {
+    const flash = document.createElement('div');
+    flash.className = 'ascend-tier-flash';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 650);
   }
 
   function handleMomentumUp(data) {
     updateMomentum(data.momentum);
-    spawnNotification(`MOMENTUM ${data.momentum}`, 'attack-notification attack-sent');
   }
 
   function handleKnockout(data) {
@@ -373,21 +469,83 @@ const AscendClient = (() => {
     if (els.hpText) els.hpText.textContent = val;
 
     if (els.hpFill) {
-      if (val <= 25) els.hpFill.classList.add('critical');
-      else els.hpFill.classList.remove('critical');
+      els.hpFill.classList.remove('hp-high', 'hp-mid', 'hp-low', 'hp-critical');
+      if (val > 50) els.hpFill.classList.add('hp-high');
+      else if (val > 25) els.hpFill.classList.add('hp-mid');
+      else if (val > 10) els.hpFill.classList.add('hp-low');
+      else els.hpFill.classList.add('hp-critical');
     }
+
+    if (els.hpBarArea) {
+      els.hpBarArea.classList.remove('hp-high', 'hp-mid', 'hp-low', 'hp-critical');
+      if (val > 50) els.hpBarArea.classList.add('hp-high');
+      else if (val > 25) els.hpBarArea.classList.add('hp-mid');
+      else if (val > 10) els.hpBarArea.classList.add('hp-low');
+      else els.hpBarArea.classList.add('hp-critical');
+    }
+
+    if (val < lastHP && els.hpBarArea) {
+      els.hpBarArea.classList.remove('hp-damage');
+      void els.hpBarArea.offsetHeight;
+      els.hpBarArea.classList.add('hp-damage');
+      setTimeout(() => els.hpBarArea.classList.remove('hp-damage'), 400);
+    }
+
+    lastHP = val;
   }
 
   function updateMomentum(m) {
-    if (!els.momentumFill) cacheEls();
-    const pct = (m / 10) * 100;
-    if (els.momentumFill) els.momentumFill.style.width = pct + '%';
-    if (els.momentumText) els.momentumText.textContent = m;
+    if (!els.momentumSegments) cacheEls();
+    if (!els.momentumSegments) return;
+
+    const segs = els.momentumSegments.querySelectorAll('.momentum-seg');
+    segs.forEach((seg, i) => {
+      const level = i + 1;
+      const wasActive = seg.classList.contains('active');
+      seg.classList.remove('active', 'tier-low', 'tier-mid', 'tier-high', 'tier-max');
+
+      if (level <= m) {
+        seg.classList.add('active');
+        if (m === 10) seg.classList.add('tier-max');
+        else if (level >= 7 || m >= 7) seg.classList.add('tier-high');
+        else if (level >= 4 || m >= 4) seg.classList.add('tier-mid');
+        else seg.classList.add('tier-low');
+
+        if (!wasActive && m > lastMomentum) {
+          seg.classList.remove('seg-pop');
+          void seg.offsetHeight;
+          seg.classList.add('seg-pop');
+          setTimeout(() => seg.classList.remove('seg-pop'), 350);
+        }
+      }
+    });
+
+    updateTypingPanelGlow(m);
+    lastMomentum = m;
+  }
+
+  function updateTypingPanelGlow(m) {
+    if (!els.typingPanel) cacheEls();
+    if (!els.typingPanel) return;
+    els.typingPanel.classList.remove('momentum-glow-low', 'momentum-glow-mid', 'momentum-glow-high', 'momentum-glow-max');
+    if (m === 10) els.typingPanel.classList.add('momentum-glow-max');
+    else if (m >= 7) els.typingPanel.classList.add('momentum-glow-high');
+    else if (m >= 4) els.typingPanel.classList.add('momentum-glow-mid');
+    else if (m >= 2) els.typingPanel.classList.add('momentum-glow-low');
   }
 
   function updateHeight(h) {
     if (!els.heightDisplay) cacheEls();
-    if (els.heightDisplay) els.heightDisplay.textContent = h + 'm';
+    if (els.heightDisplay) {
+      els.heightDisplay.textContent = h + 'm';
+      if (h !== lastHeight && lastHeight >= 0) {
+        els.heightDisplay.classList.remove('height-pop');
+        void els.heightDisplay.offsetHeight;
+        els.heightDisplay.classList.add('height-pop');
+        setTimeout(() => els.heightDisplay.classList.remove('height-pop'), 400);
+      }
+      lastHeight = h;
+    }
   }
 
   function updateTier(t) {
@@ -403,7 +561,7 @@ const AscendClient = (() => {
   }
 
   return {
-    cacheEls, reset,
+    cacheEls, reset, setMyUsername,
     handleJoined, startCountdown, startGame,
     handleSentence, handleInput,
     handleAttackReceived, handleAttackSent,

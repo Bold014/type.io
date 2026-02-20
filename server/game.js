@@ -1,5 +1,5 @@
 const { pickSentences } = require('./sentences');
-const { updateStats, updateXpOnly } = require('./db');
+const { updateStats, updateXpOnly, saveMatchResult } = require('./db');
 
 const ROUNDS_TO_WIN = 2;
 const TOTAL_ROUNDS = 3;
@@ -498,6 +498,12 @@ async function endMatch(io, game) {
       return sum + (myScore ? myScore.wpm : 0);
     }, 0) / game.roundResults.length;
 
+    const opponentUsername = game.players[opId].username;
+    const opponentAvgWpm = game.roundResults.reduce((sum, r) => {
+      const opScore = r.scores.find(s => s.username === opponentUsername);
+      return sum + (opScore ? opScore.wpm : 0);
+    }, 0) / game.roundResults.length;
+
     if (game.mode === 'ranked') {
       const result = await updateStats(player.userId, won, avgWpm, opponentRating, game.mode, totalTimeMs);
       if (result) {
@@ -509,11 +515,33 @@ async function endMatch(io, game) {
           newLevel: result.newLevel,
           isPb: result.isPb
         };
+        saveMatchResult(player.userId, {
+          opponentUsername,
+          mode: game.mode,
+          won,
+          userWpm: Math.round(avgWpm),
+          opponentWpm: Math.round(opponentAvgWpm),
+          roundsWon: player.roundsWon,
+          roundsLost: game.players[opId].roundsWon,
+          ratingChange: result.ratingDelta,
+          xpGained: result.xpGained
+        });
       }
     } else {
       const result = await updateXpOnly(player.userId, won, avgWpm, game.mode, totalTimeMs);
       if (result) {
         xpChanges[player.username] = result;
+        saveMatchResult(player.userId, {
+          opponentUsername,
+          mode: game.mode,
+          won,
+          userWpm: Math.round(avgWpm),
+          opponentWpm: Math.round(opponentAvgWpm),
+          roundsWon: player.roundsWon,
+          roundsLost: game.players[opId].roundsWon,
+          ratingChange: null,
+          xpGained: result.xpGained
+        });
       }
     }
   }

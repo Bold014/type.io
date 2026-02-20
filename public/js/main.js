@@ -68,6 +68,7 @@
     bindWelcomeEvents();
     bindHomeEvents();
     bindProfileEvents();
+    bindLeaderboardEvents();
     bindGameEvents();
     bindResultEvents();
     bindSocketEvents();
@@ -267,15 +268,15 @@
     });
 
     UI.els.homeUserInfo.addEventListener('click', () => {
-      if (currentUser) {
-        UI.showProfile(currentUser);
-      }
+      if (currentUser) openProfile();
     });
 
     UI.els.homeLevelPill.addEventListener('click', () => {
-      if (currentUser) {
-        UI.showProfile(currentUser);
-      }
+      if (currentUser) openProfile();
+    });
+
+    UI.els.cardLeaderboard.addEventListener('click', () => {
+      openLeaderboard('rating');
     });
 
     UI.els.btnHomeAuth.addEventListener('click', () => {
@@ -288,6 +289,7 @@
       if (!name) return;
       currentMode = 'ascend';
       GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
+      AscendClient.setMyUsername(name);
       UI.showScreen('ascend');
       GameSocket.emit('ascend:join');
     });
@@ -307,7 +309,66 @@
     UI.showScreen('welcome');
   }
 
+  // --- LEADERBOARD ---
+
+  let currentLbCategory = 'rating';
+
+  async function openLeaderboard(category) {
+    currentLbCategory = category || 'rating';
+    UI.showScreen('leaderboard');
+    UI.els.lbTableBody.innerHTML = '<div class="lb-loading">Loading...</div>';
+
+    document.querySelectorAll('.lb-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.category === currentLbCategory);
+    });
+
+    try {
+      const res = await fetch(`/api/leaderboard?category=${currentLbCategory}&limit=50`);
+      const data = await res.json();
+      UI.showLeaderboard(data, currentLbCategory);
+    } catch (err) {
+      UI.els.lbTableBody.innerHTML = '<div class="lb-empty">Failed to load</div>';
+    }
+  }
+
+  function bindLeaderboardEvents() {
+    UI.els.btnLeaderboardBack.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    document.querySelectorAll('.lb-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        openLeaderboard(tab.dataset.category);
+      });
+    });
+  }
+
   // --- PROFILE SCREEN ---
+
+  async function openProfile() {
+    if (!currentUser) return;
+    UI.showProfile(currentUser, null, null);
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+
+      const headers = { 'Authorization': `Bearer ${session.access_token}` };
+
+      const [profileRes, historyRes, ascendRes] = await Promise.all([
+        fetch('/api/me', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/match-history?limit=10', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/ascend-stats', { headers }).then(r => r.ok ? r.json() : null).catch(() => null)
+      ]);
+
+      if (profileRes) {
+        currentUser = profileRes;
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+      }
+
+      UI.showProfile(currentUser, ascendRes, historyRes);
+    } catch (_) {}
+  }
 
   function bindProfileEvents() {
     UI.els.btnProfileBack.addEventListener('click', () => {

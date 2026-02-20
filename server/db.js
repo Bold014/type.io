@@ -214,8 +214,89 @@ async function getUserBestHeight(userId) {
   return data[0];
 }
 
+async function saveMatchResult(userId, data) {
+  const { error } = await supabase
+    .from('match_history')
+    .insert({
+      user_id: userId,
+      opponent_username: data.opponentUsername,
+      mode: data.mode,
+      won: data.won,
+      user_wpm: data.userWpm,
+      opponent_wpm: data.opponentWpm,
+      rounds_won: data.roundsWon,
+      rounds_lost: data.roundsLost,
+      rating_change: data.ratingChange || null,
+      xp_gained: data.xpGained || 0,
+      created_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('saveMatchResult error:', error);
+  }
+}
+
+async function getMatchHistory(userId, limit = 10) {
+  const { data, error } = await supabase
+    .from('match_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('getMatchHistory error:', error);
+    return [];
+  }
+  return data;
+}
+
+async function getLeaderboard(category = 'rating', limit = 50) {
+  const validCategories = {
+    rating: { column: 'rating', ascending: false },
+    best_wpm: { column: 'best_wpm', ascending: false },
+    wins: { column: 'wins', ascending: false },
+    xp: { column: 'xp', ascending: false }
+  };
+
+  const config = validCategories[category] || validCategories.rating;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm')
+    .gt('games_played', 0)
+    .order(config.column, { ascending: config.ascending })
+    .limit(limit);
+
+  if (error) {
+    console.error('getLeaderboard error:', error);
+    return [];
+  }
+  return data;
+}
+
+async function getUserAscendStats(userId) {
+  const { data, error } = await supabase
+    .from('ascend_runs')
+    .select('height, tier, duration_ms')
+    .eq('user_id', userId)
+    .order('height', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    return { bestHeight: 0, bestTier: 0, totalRuns: 0, avgHeight: 0 };
+  }
+
+  const totalRuns = data.length;
+  const bestHeight = data[0].height;
+  const bestTier = data[0].tier;
+  const avgHeight = data.reduce((sum, r) => sum + r.height, 0) / totalRuns;
+
+  return { bestHeight, bestTier, totalRuns, avgHeight: Math.round(avgHeight * 10) / 10 };
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername,
   updateStats, updateXpOnly, updateEmail, xpToLevel,
-  saveAscendRun, getWeeklyLeaderboard, getUserBestHeight
+  saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
+  saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats
 };

@@ -59,7 +59,7 @@
   <div id="screen-welcome" class="screen active">
     <div class="welcome-wrapper">
       <h1 class="logo logo-large">type<span class="logo-dot">duel.</span>io</h1>
-      <p class="welcome-tagline">real-time 1v1 typing duels</p>
+      <p class="welcome-tagline">real-time typing arena</p>
 
       <div class="welcome-card">
         <h2 class="welcome-heading" id="welcome-heading">WELCOME TO TYPEDUEL.IO</h2>
@@ -142,11 +142,11 @@
           <span class="mode-key-hint">ENTER &crarr;</span>
         </button>
 
-        <div class="mode-key disabled" data-accent="green">
+        <button class="mode-key" id="card-leaderboard" data-accent="green">
           <span class="mode-key-title">LEADERBOARD</span>
           <span class="mode-key-sub">Top players worldwide</span>
-          <span class="mode-key-soon">COMING SOON</span>
-        </div>
+          <span class="mode-key-hint">ENTER &crarr;</span>
+        </button>
 
         <div class="mode-key disabled" data-accent="dim">
           <span class="mode-key-title">CONFIG</span>
@@ -174,15 +174,15 @@
     </header>
     <div class="profile-wrapper">
 
-      <div class="profile-card">
-        <div class="profile-username" id="profile-username">USERNAME</div>
-        <div class="profile-rank-display">
-          <span class="account-rank-badge" id="profile-rank-badge">BRONZE</span>
-          <span class="account-sr-value"><span id="profile-sr">1000</span> SR</span>
+      <div class="profile-hero">
+        <div class="profile-hero-left">
+          <div class="profile-username" id="profile-username">USERNAME</div>
+          <div class="profile-rank-display">
+            <span class="account-rank-badge" id="profile-rank-badge">BRONZE</span>
+            <span class="account-sr-value"><span id="profile-sr">1000</span> SR</span>
+          </div>
         </div>
-
-        <div class="profile-section">
-          <h3 class="profile-section-title">PROGRESSION</h3>
+        <div class="profile-hero-right">
           <div class="profile-xp-card">
             <div class="profile-xp-header">
               <span class="profile-xp-badge-icon" id="profile-xp-badge-icon"></span>
@@ -208,47 +208,120 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="profile-section">
-          <h3 class="profile-section-title">STATS</h3>
-          <div class="account-stats">
-            <div class="account-stat-row">
-              <span class="account-stat-label">Best WPM</span>
-              <span class="account-stat-value" id="profile-best-wpm">0</span>
+      <div class="profile-grid">
+        <div class="profile-section profile-section-stats">
+          <h3 class="profile-section-title">DUEL STATS</h3>
+          <div class="profile-stat-grid">
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-best-wpm">0</span>
+              <span class="profile-stat-card-label">Best WPM</span>
             </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">Wins</span>
-              <span class="account-stat-value" id="profile-wins">0</span>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-avg-wpm">0</span>
+              <span class="profile-stat-card-label">Avg WPM</span>
             </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">Losses</span>
-              <span class="account-stat-value" id="profile-losses">0</span>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-wins">0</span>
+              <span class="profile-stat-card-label">Wins</span>
             </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">Win Rate</span>
-              <span class="account-stat-value" id="profile-winrate">&mdash;</span>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-losses">0</span>
+              <span class="profile-stat-card-label">Losses</span>
             </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">Avg WPM</span>
-              <span class="account-stat-value" id="profile-avg-wpm">0</span>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-winrate">&mdash;</span>
+              <span class="profile-stat-card-label">Win Rate</span>
             </div>
-            <div class="account-stat-row">
-              <span class="account-stat-label">Games Played</span>
-              <span class="account-stat-value" id="profile-games-played">0</span>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-games-played">0</span>
+              <span class="profile-stat-card-label">Games Played</span>
             </div>
           </div>
         </div>
 
-        <div class="profile-section">
-          <h3 class="profile-section-title">EMAIL</h3>
-          <p class="profile-email-current" id="profile-email-current">No email set</p>
-          <p class="profile-email-hint" id="profile-email-hint">Add an email to enable password recovery</p>
+        <div class="profile-section profile-section-ascend">
+          <h3 class="profile-section-title">QUICK MATCH</h3>
+          <div class="profile-stat-grid profile-stat-grid-4">
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-ascend-height">0</span>
+              <span class="profile-stat-card-label">Best Height</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-ascend-tier">0</span>
+              <span class="profile-stat-card-label">Best Tier</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-ascend-runs">0</span>
+              <span class="profile-stat-card-label">Total Runs</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-ascend-avg">0</span>
+              <span class="profile-stat-card-label">Avg Height</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section profile-section-history">
+        <h3 class="profile-section-title">RECENT MATCHES</h3>
+        <div class="profile-history-table-wrap">
+          <div class="profile-history-header">
+            <span class="ph-col-result">RESULT</span>
+            <span class="ph-col-opponent">OPPONENT</span>
+            <span class="ph-col-mode">MODE</span>
+            <span class="ph-col-wpm">WPM</span>
+            <span class="ph-col-sr">SR</span>
+            <span class="ph-col-date">DATE</span>
+          </div>
+          <div class="profile-history-body" id="profile-history-body">
+            <div class="profile-history-empty">No matches yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section profile-section-email">
+        <h3 class="profile-section-title">EMAIL</h3>
+        <div class="profile-email-row">
+          <div class="profile-email-info">
+            <p class="profile-email-current" id="profile-email-current">No email set</p>
+            <p class="profile-email-hint" id="profile-email-hint">Add an email to enable password recovery</p>
+          </div>
           <div class="profile-email-form">
             <input type="email" id="profile-email-input" class="welcome-input" placeholder="NEW EMAIL" autocomplete="email" spellcheck="false">
             <p id="profile-email-error" class="form-error"></p>
             <p id="profile-email-success" class="form-success"></p>
             <button id="btn-profile-save-email" class="btn btn-join">SAVE EMAIL</button>
           </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LEADERBOARD SCREEN -->
+  <div id="screen-leaderboard" class="screen">
+    <header class="home-header">
+      <button id="btn-leaderboard-back" class="home-header-left home-header-back">HOME</button>
+      <span class="home-header-left" style="margin-left:auto">LEADERBOARD</span>
+    </header>
+    <div class="lb-wrapper">
+      <div class="lb-tabs">
+        <button class="lb-tab active" data-category="rating">RATING</button>
+        <button class="lb-tab" data-category="best_wpm">BEST WPM</button>
+        <button class="lb-tab" data-category="wins">MOST WINS</button>
+        <button class="lb-tab" data-category="xp">HIGHEST LEVEL</button>
+      </div>
+      <div class="lb-table-wrap">
+        <div class="lb-table-header">
+          <span class="lb-col-rank">#</span>
+          <span class="lb-col-name">PLAYER</span>
+          <span class="lb-col-tier">RANK</span>
+          <span class="lb-col-stat">VALUE</span>
+        </div>
+        <div class="lb-table-body" id="lb-table-body">
+          <div class="lb-loading">Loading...</div>
         </div>
       </div>
     </div>
@@ -417,21 +490,26 @@
         </div>
       </div>
 
-      <div class="ascend-bars">
-        <div class="ascend-hp-bar-area">
-          <span class="ascend-bar-label">HP</span>
-          <div class="ascend-hp-track">
-            <div class="ascend-hp-fill" id="ascend-hp-fill" style="width:100%"></div>
-          </div>
-          <span class="ascend-hp-text" id="ascend-hp-text">100</span>
+      <div class="ascend-hp-bar-area" id="ascend-hp-bar-area">
+        <svg class="ascend-hp-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        <div class="ascend-hp-track">
+          <div class="ascend-hp-fill hp-high" id="ascend-hp-fill" style="width:100%"></div>
+          <div class="ascend-hp-segments"></div>
         </div>
-        <div class="ascend-momentum-bar-area">
-          <span class="ascend-bar-label">MOMENTUM</span>
-          <div class="ascend-momentum-track">
-            <div class="ascend-momentum-fill" id="ascend-momentum-fill" style="width:10%"></div>
-          </div>
-          <span class="ascend-momentum-text" id="ascend-momentum-text">1</span>
-        </div>
+        <span class="ascend-hp-text" id="ascend-hp-text">100</span>
+      </div>
+
+      <div class="ascend-momentum-segments" id="ascend-momentum-segments">
+        <div class="momentum-seg" data-seg="1"></div>
+        <div class="momentum-seg" data-seg="2"></div>
+        <div class="momentum-seg" data-seg="3"></div>
+        <div class="momentum-seg" data-seg="4"></div>
+        <div class="momentum-seg" data-seg="5"></div>
+        <div class="momentum-seg" data-seg="6"></div>
+        <div class="momentum-seg" data-seg="7"></div>
+        <div class="momentum-seg" data-seg="8"></div>
+        <div class="momentum-seg" data-seg="9"></div>
+        <div class="momentum-seg" data-seg="10"></div>
       </div>
 
       <div class="ascend-burnout-banner" id="ascend-burnout-banner" style="display:none">
