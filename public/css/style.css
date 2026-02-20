@@ -4139,3 +4139,50 @@ body::after {
     font-size: 0.6rem;
   }
 }
+
+/* ── Ad Banners ─────────────────────────────────────────── */
+
+.ad-banner {
+  max-width: 728px;
+  margin: 1.5rem auto;
+  min-height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ad-banner::before {
+  content: "AD";
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.55rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ad-banner .adsbygoogle {
+  width: 100%;
+}
+
+.ad-banner:empty,
+.ad-banner:has(ins[data-ad-status="unfilled"]) {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .ad-banner {
+    max-width: 100%;
+    margin: 1rem auto;
+    min-height: 50px;
+  }
+}

@@ -305,7 +305,12 @@ const UI = (() => {
 
   function showScreen(name) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
-    if (screens[name]) screens[name].classList.add('active');
+    if (screens[name]) {
+      screens[name].classList.add('active');
+      screens[name].querySelectorAll('.adsbygoogle:not([data-ad-status])').forEach(() => {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      });
+    }
   }
 
   function showWelcomeStep(step, username) {
