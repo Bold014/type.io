@@ -15,13 +15,9 @@ const MOMENTUM_THRESHOLDS = [20, 45, 75, 110, 150, 200, 260, 330, 410, 500];
 
 const ATTACK_HP_COST = { inject: 15, scramble: 10, chaos: 8 };
 
-const BURNOUT_SCHEDULE = [
-  { time: 480000, sentenceMult: 1.2, damageMult: 1.0, drain: 0, message: 'BURNOUT SETTING IN...' },
-  { time: 540000, sentenceMult: 1.2, damageMult: 1.25, drain: 0, message: 'LOSING STAMINA...' },
-  { time: 600000, sentenceMult: 1.4, damageMult: 1.25, drain: 0, message: 'LOSING FOCUS...' },
-  { time: 660000, sentenceMult: 1.4, damageMult: 1.5, drain: 0, message: 'FADING OUT...' },
-  { time: 720000, sentenceMult: 1.4, damageMult: 1.5, drain: 3, message: 'THIS IS THE END.' }
-];
+const FLOOR_BASE_SPEED = 0.5;
+const FLOOR_HEIGHT_FACTOR = 0.015;
+const FLOOR_GRACE_PERIOD_MS = 10000;
 
 const GARBAGE_WORDS = [
   'the', 'and', 'but', 'from', 'with', 'over', 'just',
@@ -37,23 +33,6 @@ function getTier(height) {
     if (height >= TIER_THRESHOLDS[i]) return i + 1;
   }
   return 1;
-}
-
-function getPlayerBurnout(player) {
-  const elapsed = player.startTime ? Date.now() - player.startTime : 0;
-  let sentenceMult = 1.0;
-  let damageMult = 1.0;
-  let drain = 0;
-  let level = 0;
-  for (let i = 0; i < BURNOUT_SCHEDULE.length; i++) {
-    if (elapsed >= BURNOUT_SCHEDULE[i].time) {
-      sentenceMult = BURNOUT_SCHEDULE[i].sentenceMult;
-      damageMult = BURNOUT_SCHEDULE[i].damageMult;
-      drain = BURNOUT_SCHEDULE[i].drain;
-      level = i + 1;
-    }
-  }
-  return { sentenceMult, damageMult, drain, level };
 }
 
 function pickGarbageWord() {
@@ -121,7 +100,7 @@ function joinLobby(io, socket) {
     finalTier: 0,
     startTime: null,
     knockouts: 0,
-    burnoutLevel: 0,
+    floorHeight: 0,
     started: false
   };
 
@@ -178,9 +157,7 @@ function prepareSentence(lobby, socketId) {
   const tier = getTier(player.height);
   player.tier = tier;
 
-  const burnout = getPlayerBurnout(player);
-
-  const sentenceObj = pickSentencesForTier(tier, burnout.sentenceMult);
+  const sentenceObj = pickSentencesForTier(tier);
   player.currentSentence = sentenceObj.text;
   player.currentSentenceSource = sentenceObj.source;
   player.sentenceStartTime = Date.now();
@@ -245,17 +222,6 @@ function tickGameLoop(io, lobby) {
       player.hp -= 5 * dt;
     }
 
-    const burnout = getPlayerBurnout(player);
-    if (burnout.level > player.burnoutLevel) {
-      player.burnoutLevel = burnout.level;
-      const schedule = BURNOUT_SCHEDULE[burnout.level - 1];
-      player.socket.emit('ascend:burnout', { level: burnout.level, message: schedule.message });
-    }
-
-    if (burnout.drain > 0) {
-      player.hp -= burnout.drain * dt;
-    }
-
     player.hp = Math.max(0, player.hp);
 
     if (Math.round(player.hp) !== Math.round(hpBefore)) {
@@ -264,7 +230,26 @@ function tickGameLoop(io, lobby) {
 
     if (player.hp <= 0) {
       eliminatePlayer(io, lobby, socketId, null);
+      return;
     }
+
+    const elapsed = now - player.startTime;
+    if (elapsed > FLOOR_GRACE_PERIOD_MS) {
+      const floorSpeed = FLOOR_BASE_SPEED
+        + player.height * FLOOR_HEIGHT_FACTOR;
+      player.floorHeight += floorSpeed * dt;
+
+      if (player.floorHeight >= player.height) {
+        eliminatePlayer(io, lobby, socketId, null);
+        return;
+      }
+    }
+
+    const gap = Math.round((player.height - player.floorHeight) * 10) / 10;
+    player.socket.emit('ascend:floor', {
+      floorHeight: Math.round(player.floorHeight * 10) / 10,
+      gap
+    });
   });
 
   if (aliveCount > 0 || lobby.players.size > 0) {
@@ -283,7 +268,8 @@ function buildScoreboard(lobby) {
       hp: Math.round(Math.max(0, p.hp)),
       momentum: p.momentum,
       eliminated: p.eliminated,
-      wpm: p.lastTypingState?.wpm || 0
+      wpm: p.lastTypingState?.wpm || 0,
+      floorHeight: Math.round(p.floorHeight * 10) / 10
     });
   });
   scoreboard.sort((a, b) => b.height - a.height);
@@ -368,8 +354,7 @@ function processAttack(io, lobby, attackerId) {
   if (!target || !target.currentSentence) return;
 
   const attackType = pickAttackType(attacker.comboState.attackCount);
-  const burnout = getPlayerBurnout(attacker);
-  const damage = Math.round(ATTACK_HP_COST[attackType] * burnout.damageMult);
+  const damage = ATTACK_HP_COST[attackType];
 
   let result = null;
 

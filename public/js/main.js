@@ -738,8 +738,8 @@
       AscendClient.handleEliminated(data);
     });
 
-    GameSocket.on('ascend:burnout', (data) => {
-      AscendClient.handleBurnout(data);
+    GameSocket.on('ascend:floor', (data) => {
+      AscendClient.handleFloorUpdate(data);
     });
 
     GameSocket.on('ascend:run:end', (data) => {

@@ -23,9 +23,9 @@ function pickSentences(count, exclude = []) {
   return { picked, indices };
 }
 
-function pickSentencesForTier(tier, burnoutMult = 1.0) {
+function pickSentencesForTier(tier) {
   const idx = Math.max(0, Math.min(tier - 1, TIER_TARGET_LENGTH.length - 1));
-  const targetLen = Math.round(TIER_TARGET_LENGTH[idx] * burnoutMult);
+  const targetLen = TIER_TARGET_LENGTH[idx];
 
   const pool = quotes.slice();
   const group = [];

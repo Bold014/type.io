@@ -645,7 +645,7 @@ body::after {
 .mode-key-title {
   font-family: var(--mono);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.65rem;
   letter-spacing: 0.08em;
   line-height: 1.2;
   position: relative;
@@ -686,7 +686,7 @@ body::after {
 }
 
 .mode-key-sub {
-  font-size: 0.75rem;
+  font-size: 1rem;
   color: var(--text-dim);
   letter-spacing: 0.02em;
   line-height: 1.4;
@@ -2773,6 +2773,11 @@ body::after {
   z-index: 1;
 }
 
+#screen-ascend > .countdown-overlay {
+  position: fixed;
+  z-index: 50;
+}
+
 #screen-ascend.screen-shake {
   animation: screenShake 0.4s ease-out;
 }
@@ -3090,40 +3095,112 @@ body::after {
   100% { transform: scale(1); }
 }
 
-/* --- Burnout Banner --- */
+/* --- Floor Consumed Characters --- */
 
-.ascend-burnout-banner {
-  width: 100%;
-  text-align: center;
-  padding: 8px 16px;
-  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.1) 30%, rgba(239, 68, 68, 0.1) 70%, transparent);
-  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
-  animation: burnoutPulse 1.2s ease-in-out infinite;
-  flex-shrink: 0;
+.char.consumed {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.char.consuming {
+  opacity: 0.3;
+  color: rgba(239, 68, 68, 0.6);
+  animation: charDissolve 0.6s ease-in-out infinite;
+  transition: opacity 0.2s ease;
+}
+
+@keyframes charDissolve {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 0.15; transform: translateY(2px); }
+}
+
+/* --- Floor Vignette Overlay --- */
+
+.ascend-floor-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.ascend-floor-vignette.vignette-warning {
+  opacity: 1;
+  background: linear-gradient(to top, rgba(239, 68, 68, 0.08) 0%, transparent 30%);
+}
+
+.ascend-floor-vignette.vignette-danger {
+  opacity: 1;
+  background: linear-gradient(to top, rgba(239, 68, 68, 0.18) 0%, rgba(239, 68, 68, 0.04) 40%, transparent 60%);
+  animation: vignettePulse 1.2s ease-in-out infinite;
+}
+
+.ascend-floor-vignette.vignette-critical {
+  opacity: 1;
+  background: linear-gradient(to top, rgba(239, 68, 68, 0.35) 0%, rgba(239, 68, 68, 0.1) 50%, transparent 70%);
+  animation: vignettePulse 0.5s ease-in-out infinite;
+}
+
+@keyframes vignettePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* --- Floor Warning Screen Effects --- */
+
+#screen-ascend.floor-danger {
+  animation: floorShudder 2s ease-in-out infinite;
+}
+
+#screen-ascend.floor-critical {
+  animation: floorShudder 0.8s ease-in-out infinite;
+}
+
+@keyframes floorShudder {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(0.5px); }
+  75% { transform: translateY(-0.5px); }
+}
+
+/* --- Falling Text Animation --- */
+
+.ascend-falling-text-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  overflow: hidden;
+}
+
+.falling-text-group {
+  position: absolute;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  line-height: 1.6;
 }
 
-.ascend-burnout-banner::before {
-  content: '⚠';
-  font-size: 0.9rem;
-  filter: grayscale(1) brightness(1.5);
-}
-
-.ascend-burnout-banner span {
+.falling-char {
   font-family: var(--mono);
-  font-weight: 800;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
-  color: var(--red);
-  text-shadow: 0 0 12px var(--red-glow);
+  font-size: 1rem;
+  color: rgba(74, 222, 128, 0.7);
+  animation: charFall 1.2s ease-in forwards;
+  display: inline-block;
 }
 
-@keyframes burnoutPulse {
-  0%, 100% { background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.06) 30%, rgba(239, 68, 68, 0.06) 70%, transparent); }
-  50% { background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.15) 30%, rgba(239, 68, 68, 0.15) 70%, transparent); }
+@keyframes charFall {
+  0% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(calc(100vh - 100%));
+    opacity: 0;
+  }
 }
 
 /* --- Game Body --- */

@@ -10,6 +10,15 @@ const AscendClient = (() => {
   let lastHeight = -1;
   let myUsername = null;
 
+  let floorHeight = 0;
+  let floorGap = Infinity;
+  let floorCharIndex = 0;
+  let floorWarningLevel = 'none';
+
+  const FLOOR_WARNING_GAP = 40;
+  const FLOOR_DANGER_GAP = 20;
+  const FLOOR_CRITICAL_GAP = 8;
+
   const els = {
     tierLabel: null,
     heightDisplay: null,
@@ -18,8 +27,6 @@ const AscendClient = (() => {
     hpText: null,
     hpBarArea: null,
     momentumSegments: null,
-    burnoutBanner: null,
-    burnoutText: null,
     sentenceDisplay: null,
     quoteSource: null,
     typingInput: null,
@@ -31,7 +38,9 @@ const AscendClient = (() => {
     attackNotifications: null,
     typingArea: null,
     typingPanel: null,
-    screenAscend: null
+    screenAscend: null,
+    floorVignette: null,
+    fallingTextContainer: null
   };
 
   function cacheEls() {
@@ -42,8 +51,6 @@ const AscendClient = (() => {
     els.hpText = document.getElementById('ascend-hp-text');
     els.hpBarArea = document.getElementById('ascend-hp-bar-area');
     els.momentumSegments = document.getElementById('ascend-momentum-segments');
-    els.burnoutBanner = document.getElementById('ascend-burnout-banner');
-    els.burnoutText = document.getElementById('ascend-burnout-text');
     els.sentenceDisplay = document.getElementById('ascend-sentence-display');
     els.quoteSource = document.getElementById('ascend-quote-source');
     els.typingInput = document.getElementById('ascend-typing-input');
@@ -56,6 +63,8 @@ const AscendClient = (() => {
     els.typingArea = document.getElementById('ascend-typing-area');
     els.typingPanel = document.querySelector('.ascend-typing-panel');
     els.screenAscend = document.getElementById('screen-ascend');
+    els.floorVignette = document.getElementById('ascend-floor-vignette');
+    els.fallingTextContainer = document.getElementById('ascend-falling-text-container');
   }
 
   function reset() {
@@ -66,6 +75,10 @@ const AscendClient = (() => {
     lastHP = 100;
     lastMomentum = 0;
     lastHeight = -1;
+    floorHeight = 0;
+    floorGap = Infinity;
+    floorCharIndex = 0;
+    floorWarningLevel = 'none';
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
@@ -82,7 +95,6 @@ const AscendClient = (() => {
     cacheEls();
     reset();
 
-    if (els.burnoutBanner) els.burnoutBanner.style.display = 'none';
     updateHP(100);
     updateMomentum(1);
     updateHeight(0);
@@ -141,8 +153,13 @@ const AscendClient = (() => {
     if (!active) return;
     cacheEls();
 
+    if (currentSentence && els.sentenceDisplay) {
+      spawnFallingText();
+    }
+
     currentSentence = data.sentence;
     currentInjectedRanges = [];
+    floorCharIndex = 0;
 
     updateTier(data.tier);
     updateHeight(data.height);
@@ -233,6 +250,13 @@ const AscendClient = (() => {
       let cls = charStates[i] || 'pending';
       if (isInInjectedRange(i) && (cls === 'pending' || cls === 'current')) {
         cls += ' injected';
+      }
+      if (floorCharIndex > 0 && (cls === 'correct' || cls.startsWith('correct '))) {
+        if (i < floorCharIndex) {
+          cls += ' consumed';
+        } else if (i < floorCharIndex + 3) {
+          cls += ' consuming';
+        }
       }
       const char = currentSentence[i] === ' ' ? ' ' : escapeHtml(currentSentence[i]);
       html += `<span class="char ${cls}">${char}</span>`;
@@ -407,12 +431,81 @@ const AscendClient = (() => {
     spawnNotification(`${data.username} ${data.disconnected ? 'DISCONNECTED' : 'ELIMINATED'}`, 'attack-notification attack-received');
   }
 
-  function handleBurnout(data) {
+  function handleFloorUpdate(data) {
     cacheEls();
-    if (els.burnoutBanner) {
-      els.burnoutBanner.style.display = '';
-      els.burnoutText.textContent = data.message;
+    floorHeight = data.floorHeight;
+    floorGap = data.gap;
+
+    const playerHeight = floorHeight + floorGap;
+    const floorRatio = playerHeight > 0 ? floorHeight / playerHeight : 0;
+    const state = TypingEngine.isActive() ? TypingEngine.getState() : null;
+    const typedPos = state ? state.position : 0;
+    floorCharIndex = Math.floor(typedPos * floorRatio);
+
+    if (TypingEngine.isActive()) {
+      const charStates = TypingEngine.getCharStates();
+      renderSentence(charStates);
     }
+
+    updateFloorWarning(data.gap);
+  }
+
+  function updateFloorWarning(gap) {
+    if (!els.floorVignette) cacheEls();
+    if (!els.screenAscend) return;
+
+    let newLevel = 'none';
+    if (gap <= FLOOR_CRITICAL_GAP) newLevel = 'critical';
+    else if (gap <= FLOOR_DANGER_GAP) newLevel = 'danger';
+    else if (gap <= FLOOR_WARNING_GAP) newLevel = 'warning';
+
+    if (newLevel !== floorWarningLevel) {
+      els.screenAscend.classList.remove('floor-warn', 'floor-danger', 'floor-critical');
+      if (els.floorVignette) {
+        els.floorVignette.classList.remove('vignette-warning', 'vignette-danger', 'vignette-critical');
+      }
+
+      if (newLevel === 'warning') {
+        els.screenAscend.classList.add('floor-warn');
+        if (els.floorVignette) els.floorVignette.classList.add('vignette-warning');
+      } else if (newLevel === 'danger') {
+        els.screenAscend.classList.add('floor-danger');
+        if (els.floorVignette) els.floorVignette.classList.add('vignette-danger');
+      } else if (newLevel === 'critical') {
+        els.screenAscend.classList.add('floor-critical');
+        if (els.floorVignette) els.floorVignette.classList.add('vignette-critical');
+      }
+
+      floorWarningLevel = newLevel;
+    }
+  }
+
+  function spawnFallingText() {
+    if (!els.sentenceDisplay || !els.fallingTextContainer) return;
+
+    const spans = els.sentenceDisplay.querySelectorAll('.char');
+    if (!spans.length) return;
+
+    const containerRect = els.sentenceDisplay.getBoundingClientRect();
+
+    const ghost = document.createElement('div');
+    ghost.className = 'falling-text-group';
+    ghost.style.left = containerRect.left + 'px';
+    ghost.style.top = containerRect.top + 'px';
+    ghost.style.width = containerRect.width + 'px';
+
+    const maxChars = Math.min(spans.length, 60);
+    for (let i = 0; i < maxChars; i++) {
+      const span = spans[i];
+      const clone = document.createElement('span');
+      clone.className = 'falling-char';
+      clone.textContent = span.textContent;
+      clone.style.animationDelay = (i * 8) + 'ms';
+      ghost.appendChild(clone);
+    }
+
+    els.fallingTextContainer.appendChild(ghost);
+    setTimeout(() => ghost.remove(), 1400);
   }
 
   function handleRunEnd(data) {
@@ -422,6 +515,14 @@ const AscendClient = (() => {
       timerInterval = null;
     }
     TypingEngine.reset();
+
+    if (els.screenAscend) {
+      els.screenAscend.classList.remove('floor-warn', 'floor-danger', 'floor-critical');
+    }
+    if (els.floorVignette) {
+      els.floorVignette.classList.remove('vignette-warning', 'vignette-danger', 'vignette-critical');
+    }
+    floorWarningLevel = 'none';
 
     const rTitle = document.getElementById('ascend-result-title');
     const rStatus = document.getElementById('ascend-result-status');
@@ -571,7 +672,7 @@ const AscendClient = (() => {
     handleSentence, handleInput,
     handleAttackReceived, handleAttackSent,
     handleScoreboardUpdate, handleTierUp, handleMomentumUp, handleHpUpdate,
-    handleKnockout, handleEliminated, handleBurnout, handleRunEnd,
+    handleKnockout, handleEliminated, handleFloorUpdate, handleRunEnd,
     isActive, getInput
   };
 })();
