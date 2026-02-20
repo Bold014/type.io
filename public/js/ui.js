@@ -195,8 +195,6 @@ const UI = (() => {
     profileUsername: document.getElementById('profile-username'),
     profileRankBadge: document.getElementById('profile-rank-badge'),
     profileSr: document.getElementById('profile-sr'),
-    profileLevel: document.getElementById('profile-level'),
-    profileXp: document.getElementById('profile-xp'),
     profileBestWpm: document.getElementById('profile-best-wpm'),
     profileWins: document.getElementById('profile-wins'),
     profileLosses: document.getElementById('profile-losses'),
@@ -263,11 +261,17 @@ const UI = (() => {
     btnPlayAgain: document.getElementById('btn-play-again'),
     btnQuit: document.getElementById('btn-quit'),
 
-    xpBarArea: document.getElementById('xp-bar-area'),
-    xpLevelBadge: document.getElementById('xp-level-badge'),
-    xpLevelNum: document.getElementById('xp-level-num'),
-    xpNumbers: document.getElementById('xp-numbers'),
-    xpBarFill: document.getElementById('xp-bar-fill'),
+    homeLevelPill: document.getElementById('home-level-pill'),
+    homeLevelBadgeIcon: document.getElementById('home-level-badge-icon'),
+    homeLevelNum: document.getElementById('home-level-num'),
+
+    profileXpBadgeIcon: document.getElementById('profile-xp-badge-icon'),
+    profileXpLevelNum: document.getElementById('profile-xp-level-num'),
+    profileXpPct: document.getElementById('profile-xp-pct'),
+    profileXpBarFill: document.getElementById('profile-xp-bar-fill'),
+    profileXpTotal: document.getElementById('profile-xp-total'),
+    profileXpCurrent: document.getElementById('profile-xp-current'),
+    profileXpRemaining: document.getElementById('profile-xp-remaining'),
     xpGainDisplay: document.getElementById('xp-gain-display'),
     xpGainAmount: document.getElementById('xp-gain-amount'),
     xpGainPb: document.getElementById('xp-gain-pb'),
@@ -322,7 +326,7 @@ const UI = (() => {
       els.rankedSub.textContent = 'Climb the leaderboard';
       els.rankedLock.style.display = 'none';
       els.cardRanked.classList.remove('disabled');
-      renderXpBar(xp || 0);
+      renderHeaderLevel(xp || 0);
     } else {
       els.homeBadge.textContent = 'GUEST';
       els.homeBadge.className = 'home-badge';
@@ -334,7 +338,7 @@ const UI = (() => {
       els.rankedSub.textContent = 'Log in to unlock ranked play';
       els.rankedLock.style.display = '';
       els.cardRanked.classList.add('disabled');
-      hideXpBar();
+      hideHeaderLevel();
     }
   }
 
@@ -669,8 +673,25 @@ const UI = (() => {
     els.profileRankBadge.style.textShadow = `0 0 10px ${tier.color}40`;
     els.profileSr.textContent = profile.rating || 1000;
 
-    els.profileLevel.textContent = xpToLevel(profile.xp || 0);
-    els.profileXp.textContent = (profile.xp || 0).toLocaleString();
+    const xp = profile.xp || 0;
+    const level = xpToLevel(xp);
+    const currentLevelXp = xpForLevel(level);
+    const nextLevelXp = xpForLevel(level + 1);
+    const levelProgress = nextLevelXp > currentLevelXp
+      ? (xp - currentLevelXp) / (nextLevelXp - currentLevelXp)
+      : 0;
+    const progressPct = Math.max(0, Math.min(100, levelProgress * 100));
+    const badge = getLevelBadge(level);
+
+    els.profileXpBadgeIcon.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor, 28);
+    els.profileXpLevelNum.textContent = level;
+    els.profileXpLevelNum.style.color = badge.tagColor;
+    els.profileXpPct.textContent = `${Math.round(progressPct)}%`;
+    els.profileXpBarFill.style.width = `${progressPct}%`;
+    els.profileXpTotal.textContent = xp.toLocaleString();
+    els.profileXpCurrent.textContent = `${(xp - currentLevelXp).toLocaleString()} / ${(nextLevelXp - currentLevelXp).toLocaleString()}`;
+    els.profileXpRemaining.textContent = (nextLevelXp - xp).toLocaleString();
+
     els.profileBestWpm.textContent = Math.round(profile.best_wpm || 0);
     els.profileWins.textContent = profile.wins || 0;
     els.profileLosses.textContent = profile.losses || 0;
