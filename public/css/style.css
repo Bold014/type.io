@@ -2102,6 +2102,10 @@ a.mode-key {
   text-decoration: underline;
 }
 
+.sentence-display .char.error.space {
+  text-decoration: none;
+}
+
 .sentence-display .char.current {
   border-left: 2px solid var(--accent);
   animation: cursorGlow 1s step-end infinite;

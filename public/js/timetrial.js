@@ -243,8 +243,10 @@ const TimeTrial = (() => {
       } else {
         cls = 'pending';
       }
-      const char = sentence[i] === ' ' ? ' ' : escapeHtml(sentence[i]);
-      html += `<span class="char ${cls}">${char}</span>`;
+      const isSpace = sentence[i] === ' ';
+      const isErrorOnSpace = isSpace && cls === 'error' && typed[i] && typed[i] !== ' ';
+      const char = isErrorOnSpace ? escapeHtml(typed[i]) : (isSpace ? ' ' : escapeHtml(sentence[i]));
+      html += `<span class="char ${cls}${isSpace && !isErrorOnSpace ? ' space' : ''}">${char}</span>`;
     }
     els.sentenceDisplay.innerHTML = html;
 

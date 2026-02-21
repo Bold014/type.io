@@ -320,7 +320,7 @@
       if (!UI.screens.multiplayer.classList.contains('active')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const map = {
-        q: 'card-ascend',
+        c: 'card-ascend',
         d: 'card-quickplay',
         r: 'card-ranked'
       };
@@ -572,7 +572,7 @@
       const state = TypingEngine.getState();
       const charStates = TypingEngine.getCharStates();
 
-      UI.renderSentence(currentSentence, charStates, currentInjectedRanges);
+      UI.renderSentence(currentSentence, charStates, currentInjectedRanges, state.typed);
       UI.updatePlayerStats(state);
       UI.els.playerWpmBar.textContent = state.wpm;
       myProgress = state.progress;
@@ -721,7 +721,7 @@
       currentInjectedRanges = data.injectedRanges || [];
       TypingEngine.updateSentence(currentSentence);
       const charStates = TypingEngine.getCharStates();
-      UI.renderSentence(currentSentence, charStates, currentInjectedRanges);
+      UI.renderSentence(currentSentence, charStates, currentInjectedRanges, TypingEngine.getState().typed);
       UI.showAttackNotification('inject', data.word);
     });
 
@@ -729,7 +729,7 @@
       currentSentence = data.updatedSentence;
       TypingEngine.updateSentence(currentSentence);
       const charStates = TypingEngine.getCharStates();
-      UI.renderSentence(currentSentence, charStates, currentInjectedRanges);
+      UI.renderSentence(currentSentence, charStates, currentInjectedRanges, TypingEngine.getState().typed);
       if (data.range) UI.flashSentenceRange(data.range[0], data.range[1], 'scramble');
       UI.showAttackNotification('scramble');
     });
@@ -738,7 +738,7 @@
       currentSentence = data.updatedSentence;
       TypingEngine.updateSentence(currentSentence);
       const charStates = TypingEngine.getCharStates();
-      UI.renderSentence(currentSentence, charStates, currentInjectedRanges);
+      UI.renderSentence(currentSentence, charStates, currentInjectedRanges, TypingEngine.getState().typed);
       if (data.range) UI.flashSentenceRange(data.range[0], data.range[1], 'chaos');
       UI.showAttackNotification('chaos');
     });

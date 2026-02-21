@@ -252,6 +252,7 @@ const AscendClient = (() => {
 
   function renderSentence(charStates) {
     if (!els.sentenceDisplay) return;
+    const typed = TypingEngine.isActive() ? TypingEngine.getState().typed : '';
     let html = '';
     for (let i = 0; i < currentSentence.length; i++) {
       let cls = charStates[i] || 'pending';
@@ -265,8 +266,10 @@ const AscendClient = (() => {
           cls += ' consuming';
         }
       }
-      const char = currentSentence[i] === ' ' ? ' ' : escapeHtml(currentSentence[i]);
-      html += `<span class="char ${cls}">${char}</span>`;
+      const isSpace = currentSentence[i] === ' ';
+      const isErrorOnSpace = isSpace && cls === 'error' && typed[i] && typed[i] !== ' ';
+      const char = isErrorOnSpace ? escapeHtml(typed[i]) : (isSpace ? ' ' : escapeHtml(currentSentence[i]));
+      html += `<span class="char ${cls}${isSpace && !isErrorOnSpace ? ' space' : ''}">${char}</span>`;
     }
     els.sentenceDisplay.innerHTML = html;
   }

@@ -395,15 +395,17 @@ const UI = (() => {
     return false;
   }
 
-  function renderSentence(sentence, charStates, injectedRanges) {
+  function renderSentence(sentence, charStates, injectedRanges, typed) {
     let html = '';
     for (let i = 0; i < sentence.length; i++) {
       let cls = charStates[i] || 'pending';
       if (isInInjectedRange(i, injectedRanges) && (cls === 'pending' || cls === 'current')) {
         cls += ' injected';
       }
-      const char = sentence[i] === ' ' ? ' ' : escapeHtml(sentence[i]);
-      html += `<span class="char ${cls}">${char}</span>`;
+      const isSpace = sentence[i] === ' ';
+      const isErrorOnSpace = isSpace && cls === 'error' && typed && typed[i] && typed[i] !== ' ';
+      const char = isErrorOnSpace ? escapeHtml(typed[i]) : (isSpace ? ' ' : escapeHtml(sentence[i]));
+      html += `<span class="char ${cls}${isSpace && !isErrorOnSpace ? ' space' : ''}">${char}</span>`;
     }
     els.sentenceDisplay.innerHTML = html;
   }
