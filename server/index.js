@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 app.use(express.json());
 
-app.get('/config.js', (req, res) => {
+app.get('/api/config', (req, res) => {
   const host = req.hostname || req.get('host') || '';
   const isSbox = host.startsWith('sbox') || process.env.ADS_ENABLED === 'false';
   const adsEnabled = !isSbox;
@@ -23,7 +23,7 @@ app.get('/config.js', (req, res) => {
   // #region agent log
   const _dbg = {hostname:req.hostname,hostHeader:req.get('host'),xFwdHost:req.get('x-forwarded-host'),adsEnv:process.env.ADS_ENABLED,isSbox,adsEnabled};
   // #endregion
-  res.set('Cache-Control', 'no-store');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.type('application/javascript');
   res.send(`window.APP_CONFIG={adsEnabled:${adsEnabled},platform:"${platform}",host:"${host}"};/*DBG:${JSON.stringify(_dbg)}*/`);
 });
