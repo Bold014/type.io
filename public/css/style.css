@@ -746,6 +746,28 @@ body::after {
   justify-self: center;
 }
 
+/* --- Discord accent variant --- */
+
+a.mode-key {
+  text-decoration: none;
+}
+
+.mode-key[data-accent="discord"]::after {
+  background: rgba(88, 101, 242, 0.5);
+}
+
+.mode-key[data-accent="discord"]:hover:not(.disabled) {
+  border-color: rgba(88, 101, 242, 0.35);
+}
+
+.mode-key[data-accent="discord"] .mode-key-title {
+  color: #5865F2;
+}
+
+.mode-key[data-accent="discord"] .mode-key-icon {
+  text-shadow: 0 0 12px rgba(88, 101, 242, 0.4);
+}
+
 /* ===== MODAL ===== */
 
 .modal {
