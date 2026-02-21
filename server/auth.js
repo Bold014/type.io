@@ -117,6 +117,7 @@ function setupAuthRoutes(app) {
       const category = req.query.category || 'rating';
       const limit = Math.min(parseInt(req.query.limit) || 50, 100);
       const data = await getLeaderboard(category, limit);
+      res.set('Cache-Control', 'no-store');
       res.json(data);
     } catch (err) {
       console.error('Leaderboard error:', err);
