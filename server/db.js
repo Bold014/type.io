@@ -194,28 +194,17 @@ async function getWeeklyLeaderboard(limit = 20) {
   monday.setUTCDate(now.getUTCDate() - ((day + 6) % 7));
   monday.setUTCHours(0, 0, 0, 0);
 
-  const { data, error } = await supabase
-    .from('ascend_runs')
-    .select('user_id, username, height, tier, duration_ms, created_at')
-    .gte('created_at', monday.toISOString())
-    .order('height', { ascending: false })
-    .limit(limit * 3);
+  const { data, error } = await supabase.rpc('get_weekly_ascend_leaderboard', {
+    p_monday: monday.toISOString(),
+    p_limit: limit
+  });
 
   if (error) {
     console.error('getWeeklyLeaderboard error:', error);
     return [];
   }
 
-  const best = new Map();
-  for (const row of data) {
-    if (!best.has(row.user_id) || row.height > best.get(row.user_id).height) {
-      best.set(row.user_id, row);
-    }
-  }
-
-  return Array.from(best.values())
-    .sort((a, b) => b.height - a.height)
-    .slice(0, limit);
+  return data || [];
 }
 
 async function getUserBestHeight(userId) {
@@ -255,7 +244,7 @@ async function saveMatchResult(userId, data) {
 async function getMatchHistory(userId, limit = 10) {
   const { data, error } = await supabase
     .from('match_history')
-    .select('*')
+    .select('id, opponent_username, mode, won, user_wpm, opponent_wpm, rounds_won, rounds_lost, rating_change, xp_gained, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -268,26 +257,16 @@ async function getMatchHistory(userId, limit = 10) {
 }
 
 async function getAscendLeaderboard(limit = 50) {
-  const { data, error } = await supabase
-    .from('ascend_runs')
-    .select('user_id, username, height, tier')
-    .order('height', { ascending: false })
-    .limit(limit * 3);
+  const { data, error } = await supabase.rpc('get_ascend_leaderboard', {
+    p_limit: limit
+  });
 
   if (error) {
     console.error('getAscendLeaderboard error:', error);
     return [];
   }
 
-  const best = new Map();
-  for (const row of data || []) {
-    if (!best.has(row.user_id) || row.height > best.get(row.user_id).height) {
-      best.set(row.user_id, { user_id: row.user_id, username: row.username, height: row.height, tier: row.tier });
-    }
-  }
-  return Array.from(best.values())
-    .sort((a, b) => b.height - a.height)
-    .slice(0, limit);
+  return data || [];
 }
 
 async function getLeaderboard(category = 'rating', limit = 50) {
@@ -401,27 +380,17 @@ async function saveTimeTrialRun(userId, username, data) {
 }
 
 async function getTimeTrialLeaderboard(duration, limit = 50) {
-  const { data, error } = await supabase
-    .from('time_trial_runs')
-    .select('user_id, username, wpm, accuracy, duration')
-    .eq('duration', duration)
-    .order('wpm', { ascending: false })
-    .limit(limit * 3);
+  const { data, error } = await supabase.rpc('get_time_trial_leaderboard', {
+    p_duration: duration,
+    p_limit: limit
+  });
 
   if (error) {
     console.error('getTimeTrialLeaderboard error:', error);
     return [];
   }
 
-  const best = new Map();
-  for (const row of data || []) {
-    if (!best.has(row.user_id) || row.wpm > best.get(row.user_id).wpm) {
-      best.set(row.user_id, row);
-    }
-  }
-  return Array.from(best.values())
-    .sort((a, b) => b.wpm - a.wpm)
-    .slice(0, limit);
+  return data || [];
 }
 
 async function getUserTimeTrialStats(userId) {
