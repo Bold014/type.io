@@ -15,8 +15,10 @@ const server = http.createServer(app);
 app.use(express.json());
 
 app.get('/config.js', (req, res) => {
-  const adsEnabled = process.env.ADS_ENABLED !== 'false';
-  const platform = adsEnabled ? 'web' : 'sbox';
+  const host = req.hostname;
+  const isSbox = host.startsWith('sbox') || process.env.ADS_ENABLED === 'false';
+  const adsEnabled = !isSbox;
+  const platform = isSbox ? 'sbox' : 'web';
   res.type('application/javascript');
   res.send(`window.APP_CONFIG={adsEnabled:${adsEnabled},platform:"${platform}"};`);
 });
