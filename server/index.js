@@ -6,7 +6,6 @@ const { Server } = require('socket.io');
 const path = require('path');
 const { setupAuthRoutes } = require('./auth');
 const { setupSocketHandlers } = require('./socket');
-const { setupSboxWebSocket } = require('./sbox-bridge');
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,7 +22,6 @@ const io = new Server(server, {
 });
 
 setupSocketHandlers(io);
-setupSboxWebSocket(server, io);
 
 server.listen(PORT, () => {
   console.log(`typeduel.io running on http://localhost:${PORT}`);
