@@ -13,6 +13,14 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
+
+app.get('/config.js', (req, res) => {
+  const adsEnabled = process.env.ADS_ENABLED !== 'false';
+  const platform = adsEnabled ? 'web' : 'sbox';
+  res.type('application/javascript');
+  res.send(`window.APP_CONFIG={adsEnabled:${adsEnabled},platform:"${platform}"};`);
+});
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 setupAuthRoutes(app);

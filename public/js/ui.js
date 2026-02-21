@@ -307,9 +307,11 @@ const UI = (() => {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     if (screens[name]) {
       screens[name].classList.add('active');
-      screens[name].querySelectorAll('.adsbygoogle:not([data-ad-status])').forEach(() => {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      });
+      if (window.APP_CONFIG && window.APP_CONFIG.adsEnabled) {
+        screens[name].querySelectorAll('.adsbygoogle:not([data-ad-status])').forEach(() => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        });
+      }
     }
   }
 
