@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TypeDuel OG Image Design</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px;
+      font-family: 'Inter', sans-serif;
+      color: #E8ECF0;
+      gap: 20px;
+    }
+
+    .label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(232, 236, 240, 0.3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ===== OG IMAGE CANVAS — 1200×630 ===== */
+    .og-canvas {
+      width: 1200px;
+      height: 630px;
+      background: #2A2A2A;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Atmospheric blobs */
+    .og-canvas::before {
+      content: '';
+      position: absolute;
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(102, 136, 170, 0.14) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      pointer-events: none;
+    }
+
+    .og-canvas::after {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(168, 216, 176, 0.07) 0%, transparent 70%);
+      bottom: -80px;
+      right: -60px;
+      pointer-events: none;
+    }
+
+    /* Grid lines */
+    .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* Content */
+    .og-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Logo lockup */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .logo-mark {
+      width: 64px;
+      height: 64px;
+      background: #363636;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(102, 136, 170, 0.3);
+      box-shadow: 0 0 0 1px rgba(102, 136, 170, 0.1), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .logo-mark-inner {
+      display: flex;
+      align-items: flex-end;
+      line-height: 1;
+    }
+
+    .logo-t {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 32px;
+      color: #6688AA;
+      line-height: 1;
+    }
+
+    .logo-cursor {
+      width: 6px;
+      height: 26px;
+      background: #A8D8B0;
+      border-radius: 1px;
+      margin-left: 2px;
+      margin-bottom: 2px;
+    }
+
+    .logo-wordmark {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 36px;
+      color: #E8ECF0;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-wordmark span {
+      color: #6688AA;
+    }
+
+    /* Headline */
+    .headline {
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      font-size: 56px;
+      color: #E8ECF0;
+      letter-spacing: -0.03em;
+      text-align: center;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .headline .hl-accent {
+      color: #6688AA;
+    }
+
+    /* Subheadline */
+    .subline {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 22px;
+      color: rgba(232, 236, 240, 0.5);
+      text-align: center;
+      letter-spacing: -0.01em;
+      margin-bottom: 44px;
+      max-width: 680px;
+    }
+
+    /* Mode pills */
+    .modes {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mode-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #363636;
+      border: 1px solid #4A4A4A;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(232, 236, 240, 0.7);
+    }
+
+    .mode-pill.duel {
+      border-color: rgba(102, 136, 170, 0.5);
+      color: #6688AA;
+    }
+
+    .mode-pill.quick {
+      border-color: rgba(168, 216, 176, 0.4);
+      color: #A8D8B0;
+    }
+
+    .mode-pill.ranked {
+      border-color: rgba(232, 216, 168, 0.4);
+      color: #E8D8A8;
+    }
+
+    .mode-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .mode-sep {
+      width: 1px;
+      height: 20px;
+      background: rgba(232, 236, 240, 0.1);
+    }
+
+    /* Typing line simulation */
+    .typing-line {
+      position: absolute;
+      bottom: 44px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .typing-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: rgba(232, 236, 240, 0.18);
+    }
+
+    .typing-text .typed {
+      color: rgba(168, 216, 176, 0.45);
+    }
+
+    .typing-text .current {
+      color: rgba(232, 236, 240, 0.7);
+      border-bottom: 2px solid #6688AA;
+    }
+
+    /* URL badge */
+    .url-badge {
+      position: absolute;
+      bottom: 44px;
+      right: 52px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(232, 236, 240, 0.2);
+      letter-spacing: 0.04em;
+      z-index: 2;
+    }
+
+    /* WPM decorative badge */
+    .wpm-badge {
+      position: absolute;
+      top: 42px;
+      right: 52px;
+      background: #363636;
+      border: 1px solid rgba(102, 136, 170, 0.3);
+      border-radius: 8px;
+      padding: 10px 16px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .wpm-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 26px;
+      color: #6688AA;
+      line-height: 1;
+    }
+
+    .wpm-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(232, 236, 240, 0.3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .acc-badge {
+      position: absolute;
+      top: 42px;
+      left: 52px;
+      background: #363636;
+      border: 1px solid rgba(168, 216, 176, 0.25);
+      border-radius: 8px;
+      padding: 10px 16px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .acc-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 26px;
+      color: #A8D8B0;
+      line-height: 1;
+    }
+
+    .acc-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(232, 236, 240, 0.3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <p class="label">TypeDuel.io — OG Image (1200 × 630) · Screenshot at 1:1</p>
+
+  <div class="og-canvas">
+
+    <div class="grid"></div>
+
+    <!-- Decorative stat badges -->
+    <div class="acc-badge">
+      <span class="acc-number">98%</span>
+      <span class="acc-unit">accuracy</span>
+    </div>
+
+    <div class="wpm-badge">
+      <span class="wpm-number">142</span>
+      <span class="wpm-unit">wpm</span>
+    </div>
+
+    <!-- Main content -->
+    <div class="og-content">
+
+      <div class="logo-row">
+        <div class="logo-mark">
+          <div class="logo-mark-inner">
+            <span class="logo-t">t</span>
+            <span class="logo-cursor"></span>
+          </div>
+        </div>
+        <span class="logo-wordmark">Type<span>Duel</span>.io</span>
+      </div>
+
+      <h1 class="headline">
+        The Multiplayer<br><span class="hl-accent">Typing Arena</span>
+      </h1>
+
+      <p class="subline">
+        Duel 1v1, outlast everyone in Quick Match,<br>or climb the Ranked leaderboard — free in your browser.
+      </p>
+
+      <div class="modes">
+        <div class="mode-pill duel">
+          <span class="mode-dot"></span>
+          1v1 Duel
+        </div>
+        <div class="mode-sep"></div>
+        <div class="mode-pill quick">
+          <span class="mode-dot"></span>
+          Quick Match
+        </div>
+        <div class="mode-sep"></div>
+        <div class="mode-pill ranked">
+          <span class="mode-dot"></span>
+          Ranked
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Decorative bottom typing line -->
+    <div class="typing-line">
+      <span class="typing-text">
+        <span class="typed">the quick brown fox jumps over the lazy </span><span class="current">d</span>og and races toward the finish line
+      </span>
+    </div>
+
+    <span class="url-badge">typeduel.io</span>
+
+  </div>
+
+  <p class="label" style="margin-top:8px;">← Set browser zoom to 100% before screenshotting</p>
+
+</body>
+</html>

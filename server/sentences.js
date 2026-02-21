@@ -44,4 +44,25 @@ function pickSentencesForTier(tier) {
   };
 }
 
-module.exports = { quotes, pickSentences, pickSentencesForTier };
+function pickSentencesForDuration(durationSec) {
+  const charsPerMin = 400;
+  const targetLen = Math.ceil((charsPerMin * durationSec) / 60) + 200;
+
+  const pool = quotes.slice();
+  const group = [];
+  let len = 0;
+
+  while (pool.length > 0 && len < targetLen) {
+    const rand = Math.floor(Math.random() * pool.length);
+    const q = pool.splice(rand, 1)[0];
+    group.push(q);
+    len += q.text.length;
+  }
+
+  return {
+    text: group.map(q => q.text).join(' '),
+    source: group.map(q => q.source).join(' / ')
+  };
+}
+
+module.exports = { quotes, pickSentences, pickSentencesForTier, pickSentencesForDuration };

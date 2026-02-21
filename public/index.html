@@ -10,7 +10,7 @@
   <meta name="author" content="TypeDuel.io">
   <link rel="canonical" href="https://typeduel.io/">
   <link rel="alternate" hreflang="en" href="https://typeduel.io/">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="theme-color" content="#2A2A2A">
 
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
@@ -132,7 +132,6 @@
   <!-- HOME SCREEN (after joining) -->
   <div id="screen-home" class="screen">
     <header class="home-header">
-      <span class="home-header-left">HOME</span>
       <div class="home-user-area">
         <span class="home-level-pill" id="home-level-pill" style="display:none">
           <span class="home-level-badge-icon" id="home-level-badge-icon"></span>
@@ -147,62 +146,153 @@
       </div>
     </header>
 
-    <div class="home-wrapper">
-      <div class="home-hero">
-        <h1 class="logo home-logo">type<span class="logo-dot">duel.</span>io</h1>
-        <p class="home-select-label">SELECT MODE</p>
-      </div>
+    <div class="home-center">
+      <span class="logo home-logo-main">type<span class="logo-dot">duel.</span>io</span>
 
-      <div class="mode-grid">
-        <button class="mode-key" id="card-ascend" data-accent="red">
-          <span class="mode-key-title">QUICK MATCH</span>
-          <span class="mode-key-sub">Drop in, climb, outlast everyone</span>
-          <span class="mode-key-hint">ENTER &crarr;</span>
+      <div class="home-rows">
+        <button type="button" class="home-row home-row-mp" id="btn-landing-multiplayer" data-accent-color="#f04444">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#f04444; border-color:rgba(240,68,68,0.35); box-shadow:0 6px 0 0 rgba(240,68,68,0.5)">M</div>
+              <span class="home-row-title" style="color:#f04444">ULTIPLAYER</span>
+            </div>
+            <span class="home-row-sub">Quick Match &middot; Quick Duel &middot; Ranked</span>
+          </div>
+          <span class="home-row-hint">press M</span>
         </button>
 
-        <button class="mode-key" id="card-quickplay" data-accent="accent">
-          <span class="mode-key-title">QUICK DUEL</span>
-          <span class="mode-key-sub">Find an opponent and duel it out</span>
-          <span class="mode-key-hint">ENTER &crarr;</span>
+        <button type="button" class="home-row home-row-sp" id="btn-landing-singleplayer" data-accent-color="#3b82f6">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#3b82f6; border-color:rgba(59,130,246,0.35); box-shadow:0 6px 0 0 rgba(59,130,246,0.5)">S</div>
+              <span class="home-row-title" style="color:#3b82f6">INGLEPLAYER</span>
+            </div>
+            <span class="home-row-sub">Time Trial &amp; more</span>
+          </div>
+          <span class="home-row-hint">press S</span>
         </button>
 
-        <button class="mode-key" id="card-ranked" data-accent="gold">
-          <span class="mode-key-title">RANKED</span>
-          <span class="mode-key-sub" id="ranked-sub">Climb the leaderboard</span>
-          <span class="mode-key-lock" id="ranked-lock" style="display:none">LOCKED</span>
-          <span class="mode-key-hint">ENTER &crarr;</span>
+        <button type="button" class="home-row home-row-lb" id="btn-landing-leaderboard" data-accent-color="#4ade80">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#4ade80; border-color:rgba(74,222,128,0.35); box-shadow:0 6px 0 0 rgba(74,222,128,0.5)">L</div>
+              <span class="home-row-title" style="color:#4ade80">EADERBOARD</span>
+            </div>
+            <span class="home-row-sub">Top players worldwide</span>
+          </div>
+          <span class="home-row-hint">press L</span>
         </button>
 
-        <button class="mode-key" id="card-leaderboard" data-accent="green">
-          <span class="mode-key-title">LEADERBOARD</span>
-          <span class="mode-key-sub">Top players worldwide</span>
-          <span class="mode-key-hint">ENTER &crarr;</span>
-        </button>
-
-        <a href="https://discord.gg/fu22pZ5mcD" target="_blank" rel="noopener noreferrer" class="mode-key" id="card-discord" data-accent="discord">
-          <span class="mode-key-title">DISCORD</span>
-          <span class="mode-key-sub">Join the community &amp; give feedback</span>
+        <a href="https://discord.gg/fu22pZ5mcD" target="_blank" rel="noopener noreferrer" class="home-row home-row-dc" id="btn-landing-discord" data-accent-color="#5865F2">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#5865F2; border-color:rgba(88,101,242,0.35); box-shadow:0 6px 0 0 rgba(88,101,242,0.5)">D</div>
+              <span class="home-row-title" style="color:#5865F2">ISCORD</span>
+            </div>
+            <span class="home-row-sub">Join the community &amp; give feedback</span>
+          </div>
+          <span class="home-row-hint">press D</span>
         </a>
-
-        <div class="mode-key disabled" data-accent="dim">
-          <span class="mode-key-title">CONFIG</span>
-          <span class="mode-key-sub">Tweak your experience</span>
-          <span class="mode-key-soon">COMING SOON</span>
-        </div>
-      </div>
-
-      <div class="ad-banner">
-        <ins class="adsbygoogle"
-             style="display:block"
-             data-ad-client="ca-pub-6427647927150708"
-             data-ad-slot="XXXXXXXXXX"
-             data-ad-format="horizontal"
-             data-full-width-responsive="true"></ins>
       </div>
 
       <footer class="home-footer">&copy; 2026 typeduel.io</footer>
     </div>
 
+  </div>
+
+  <!-- MULTIPLAYER MENU -->
+  <div id="screen-multiplayer" class="screen">
+    <header class="home-header">
+      <button type="button" id="btn-multiplayer-back" class="home-header-left home-header-back">HOME</button>
+      <span class="home-header-left" style="margin-left:auto">MULTIPLAYER</span>
+    </header>
+    <div class="home-center">
+      <div class="home-rows">
+        <button type="button" class="home-row home-row-qm" id="card-ascend">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#f04444; border-color:rgba(240,68,68,0.35); box-shadow:0 6px 0 0 rgba(240,68,68,0.5)">Q</div>
+              <span class="home-row-title" style="color:#f04444">UICK MATCH</span>
+            </div>
+            <span class="home-row-sub">Drop in, climb, outlast everyone</span>
+          </div>
+          <span class="home-row-hint">press Q</span>
+        </button>
+        <button type="button" class="home-row home-row-qd" id="card-quickplay">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#3b82f6; border-color:rgba(59,130,246,0.35); box-shadow:0 6px 0 0 rgba(59,130,246,0.5)">D</div>
+              <span class="home-row-title" style="color:#3b82f6">UEL</span>
+            </div>
+            <span class="home-row-sub">Find an opponent and duel it out</span>
+          </div>
+          <span class="home-row-hint">press D</span>
+        </button>
+        <button type="button" class="home-row home-row-rnk" id="card-ranked">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#f0a500; border-color:rgba(240,165,0,0.35); box-shadow:0 6px 0 0 rgba(240,165,0,0.5)">R</div>
+              <span class="home-row-title" style="color:#f0a500">ANKED</span>
+            </div>
+            <span class="home-row-sub" id="ranked-sub">Climb the leaderboard</span>
+          </div>
+          <span class="home-row-soon" id="ranked-lock" style="display:none">LOCKED</span>
+          <span class="home-row-hint">press R</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SINGLEPLAYER MENU -->
+  <div id="screen-singleplayer" class="screen">
+    <header class="home-header">
+      <button type="button" id="btn-singleplayer-back" class="home-header-left home-header-back">HOME</button>
+      <span class="home-header-left" style="margin-left:auto">SINGLEPLAYER</span>
+    </header>
+    <div class="home-center">
+      <div class="home-rows">
+        <button type="button" class="home-row home-row-tt" id="card-timetrial">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#3b82f6; border-color:rgba(59,130,246,0.35); box-shadow:0 6px 0 0 rgba(59,130,246,0.5)">T</div>
+              <span class="home-row-title" style="color:#3b82f6">IME TRIAL</span>
+            </div>
+            <span class="home-row-sub">Type as fast as you can against the clock</span>
+          </div>
+          <span class="home-row-hint">press T</span>
+        </button>
+        <div class="home-row disabled">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key">P</div>
+              <span class="home-row-title">RACTICE</span>
+            </div>
+            <span class="home-row-sub">Unlimited practice runs</span>
+          </div>
+          <span class="home-row-soon">SOON</span>
+        </div>
+        <div class="home-row disabled">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key">Z</div>
+              <span class="home-row-title">EN MODE</span>
+            </div>
+            <span class="home-row-sub">No timer, no pressure</span>
+          </div>
+          <span class="home-row-soon">SOON</span>
+        </div>
+        <div class="home-row disabled">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key">C</div>
+              <span class="home-row-title">USTOM</span>
+            </div>
+            <span class="home-row-sub">Your own duration &amp; settings</span>
+          </div>
+          <span class="home-row-soon">SOON</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- PROFILE SCREEN -->
@@ -307,6 +397,38 @@
             </div>
           </div>
         </div>
+
+        <div class="profile-section profile-section-timetrial">
+          <h3 class="profile-section-title">TIME TRIAL</h3>
+          <div class="profile-stat-grid profile-stat-grid-4">
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-best-15">—</span>
+              <span class="profile-stat-card-label">Best 15s</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-best-30">—</span>
+              <span class="profile-stat-card-label">Best 30s</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-best-60">—</span>
+              <span class="profile-stat-card-label">Best 60s</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-best-120">—</span>
+              <span class="profile-stat-card-label">Best 120s</span>
+            </div>
+          </div>
+          <div class="profile-stat-grid profile-stat-grid-2" style="margin-top:8px">
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-runs">0</span>
+              <span class="profile-stat-card-label">Total Runs</span>
+            </div>
+            <div class="profile-stat-card">
+              <span class="profile-stat-card-value" id="profile-tt-avg">0</span>
+              <span class="profile-stat-card-label">Avg WPM</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="ad-banner">
@@ -367,6 +489,13 @@
         <button class="lb-tab" data-category="wins">MOST WINS</button>
         <button class="lb-tab" data-category="xp">HIGHEST LEVEL</button>
         <button class="lb-tab" data-category="ascend">HIGHEST HEIGHT</button>
+        <button class="lb-tab" data-category="time_trial">TIME TRIAL</button>
+      </div>
+      <div class="lb-duration-filter" id="lb-duration-filter" style="display:none">
+        <button class="lb-duration-btn active" data-duration="15">15s</button>
+        <button class="lb-duration-btn" data-duration="30">30s</button>
+        <button class="lb-duration-btn" data-duration="60">60s</button>
+        <button class="lb-duration-btn" data-duration="120">120s</button>
       </div>
       <div class="lb-table-wrap">
         <div class="lb-table-header">
@@ -550,6 +679,84 @@
       <div class="match-result-buttons">
         <button id="btn-play-again" class="btn btn-primary">Play Again</button>
         <button id="btn-quit" class="btn btn-small">Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIME TRIAL SCREEN -->
+  <div id="screen-timetrial" class="screen">
+    <div class="tt-layout">
+      <header class="tt-header">
+        <button id="btn-tt-back" class="home-header-left home-header-back">HOME</button>
+        <span class="tt-mode-label">TIME TRIAL</span>
+        <span class="tt-timer" id="tt-timer"></span>
+      </header>
+
+      <div class="tt-duration-select" id="tt-duration-select">
+        <h2 class="tt-select-heading">SELECT DURATION</h2>
+        <div class="tt-duration-buttons">
+          <button class="tt-dur-btn" data-duration="15">15s</button>
+          <button class="tt-dur-btn" data-duration="30">30s</button>
+          <button class="tt-dur-btn active" data-duration="60">60s</button>
+          <button class="tt-dur-btn" data-duration="120">120s</button>
+        </div>
+        <button id="btn-tt-start" class="btn btn-primary tt-start-btn">START</button>
+      </div>
+
+      <div class="tt-game-area" id="tt-game-area" style="display:none">
+        <div class="tt-stats-bar">
+          <div class="stat">
+            <span class="stat-value" id="tt-wpm">0</span>
+            <span class="stat-label">WPM</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tt-accuracy">100</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tt-chars">0</span>
+            <span class="stat-label">Chars</span>
+          </div>
+        </div>
+        <div class="typing-area" id="tt-typing-area">
+          <div class="typing-area-frame">
+            <div class="sentence-display" id="tt-sentence-display"></div>
+            <div class="quote-source" id="tt-quote-source"></div>
+          </div>
+          <input type="text" id="tt-typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="countdown-overlay" id="tt-countdown-overlay" style="display:none">
+        <div class="countdown-rings">
+          <span id="tt-countdown-number"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIME TRIAL RESULT SCREEN -->
+  <div id="screen-timetrial-result" class="screen">
+    <div class="result-container">
+      <h2 class="match-result-title">TIME'S UP</h2>
+      <div class="tt-result-big">
+        <span class="tt-result-wpm" id="tt-result-wpm">0</span>
+        <span class="tt-result-wpm-label">WPM</span>
+      </div>
+      <div class="tt-result-details">
+        <div class="score-detail"><span class="label">Accuracy</span><span id="tt-result-accuracy" class="value">0%</span></div>
+        <div class="score-detail"><span class="label">Characters</span><span id="tt-result-chars" class="value">0</span></div>
+        <div class="score-detail"><span class="label">Errors</span><span id="tt-result-errors" class="value">0</span></div>
+        <div class="score-detail"><span class="label">Duration</span><span id="tt-result-duration" class="value">60s</span></div>
+      </div>
+      <div class="xp-gain-display" id="tt-xp-gain-display" style="display:none">
+        <span class="xp-gain-amount" id="tt-xp-gain-amount"></span>
+        <span class="xp-gain-pb" id="tt-xp-gain-pb" style="display:none">PERSONAL BEST!</span>
+        <span class="xp-gain-levelup" id="tt-xp-gain-levelup" style="display:none"></span>
+      </div>
+      <div class="match-result-buttons">
+        <button id="btn-tt-again" class="btn btn-primary">Play Again</button>
+        <button id="btn-tt-quit" class="btn btn-small">Quit</button>
       </div>
     </div>
   </div>
@@ -760,6 +967,7 @@
   <script src="/js/typing.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/ascend.js"></script>
+  <script src="/js/timetrial.js"></script>
   <script src="/js/main.js"></script>
 </body>
 </html>

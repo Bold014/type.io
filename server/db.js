@@ -41,8 +41,8 @@ function computeXpGain(mode, totalTimeMs, won, wpm, currentBestWpm, lastPbAt) {
   return { xpGained, newBestWpm, isPb, pbBonusXp };
 }
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, last_pb_at';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, last_pb_at';
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at';
 
 async function findUserById(id) {
   const { data, error } = await supabase
@@ -346,9 +346,113 @@ async function getUserAscendStats(userId) {
   return { bestHeight, bestTier, totalRuns, avgHeight: Math.round(avgHeight * 10) / 10 };
 }
 
+async function saveTimeTrialRun(userId, username, data) {
+  const { error } = await supabase
+    .from('time_trial_runs')
+    .insert({
+      user_id: userId,
+      username,
+      duration: data.duration,
+      wpm: data.wpm,
+      accuracy: data.accuracy,
+      characters_typed: data.charactersTyped,
+      correct_characters: data.correctCharacters,
+      errors: data.errors,
+      created_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('saveTimeTrialRun error:', error);
+    return null;
+  }
+
+  const user = await findUserById(userId);
+  if (!user) return null;
+
+  const oldLevel = xpToLevel(user.xp || 0);
+  const durationMs = data.duration * 1000;
+  const minutes = durationMs / 60000;
+  let xpGained = Math.min(3000, Math.round(200 * minutes));
+
+  let isPb = false;
+  const currentBest = user.best_tt_wpm || 0;
+  if (data.wpm > currentBest) {
+    isPb = true;
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const lastPb = user.last_pb_at ? new Date(user.last_pb_at) : null;
+    if (!lastPb || lastPb < oneDayAgo) {
+      xpGained += 500;
+    }
+  }
+
+  const newXp = (user.xp || 0) + xpGained;
+  const newLevel = xpToLevel(newXp);
+
+  const updatePayload = { xp: newXp };
+  if (isPb) {
+    updatePayload.best_tt_wpm = data.wpm;
+    updatePayload.last_pb_at = new Date().toISOString();
+  }
+
+  await supabase.from('profiles').update(updatePayload).eq('id', userId);
+
+  return { xpGained, newXp, oldLevel, newLevel, isPb };
+}
+
+async function getTimeTrialLeaderboard(duration, limit = 50) {
+  const { data, error } = await supabase
+    .from('time_trial_runs')
+    .select('user_id, username, wpm, accuracy, duration')
+    .eq('duration', duration)
+    .order('wpm', { ascending: false })
+    .limit(limit * 3);
+
+  if (error) {
+    console.error('getTimeTrialLeaderboard error:', error);
+    return [];
+  }
+
+  const best = new Map();
+  for (const row of data || []) {
+    if (!best.has(row.user_id) || row.wpm > best.get(row.user_id).wpm) {
+      best.set(row.user_id, row);
+    }
+  }
+  return Array.from(best.values())
+    .sort((a, b) => b.wpm - a.wpm)
+    .slice(0, limit);
+}
+
+async function getUserTimeTrialStats(userId) {
+  const { data, error } = await supabase
+    .from('time_trial_runs')
+    .select('duration, wpm, accuracy')
+    .eq('user_id', userId)
+    .order('wpm', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    return { totalRuns: 0, avgWpm: 0, bestByDuration: {} };
+  }
+
+  const totalRuns = data.length;
+  const avgWpm = Math.round(data.reduce((sum, r) => sum + Number(r.wpm), 0) / totalRuns);
+
+  const bestByDuration = {};
+  for (const row of data) {
+    const d = row.duration;
+    if (!bestByDuration[d] || row.wpm > bestByDuration[d].wpm) {
+      bestByDuration[d] = { wpm: Math.round(Number(row.wpm)), accuracy: Math.round(Number(row.accuracy) * 10) / 10 };
+    }
+  }
+
+  return { totalRuns, avgWpm, bestByDuration };
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername,
   updateStats, updateXpOnly, updateEmail, xpToLevel,
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
-  saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats
+  saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
+  saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats
 };

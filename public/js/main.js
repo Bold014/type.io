@@ -67,11 +67,14 @@
 
     bindWelcomeEvents();
     bindHomeEvents();
+    bindMultiplayerEvents();
+    bindSingleplayerEvents();
     bindProfileEvents();
     bindLeaderboardEvents();
     bindGameEvents();
     bindResultEvents();
     bindSocketEvents();
+    TimeTrial.init();
   }
 
   // --- WELCOME SCREEN ---
@@ -236,9 +239,108 @@
     UI.els.matchmakingMode.textContent = mode;
   }
 
-  // --- HOME SCREEN ---
+  // --- HOME SCREEN (Landing) ---
 
   function bindHomeEvents() {
+    UI.els.btnLandingMultiplayer.addEventListener('click', () => {
+      UI.showScreen('multiplayer');
+      UI.els.btnMultiplayerBack.focus();
+    });
+
+    UI.els.btnLandingSingleplayer.addEventListener('click', () => {
+      UI.showScreen('singleplayer');
+      UI.els.btnSingleplayerBack.focus();
+    });
+
+    UI.els.btnLandingLeaderboard.addEventListener('click', () => {
+      openLeaderboard('rating');
+    });
+
+    UI.els.btnCancelQueue.addEventListener('click', () => {
+      GameSocket.leaveQueue();
+      UI.showScreen('home');
+    });
+
+    UI.els.homeUserInfo.addEventListener('click', () => {
+      if (currentUser) openProfile();
+    });
+
+    UI.els.homeLevelPill.addEventListener('click', () => {
+      if (currentUser) openProfile();
+    });
+
+    UI.els.btnHomeAuth.addEventListener('click', () => {
+      UI.showWelcomeStep('username');
+      UI.showScreen('welcome');
+    });
+
+    UI.els.btnAscendLobbyStart.addEventListener('click', () => {
+      const name = getUsername();
+      if (!name) return;
+      GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
+      AscendClient.setMyUsername(name);
+      UI.showScreen('ascend');
+      GameSocket.emit('ascend:join');
+    });
+
+    UI.els.btnAscendLobbyBack.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
+
+    document.addEventListener('keydown', (e) => {
+      if (!UI.screens.home.classList.contains('active')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const map = {
+        m: 'btn-landing-multiplayer',
+        s: 'btn-landing-singleplayer',
+        l: 'btn-landing-leaderboard',
+        d: 'btn-landing-discord'
+      };
+      const id = map[e.key.toLowerCase()];
+      if (!id) return;
+      e.preventDefault();
+      const row = document.getElementById(id);
+      if (!row) return;
+      row.classList.add('key-active');
+      setTimeout(() => row.classList.remove('key-active'), 180);
+      row.click();
+    });
+  }
+
+  // --- MULTIPLAYER MENU ---
+
+  function bindMultiplayerEvents() {
+    UI.els.btnMultiplayerBack.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!UI.screens.multiplayer.classList.contains('active')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const map = {
+        q: 'card-ascend',
+        d: 'card-quickplay',
+        r: 'card-ranked'
+      };
+      const id = map[e.key.toLowerCase()];
+      if (!id) return;
+      e.preventDefault();
+      const row = document.getElementById(id);
+      if (!row) return;
+      row.classList.add('key-active');
+      setTimeout(() => row.classList.remove('key-active'), 180);
+      row.click();
+    });
+
+    UI.els.cardAscend.addEventListener('click', () => {
+      const name = getUsername();
+      if (!name) return;
+      currentMode = 'ascend';
+      UI.showScreen('ascendLobby');
+    });
+
     UI.els.cardQuickplay.addEventListener('click', () => {
       const name = getUsername();
       if (!name) return;
@@ -261,50 +363,31 @@
       UI.showScreen('matchmaking');
       GameSocket.joinQueue('ranked');
     });
+  }
 
-    UI.els.btnCancelQueue.addEventListener('click', () => {
-      GameSocket.leaveQueue();
+  // --- SINGLEPLAYER MENU ---
+
+  function bindSingleplayerEvents() {
+    UI.els.btnSingleplayerBack.addEventListener('click', () => {
       UI.showScreen('home');
     });
 
-    UI.els.homeUserInfo.addEventListener('click', () => {
-      if (currentUser) openProfile();
+    UI.els.cardTimeTrial.addEventListener('click', () => {
+      TimeTrial.showDurationSelect();
+      UI.showScreen('timetrial');
     });
 
-    UI.els.homeLevelPill.addEventListener('click', () => {
-      if (currentUser) openProfile();
+    document.addEventListener('keydown', (e) => {
+      if (!UI.screens.singleplayer.classList.contains('active')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key.toLowerCase() !== 't') return;
+      e.preventDefault();
+      const row = document.getElementById('card-timetrial');
+      if (!row) return;
+      row.classList.add('key-active');
+      setTimeout(() => row.classList.remove('key-active'), 180);
+      row.click();
     });
-
-    UI.els.cardLeaderboard.addEventListener('click', () => {
-      openLeaderboard('rating');
-    });
-
-    UI.els.btnHomeAuth.addEventListener('click', () => {
-      UI.showWelcomeStep('username');
-      UI.showScreen('welcome');
-    });
-
-    UI.els.cardAscend.addEventListener('click', () => {
-      const name = getUsername();
-      if (!name) return;
-      currentMode = 'ascend';
-      UI.showScreen('ascendLobby');
-    });
-
-    UI.els.btnAscendLobbyStart.addEventListener('click', () => {
-      const name = getUsername();
-      if (!name) return;
-      GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
-      AscendClient.setMyUsername(name);
-      UI.showScreen('ascend');
-      GameSocket.emit('ascend:join');
-    });
-
-    UI.els.btnAscendLobbyBack.addEventListener('click', () => {
-      UI.showScreen('home');
-    });
-
-    UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
   }
 
   async function doLogout() {
@@ -322,9 +405,11 @@
   // --- LEADERBOARD ---
 
   let currentLbCategory = 'rating';
+  let currentLbDuration = 15;
 
-  async function openLeaderboard(category) {
+  async function openLeaderboard(category, duration) {
     currentLbCategory = category || 'rating';
+    if (duration !== undefined) currentLbDuration = duration;
     UI.showScreen('leaderboard');
     UI.els.lbTableBody.innerHTML = '<div class="lb-loading">Loading...</div>';
 
@@ -332,8 +417,16 @@
       tab.classList.toggle('active', tab.dataset.category === currentLbCategory);
     });
 
+    let url = `/api/leaderboard?category=${currentLbCategory}&limit=50`;
+    if (currentLbCategory === 'time_trial') {
+      url += `&duration=${currentLbDuration}`;
+      document.querySelectorAll('.lb-duration-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.duration) === currentLbDuration);
+      });
+    }
+
     try {
-      const res = await fetch(`/api/leaderboard?category=${currentLbCategory}&limit=50`);
+      const res = await fetch(url);
       const data = await res.json();
       UI.showLeaderboard(data, currentLbCategory);
     } catch (err) {
@@ -351,13 +444,19 @@
         openLeaderboard(tab.dataset.category);
       });
     });
+
+    document.querySelectorAll('.lb-duration-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openLeaderboard('time_trial', parseInt(btn.dataset.duration));
+      });
+    });
   }
 
   // --- PROFILE SCREEN ---
 
   async function openProfile() {
     if (!currentUser) return;
-    UI.showProfile(currentUser, null, null);
+    UI.showProfile(currentUser, null, null, null);
 
     try {
       const { data: { session } } = await sb.auth.getSession();
@@ -365,10 +464,11 @@
 
       const headers = { 'Authorization': `Bearer ${session.access_token}` };
 
-      const [profileRes, historyRes, ascendRes] = await Promise.all([
+      const [profileRes, historyRes, ascendRes, ttRes] = await Promise.all([
         fetch('/api/me', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
         fetch('/api/match-history?limit=10', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
-        fetch('/api/ascend-stats', { headers }).then(r => r.ok ? r.json() : null).catch(() => null)
+        fetch('/api/ascend-stats', { headers }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/time-trial-stats', { headers }).then(r => r.ok ? r.json() : null).catch(() => null)
       ]);
 
       if (profileRes) {
@@ -376,7 +476,7 @@
         UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
       }
 
-      UI.showProfile(currentUser, ascendRes, historyRes);
+      UI.showProfile(currentUser, ascendRes, historyRes, ttRes);
     } catch (_) {}
   }
 
@@ -508,6 +608,10 @@
       if (UI.screens.ascend && UI.screens.ascend.classList.contains('active') && AscendClient.isActive()) {
         const ai = AscendClient.getInput();
         if (ai) ai.focus();
+      }
+      if (UI.screens.timetrial && UI.screens.timetrial.classList.contains('active') && TimeTrial.isActive()) {
+        const ti = TimeTrial.getInput();
+        if (ti) ti.focus();
       }
     });
   }

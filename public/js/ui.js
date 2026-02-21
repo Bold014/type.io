@@ -154,12 +154,16 @@ const UI = (() => {
   const screens = {
     welcome: document.getElementById('screen-welcome'),
     home: document.getElementById('screen-home'),
+    multiplayer: document.getElementById('screen-multiplayer'),
+    singleplayer: document.getElementById('screen-singleplayer'),
     profile: document.getElementById('screen-profile'),
     leaderboard: document.getElementById('screen-leaderboard'),
     matchmaking: document.getElementById('screen-matchmaking'),
     game: document.getElementById('screen-game'),
     roundResult: document.getElementById('screen-round-result'),
     matchResult: document.getElementById('screen-match-result'),
+    timetrial: document.getElementById('screen-timetrial'),
+    timetrialResult: document.getElementById('screen-timetrial-result'),
     ascendLobby: document.getElementById('screen-ascend-lobby'),
     ascend: document.getElementById('screen-ascend'),
     ascendResult: document.getElementById('screen-ascend-result')
@@ -190,10 +194,16 @@ const UI = (() => {
     homeBadge: document.getElementById('home-badge'),
     btnHomeAuth: document.getElementById('btn-home-auth'),
     btnHomeLogout: document.getElementById('btn-home-logout'),
+    btnLandingMultiplayer: document.getElementById('btn-landing-multiplayer'),
+    btnLandingSingleplayer: document.getElementById('btn-landing-singleplayer'),
+    btnLandingLeaderboard: document.getElementById('btn-landing-leaderboard'),
+    btnMultiplayerBack: document.getElementById('btn-multiplayer-back'),
+    btnSingleplayerBack: document.getElementById('btn-singleplayer-back'),
     cardQuickplay: document.getElementById('card-quickplay'),
     cardRanked: document.getElementById('card-ranked'),
     cardAscend: document.getElementById('card-ascend'),
     cardLeaderboard: document.getElementById('card-leaderboard'),
+    cardTimeTrial: document.getElementById('card-timetrial'),
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
 
@@ -226,7 +236,14 @@ const UI = (() => {
     profileAscendTier: document.getElementById('profile-ascend-tier'),
     profileAscendRuns: document.getElementById('profile-ascend-runs'),
     profileAscendAvg: document.getElementById('profile-ascend-avg'),
+    profileTtBest15: document.getElementById('profile-tt-best-15'),
+    profileTtBest30: document.getElementById('profile-tt-best-30'),
+    profileTtBest60: document.getElementById('profile-tt-best-60'),
+    profileTtBest120: document.getElementById('profile-tt-best-120'),
+    profileTtRuns: document.getElementById('profile-tt-runs'),
+    profileTtAvg: document.getElementById('profile-tt-avg'),
     profileHistoryBody: document.getElementById('profile-history-body'),
+    lbDurationFilter: document.getElementById('lb-duration-filter'),
 
     matchmakingMode: document.getElementById('matchmaking-mode'),
     btnCancelQueue: document.getElementById('btn-cancel-queue'),
@@ -684,7 +701,26 @@ const UI = (() => {
     if (els.finishTimer) els.finishTimer.style.display = 'none';
   }
 
-  function showProfile(profile, ascendStats, matchHistory) {
+  function showTimeTrialProfile(ttStats) {
+    if (!ttStats) return;
+    const durations = [15, 30, 60, 120];
+    const elMap = {
+      15: els.profileTtBest15,
+      30: els.profileTtBest30,
+      60: els.profileTtBest60,
+      120: els.profileTtBest120
+    };
+    for (const d of durations) {
+      const el = elMap[d];
+      if (!el) continue;
+      const best = ttStats.bestByDuration && ttStats.bestByDuration[d];
+      el.textContent = best ? best.wpm : '—';
+    }
+    if (els.profileTtRuns) els.profileTtRuns.textContent = ttStats.totalRuns || 0;
+    if (els.profileTtAvg) els.profileTtAvg.textContent = ttStats.avgWpm || 0;
+  }
+
+  function showProfile(profile, ascendStats, matchHistory, ttStats) {
     const tier = getRankTier(profile.rating || 1000);
 
     els.profileUsername.textContent = (profile.username || '').toUpperCase();
@@ -735,6 +771,7 @@ const UI = (() => {
       els.profileAscendAvg.textContent = ascendStats.avgHeight ? ascendStats.avgHeight + 'm' : '0';
     }
 
+    showTimeTrialProfile(ttStats);
     renderMatchHistory(matchHistory || []);
 
     if (isPlaceholderEmail(profile.email)) {
@@ -794,14 +831,23 @@ const UI = (() => {
       best_wpm: 'WPM',
       wins: 'WINS',
       xp: 'LEVEL',
-      ascend: 'HEIGHT'
+      ascend: 'HEIGHT',
+      time_trial: 'WPM'
     };
 
     const headerStat = document.querySelector('.lb-col-stat');
     if (headerStat) headerStat.textContent = categoryLabels[category] || 'VALUE';
 
     const headerTier = document.querySelector('.lb-table-header .lb-col-tier');
-    if (headerTier) headerTier.textContent = category === 'ascend' ? 'TIER' : 'RANK';
+    if (headerTier) {
+      if (category === 'ascend') headerTier.textContent = 'TIER';
+      else if (category === 'time_trial') headerTier.textContent = 'ACC';
+      else headerTier.textContent = 'RANK';
+    }
+
+    if (els.lbDurationFilter) {
+      els.lbDurationFilter.style.display = category === 'time_trial' ? '' : 'none';
+    }
 
     if (!data || data.length === 0) {
       els.lbTableBody.innerHTML = '<div class="lb-empty">No players found</div>';
@@ -809,6 +855,7 @@ const UI = (() => {
     }
 
     const isAscend = category === 'ascend';
+    const isTimeTrial = category === 'time_trial';
     let html = '';
     for (let i = 0; i < data.length; i++) {
       const p = data[i];
@@ -816,6 +863,9 @@ const UI = (() => {
       if (isAscend) {
         tierDisplay = 'Tier ' + (p.tier ?? 0);
         statValue = p.height != null ? p.height.toFixed(1) + 'm' : '—';
+      } else if (isTimeTrial) {
+        tierDisplay = Math.round(p.accuracy || 0) + '%';
+        statValue = Math.round(p.wpm || 0);
       } else {
         const tier = getRankTier(p.rating || 1000);
         tierDisplay = tier.name;
@@ -828,7 +878,10 @@ const UI = (() => {
       }
 
       const rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : '';
-      const tierColor = isAscend ? 'var(--gold)' : (getRankTier(p.rating || 1000).color);
+      let tierColor;
+      if (isAscend) tierColor = 'var(--gold)';
+      else if (isTimeTrial) tierColor = 'var(--accent)';
+      else tierColor = getRankTier(p.rating || 1000).color;
 
       html += `<div class="lb-row ${rankClass}">
         <span class="lb-col-rank">${i + 1}</span>
@@ -848,7 +901,7 @@ const UI = (() => {
     setMatchHeader, showRoundResult, showMatchResult,
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
-    showProfile, showLeaderboard, isPlaceholderEmail, getRankTier,
+    showProfile, showLeaderboard, showTimeTrialProfile, isPlaceholderEmail, getRankTier,
     xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge
   };
 })();

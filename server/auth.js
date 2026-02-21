@@ -1,4 +1,5 @@
-const { supabase, findUserById, findUserByUsername, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats } = require('./db');
+const { supabase, findUserById, findUserByUsername, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats, saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats } = require('./db');
+const { pickSentencesForDuration } = require('./sentences');
 
 function setupAuthRoutes(app) {
   app.post('/api/check-username', async (req, res) => {
@@ -116,6 +117,14 @@ function setupAuthRoutes(app) {
     try {
       const category = req.query.category || 'rating';
       const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+      if (category === 'time_trial') {
+        const duration = parseInt(req.query.duration) || 60;
+        const data = await getTimeTrialLeaderboard(duration, limit);
+        res.set('Cache-Control', 'no-store');
+        return res.json(data);
+      }
+
       const data = await getLeaderboard(category, limit);
       res.set('Cache-Control', 'no-store');
       res.json(data);
@@ -164,6 +173,74 @@ function setupAuthRoutes(app) {
       res.json(stats);
     } catch (err) {
       console.error('Ascend stats error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/time-trial/sentences', (req, res) => {
+    try {
+      const duration = parseInt(req.query.duration) || 60;
+      const validDurations = [15, 30, 60, 120];
+      const d = validDurations.includes(duration) ? duration : 60;
+      const result = pickSentencesForDuration(d);
+      res.json(result);
+    } catch (err) {
+      console.error('Time trial sentences error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/time-trial/result', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const profile = await findUserById(user.id);
+      if (!profile) {
+        return res.status(401).json({ error: 'Profile not found' });
+      }
+
+      const { duration, wpm, accuracy, charactersTyped, correctCharacters, errors } = req.body;
+      if (!duration || !wpm) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const xpResult = await saveTimeTrialRun(user.id, profile.username, {
+        duration, wpm, accuracy, charactersTyped, correctCharacters, errors
+      });
+
+      res.json({ success: true, xp: xpResult });
+    } catch (err) {
+      console.error('Time trial result error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/time-trial-stats', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const stats = await getUserTimeTrialStats(user.id);
+      res.json(stats);
+    } catch (err) {
+      console.error('Time trial stats error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

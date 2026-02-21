@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TypeDuel Favicon Design</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Inter:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 48px;
+      font-family: 'Inter', sans-serif;
+      color: #E8ECF0;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(232, 236, 240, 0.35);
+    }
+
+    .sizes {
+      display: flex;
+      align-items: flex-end;
+      gap: 40px;
+    }
+
+    .size-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .size-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232, 236, 240, 0.3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* THE FAVICON CANVAS — screenshot THIS at 512×512 */
+    .favicon {
+      background: #2A2A2A;
+      border-radius: 18%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .favicon::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 35% 30%, rgba(102, 136, 170, 0.18) 0%, transparent 65%);
+    }
+
+    .favicon-inner {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      line-height: 1;
+    }
+
+    .favicon-t {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      color: #6688AA;
+      line-height: 1;
+    }
+
+    .favicon-cursor {
+      background: #A8D8B0;
+      border-radius: 2px;
+      animation: blink 1.1s step-end infinite;
+      align-self: flex-end;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Size variants */
+    .favicon-512 {
+      width: 512px;
+      height: 512px;
+    }
+    .favicon-512 .favicon-t { font-size: 420px; letter-spacing: -0.03em; }
+    .favicon-512 .favicon-cursor { width: 68px; height: 340px; margin-left: 8px; margin-bottom: 28px; border-radius: 6px; }
+    .favicon-512 .favicon-inner { gap: 0; }
+
+    .favicon-128 {
+      width: 128px;
+      height: 128px;
+    }
+    .favicon-128 .favicon-t { font-size: 104px; letter-spacing: -0.02em; }
+    .favicon-128 .favicon-cursor { width: 17px; height: 85px; margin-left: 3px; margin-bottom: 7px; }
+
+    .favicon-64 {
+      width: 64px;
+      height: 64px;
+    }
+    .favicon-64 .favicon-t { font-size: 52px; }
+    .favicon-64 .favicon-cursor { width: 9px; height: 42px; margin-left: 2px; margin-bottom: 3px; }
+
+    .favicon-32 {
+      width: 32px;
+      height: 32px;
+    }
+    .favicon-32 .favicon-t { font-size: 26px; }
+    .favicon-32 .favicon-cursor { width: 4px; height: 21px; margin-left: 1px; margin-bottom: 2px; }
+
+    .favicon-16 {
+      width: 16px;
+      height: 16px;
+    }
+    .favicon-16 .favicon-t { font-size: 13px; }
+    .favicon-16 .favicon-cursor { width: 2px; height: 10px; margin-bottom: 1px; }
+
+    .main-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .instruction {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: rgba(232, 236, 240, 0.25);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      width: 1px;
+      height: 40px;
+      background: rgba(232, 236, 240, 0.08);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TypeDuel.io — Favicon Design</h1>
+
+  <div class="main-preview">
+    <p class="instruction">↓ Screenshot this at 512×512 for export</p>
+
+    <div class="favicon favicon-512">
+      <div class="favicon-inner">
+        <span class="favicon-t">t</span>
+        <span class="favicon-cursor"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sizes">
+    <div class="size-group">
+      <div class="favicon favicon-128">
+        <div class="favicon-inner">
+          <span class="favicon-t">t</span>
+          <span class="favicon-cursor"></span>
+        </div>
+      </div>
+      <span class="size-label">128px</span>
+    </div>
+
+    <div class="size-group">
+      <div class="favicon favicon-64">
+        <div class="favicon-inner">
+          <span class="favicon-t">t</span>
+          <span class="favicon-cursor"></span>
+        </div>
+      </div>
+      <span class="size-label">64px</span>
+    </div>
+
+    <div class="size-group">
+      <div class="favicon favicon-32">
+        <div class="favicon-inner">
+          <span class="favicon-t">t</span>
+          <span class="favicon-cursor"></span>
+        </div>
+      </div>
+      <span class="size-label">32px</span>
+    </div>
+
+    <div class="size-group">
+      <div class="favicon favicon-16">
+        <div class="favicon-inner">
+          <span class="favicon-t">t</span>
+          <span class="favicon-cursor"></span>
+        </div>
+      </div>
+      <span class="size-label">16px</span>
+    </div>
+  </div>
+
+</body>
+</html>
