@@ -163,6 +163,8 @@ function spawnBots(io, lobby) {
     botIds.push(botId);
   }
 
+  lobby.botIdCounter = count;
+
   let countdownLeft = COUNTDOWN_SECONDS;
   const interval = setInterval(() => {
     countdownLeft--;
@@ -178,6 +180,56 @@ function spawnBots(io, lobby) {
   }, 1000);
 }
 
+function replaceBot(io, lobby) {
+  if (!lobby.botIdCounter) lobby.botIdCounter = 0;
+  lobby.botIdCounter++;
+
+  const botId = `bot_${lobby.lobbyId}_${lobby.botIdCounter}`;
+
+  const usedNames = new Set();
+  lobby.players.forEach(p => { if (p.isBot) usedNames.add(p.username); });
+  const available = BOT_NAMES.filter(n => !usedNames.has(n));
+  const username = available.length > 0
+    ? available[Math.floor(Math.random() * available.length)]
+    : BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+
+  const botSocket = createBotSocket(botId, username);
+  const wpm = BOT_WPM_MIN + Math.floor(Math.random() * (BOT_WPM_MAX - BOT_WPM_MIN + 1));
+
+  const player = {
+    socket: botSocket,
+    username,
+    userId: null,
+    height: 0,
+    momentum: 1,
+    momentumProgress: 0,
+    momentumDecayPause: 0,
+    hp: MAX_HP,
+    tier: 1,
+    currentSentence: null,
+    currentSentenceSource: null,
+    sentenceStartTime: null,
+    comboState: { lastPosition: 0, lastErrors: 0, comboChars: 0, attackCount: 0 },
+    injectedRanges: [],
+    lastTypingState: null,
+    lastActivityTime: Date.now(),
+    eliminated: false,
+    finalHeight: 0,
+    finalTier: 0,
+    startTime: null,
+    knockouts: 0,
+    floorHeight: 0,
+    started: false,
+    isBot: true,
+    botWpm: wpm,
+    botTypedPosition: 0,
+    botErrors: 0
+  };
+
+  lobby.players.set(botId, player);
+  startPlayerRun(io, lobby, botId);
+}
+
 function retireBots(io, lobby) {
   if (lobby.initialBotCount === 0) return;
 
@@ -186,26 +238,15 @@ function retireBots(io, lobby) {
     if (!p.isBot && !p.eliminated) realCount++;
   });
 
-  let targetBots;
-  if (realCount >= BOT_RETIRE_AT_REAL_PLAYERS) {
-    targetBots = 0;
-  } else {
-    targetBots = Math.max(0, Math.round(
-      lobby.initialBotCount * (1 - (realCount - 1) / (BOT_RETIRE_AT_REAL_PLAYERS - 1))
-    ));
-  }
+  if (realCount < BOT_RETIRE_AT_REAL_PLAYERS) return;
 
   const aliveBots = [];
   lobby.players.forEach((p, sid) => {
-    if (p.isBot && !p.eliminated) aliveBots.push({ sid, height: p.height });
+    if (p.isBot && !p.eliminated) aliveBots.push(sid);
   });
 
-  const toRemove = aliveBots.length - targetBots;
-  if (toRemove <= 0) return;
-
-  aliveBots.sort((a, b) => a.height - b.height);
-  for (let i = 0; i < toRemove; i++) {
-    eliminatePlayer(io, lobby, aliveBots[i].sid, null);
+  for (const sid of aliveBots) {
+    eliminatePlayer(io, lobby, sid, null);
   }
 }
 
@@ -459,10 +500,14 @@ function buildScoreboard(lobby) {
       momentum: p.momentum,
       eliminated: p.eliminated,
       wpm: p.lastTypingState?.wpm || 0,
-      floorHeight: Math.round(p.floorHeight * 10) / 10
+      floorHeight: Math.round(p.floorHeight * 10) / 10,
+      isBot: !!p.isBot
     });
   });
-  scoreboard.sort((a, b) => b.height - a.height);
+  scoreboard.sort((a, b) => {
+    if (a.isBot !== b.isBot) return a.isBot ? 1 : -1;
+    return b.height - a.height;
+  });
   return scoreboard;
 }
 
@@ -684,6 +729,8 @@ function eliminatePlayer(io, lobby, socketId, killerId) {
   const player = lobby.players.get(socketId);
   if (!player || player.eliminated) return;
 
+  const wasBot = !!player.isBot;
+
   player.eliminated = true;
   player.hp = 0;
   player.finalHeight = player.height;
@@ -711,6 +758,14 @@ function eliminatePlayer(io, lobby, socketId, killerId) {
   });
 
   endRun(io, lobby, socketId);
+
+  if (wasBot) {
+    let realCount = 0;
+    lobby.players.forEach(p => { if (!p.isBot && !p.eliminated) realCount++; });
+    if (realCount < BOT_RETIRE_AT_REAL_PLAYERS) {
+      replaceBot(io, lobby);
+    }
+  }
 }
 
 async function endRun(io, lobby, socketId) {
