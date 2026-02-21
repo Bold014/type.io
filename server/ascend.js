@@ -67,6 +67,14 @@ function pickGarbageWord() {
   return GARBAGE_WORDS[Math.floor(Math.random() * GARBAGE_WORDS.length)];
 }
 
+function findNextWordStart(sentence, pos) {
+  let spaceIdx = sentence.indexOf(' ', pos);
+  if (spaceIdx === -1) return -1;
+  let nextStart = spaceIdx + 1;
+  while (nextStart < sentence.length && sentence[nextStart] === ' ') nextStart++;
+  return nextStart < sentence.length ? nextStart : -1;
+}
+
 function pickAttackType(attackCount) {
   if (attackCount % 2 === 1) return 'inject';
   return Math.random() < 0.5 ? 'scramble' : 'chaos';
@@ -584,8 +592,14 @@ function injectWord(player) {
   const sentence = player.currentSentence;
   const targetPos = player.comboState?.lastPosition || 0;
 
-  let insertIdx = sentence.indexOf(' ', targetPos);
-  if (insertIdx === -1) insertIdx = sentence.length;
+  const safeStart = findNextWordStart(sentence, targetPos);
+  let insertIdx;
+  if (safeStart === -1) {
+    insertIdx = sentence.length;
+  } else {
+    insertIdx = sentence.indexOf(' ', safeStart);
+    if (insertIdx === -1) insertIdx = sentence.length;
+  }
 
   const word = pickGarbageWord();
   const injection = ' ' + word;
@@ -610,9 +624,8 @@ function scrambleWord(player) {
   const sentence = player.currentSentence;
   const targetPos = player.comboState?.lastPosition || 0;
 
-  let wordStart = sentence.indexOf(' ', targetPos);
-  if (wordStart === -1) wordStart = targetPos;
-  else wordStart++;
+  const wordStart = findNextWordStart(sentence, targetPos);
+  if (wordStart === -1) return null;
 
   let wordEnd = sentence.indexOf(' ', wordStart);
   if (wordEnd === -1) wordEnd = sentence.length;
@@ -631,9 +644,8 @@ function caseChaos(player) {
   const sentence = player.currentSentence;
   const targetPos = player.comboState?.lastPosition || 0;
 
-  let start = sentence.indexOf(' ', targetPos);
-  if (start === -1) start = targetPos;
-  else start++;
+  const start = findNextWordStart(sentence, targetPos);
+  if (start === -1) return null;
 
   const end = Math.min(start + 10, sentence.length);
   if (start >= end) return null;
