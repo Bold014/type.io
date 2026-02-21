@@ -10,12 +10,13 @@ const { setupSocketHandlers } = require('./socket');
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+app.set('trust proxy', true);
 const server = http.createServer(app);
 
 app.use(express.json());
 
 app.get('/config.js', (req, res) => {
-  const host = req.hostname;
+  const host = req.hostname || req.get('host') || '';
   const isSbox = host.startsWith('sbox') || process.env.ADS_ENABLED === 'false';
   const adsEnabled = !isSbox;
   const platform = isSbox ? 'sbox' : 'web';
