@@ -16,10 +16,11 @@ const server = http.createServer(app);
 app.use(express.json());
 
 app.get('/config.js', (req, res) => {
-  const host = req.hostname || req.get('host') || '';
+  const host = req.get('host') || req.hostname || '';
   const isSbox = host.startsWith('sbox') || process.env.ADS_ENABLED === 'false';
   const adsEnabled = !isSbox;
   const platform = isSbox ? 'sbox' : 'web';
+  console.log(`[config.js] host="${host}" hostname="${req.hostname}" x-forwarded-host="${req.get('x-forwarded-host')}" isSbox=${isSbox}`);
   res.type('application/javascript');
   res.send(`window.APP_CONFIG={adsEnabled:${adsEnabled},platform:"${platform}"};`);
 });
