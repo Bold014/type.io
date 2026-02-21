@@ -504,10 +504,7 @@ function buildScoreboard(lobby) {
       isBot: !!p.isBot
     });
   });
-  scoreboard.sort((a, b) => {
-    if (a.isBot !== b.isBot) return a.isBot ? 1 : -1;
-    return b.height - a.height;
-  });
+  scoreboard.sort((a, b) => b.height - a.height);
   return scoreboard;
 }
 
