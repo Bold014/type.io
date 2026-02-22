@@ -1,5 +1,5 @@
 const { pickSentences } = require('./sentences');
-const { updateStats, updateXpOnly, saveMatchResult } = require('./db');
+const { updateStats, updateXpOnly, saveMatchResult, updateChallengeProgress } = require('./db');
 
 const ROUNDS_TO_WIN = 2;
 const TOTAL_ROUNDS = 3;
@@ -525,7 +525,9 @@ async function endMatch(io, game) {
           newXp: result.newXp,
           oldLevel: result.oldLevel,
           newLevel: result.newLevel,
-          isPb: result.isPb
+          isPb: result.isPb,
+          coinsGained: result.coinsGained,
+          newCoins: result.newCoins
         };
         saveMatchResult(player.userId, {
           opponentUsername,
@@ -556,6 +558,9 @@ async function endMatch(io, game) {
         });
       }
     }
+
+    updateChallengeProgress(player.userId, 'play_matches', 1).catch(() => {});
+    if (won) updateChallengeProgress(player.userId, 'win_duels', 1).catch(() => {});
   }
 
   playerIds.forEach(id => {

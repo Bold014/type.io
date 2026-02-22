@@ -1,4 +1,11 @@
-const { supabase, findUserById, findUserByUsername, checkUsernameExists, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats, saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats } = require('./db');
+const {
+  supabase, findUserById, findUserByUsername, checkUsernameExists, updateEmail,
+  getLeaderboard, getMatchHistory, getUserAscendStats,
+  saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats, xpToLevel,
+  getShopItems, getUserInventory, getUserEquipped,
+  purchaseItem, equipItem, unequipItem,
+  getUserDailyChallenges, updateChallengeProgress
+} = require('./db');
 const { pickSentencesForDuration } = require('./sentences');
 
 function setupAuthRoutes(app) {
@@ -68,7 +75,8 @@ function setupAuthRoutes(app) {
         return res.status(401).json({ error: 'Profile not found' });
       }
 
-      res.json(profile);
+      const equipped = await getUserEquipped(user.id);
+      res.json({ ...profile, equipped });
     } catch (err) {
       console.error('Auth error:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -220,6 +228,11 @@ function setupAuthRoutes(app) {
         duration, wpm, accuracy, charactersTyped, correctCharacters, errors
       });
 
+      updateChallengeProgress(user.id, 'complete_timetrials', 1).catch(() => {});
+      if (charactersTyped) {
+        updateChallengeProgress(user.id, 'type_chars', charactersTyped).catch(() => {});
+      }
+
       res.json({ success: true, xp: xpResult });
     } catch (err) {
       console.error('Time trial result error:', err);
@@ -244,6 +257,150 @@ function setupAuthRoutes(app) {
       res.json(stats);
     } catch (err) {
       console.error('Time trial stats error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // --- SHOP ROUTES ---
+
+  app.get('/api/shop', async (req, res) => {
+    try {
+      const items = await getShopItems();
+
+      const authHeader = req.headers.authorization;
+      let inventory = [];
+      let equipped = [];
+      let coins = 0;
+
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          const profile = await findUserById(user.id);
+          coins = profile?.coins || 0;
+          [inventory, equipped] = await Promise.all([
+            getUserInventory(user.id),
+            getUserEquipped(user.id)
+          ]);
+        }
+      }
+
+      res.json({ items, inventory, equipped, coins });
+    } catch (err) {
+      console.error('Shop error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/shop/purchase', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const { itemId } = req.body;
+      if (!itemId) {
+        return res.status(400).json({ error: 'Item ID required' });
+      }
+
+      const result = await purchaseItem(user.id, itemId);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({ success: true, newBalance: result.newBalance });
+    } catch (err) {
+      console.error('Purchase error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/shop/equip', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const { itemId, category } = req.body;
+      if (!itemId || !category) {
+        return res.status(400).json({ error: 'Item ID and category required' });
+      }
+
+      const ok = await equipItem(user.id, itemId, category);
+      if (!ok) {
+        return res.status(500).json({ error: 'Failed to equip' });
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Equip error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/shop/unequip', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const { category } = req.body;
+      if (!category) {
+        return res.status(400).json({ error: 'Category required' });
+      }
+
+      const ok = await unequipItem(user.id, category);
+      if (!ok) {
+        return res.status(500).json({ error: 'Failed to unequip' });
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Unequip error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // --- CHALLENGES ROUTE ---
+
+  app.get('/api/challenges', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const challenges = await getUserDailyChallenges(user.id);
+      res.json(challenges);
+    } catch (err) {
+      console.error('Challenges error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

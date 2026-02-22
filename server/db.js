@@ -41,10 +41,30 @@ function computeXpGain(mode, totalTimeMs, won, wpm, currentBestWpm, lastPbAt) {
   return { xpGained, newBestWpm, isPb, pbBonusXp };
 }
 
+function computeCoinReward(mode, won, extras = {}) {
+  let coins = 0;
+  switch (mode) {
+    case 'ranked':
+    case 'quick':
+      coins = 50;
+      if (won) coins += 25;
+      break;
+    case 'ascend':
+      coins = 20 + ((extras.tier || 0) * 10);
+      break;
+    case 'timetrial':
+      coins = 30;
+      if (extras.isPb) coins += 50;
+      break;
+  }
+  if (extras.isDailyFirstWin) coins += 100;
+  return coins;
+}
+
 const PLACEMENT_GAMES = 5;
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played';
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win';
 
 async function findUserById(id) {
   const { data, error } = await supabase
@@ -97,6 +117,11 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isDailyFirstWin = won && user.last_daily_win !== today;
+  const coinsGained = computeCoinReward(mode || 'ranked', won, { isDailyFirstWin });
+  const newCoins = (user.coins || 0) + coinsGained;
+
   const updatePayload = {
     wins: user.wins + (won ? 1 : 0),
     losses: user.losses + (won ? 0 : 1),
@@ -104,7 +129,8 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
     games_played: newGamesPlayed,
     rating: newRating,
     xp: newXp,
-    ranked_games_played: newRankedGamesPlayed
+    ranked_games_played: newRankedGamesPlayed,
+    coins: newCoins
   };
 
   if (isPb) {
@@ -112,6 +138,9 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   }
   if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
+  }
+  if (isDailyFirstWin) {
+    updatePayload.last_daily_win = today;
   }
 
   const { error } = await supabase
@@ -126,11 +155,12 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
 
   return {
     ratingDelta, newRating, xpGained, newXp, oldLevel, newLevel, isPb,
-    isPlacement, placementGamesLeft, rankedGamesPlayed: newRankedGamesPlayed
+    isPlacement, placementGamesLeft, rankedGamesPlayed: newRankedGamesPlayed,
+    coinsGained, newCoins
   };
 }
 
-async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
+async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
   const user = await findUserById(userId);
   if (!user) return null;
 
@@ -144,12 +174,19 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
   const newGamesPlayed = (user.games_played || 0) + 1;
   const newAvgWpm = ((user.avg_wpm || 0) * (user.games_played || 0) + wpm) / newGamesPlayed;
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isDailyFirstWin = won && user.last_daily_win !== today;
+  const extras = { isDailyFirstWin, ...(coinExtras || {}) };
+  const coinsGained = computeCoinReward(mode || 'quick', won, extras);
+  const newCoins = (user.coins || 0) + coinsGained;
+
   const updatePayload = {
     xp: newXp,
     games_played: newGamesPlayed,
     avg_wpm: newAvgWpm,
     wins: (user.wins || 0) + (won ? 1 : 0),
-    losses: (user.losses || 0) + (won ? 0 : 1)
+    losses: (user.losses || 0) + (won ? 0 : 1),
+    coins: newCoins
   };
 
   if (isPb) {
@@ -157,6 +194,9 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
   }
   if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
+  }
+  if (isDailyFirstWin) {
+    updatePayload.last_daily_win = today;
   }
 
   const { error } = await supabase
@@ -169,7 +209,7 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
     return null;
   }
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
 }
 
 async function updateEmail(userId, email) {
@@ -385,7 +425,10 @@ async function saveTimeTrialRun(userId, username, data) {
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
-  const updatePayload = { xp: newXp };
+  const coinsGained = computeCoinReward('timetrial', false, { isPb });
+  const newCoins = (user.coins || 0) + coinsGained;
+
+  const updatePayload = { xp: newXp, coins: newCoins };
   if (isPb) {
     updatePayload.best_tt_wpm = data.wpm;
     updatePayload.last_pb_at = new Date().toISOString();
@@ -393,7 +436,7 @@ async function saveTimeTrialRun(userId, username, data) {
 
   await supabase.from('profiles').update(updatePayload).eq('id', userId);
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
 }
 
 async function getTimeTrialLeaderboard(duration, limit = 50) {
@@ -449,10 +492,191 @@ async function checkUsernameExists(username) {
   return { exists: data && data.length > 0, dbError: false };
 }
 
+// --- SHOP & INVENTORY ---
+
+async function getShopItems() {
+  const { data, error } = await supabase
+    .from('shop_items')
+    .select('*')
+    .order('category')
+    .order('sort_order');
+  if (error) { console.error('getShopItems error:', error); return []; }
+  return data || [];
+}
+
+async function getUserInventory(userId) {
+  const { data, error } = await supabase
+    .from('user_inventory')
+    .select('item_id, purchased_at')
+    .eq('user_id', userId);
+  if (error) { console.error('getUserInventory error:', error); return []; }
+  return data || [];
+}
+
+async function getUserEquipped(userId) {
+  const { data, error } = await supabase
+    .from('user_equipped')
+    .select('category, item_id')
+    .eq('user_id', userId);
+  if (error) { console.error('getUserEquipped error:', error); return []; }
+  return data || [];
+}
+
+async function purchaseItem(userId, itemId) {
+  const { data, error } = await supabase.rpc('purchase_shop_item', {
+    p_user_id: userId,
+    p_item_id: itemId
+  });
+  if (error) {
+    console.error('purchaseItem RPC error:', error);
+    return { success: false, error: 'Database error' };
+  }
+  return data || { success: false, error: 'Unknown error' };
+}
+
+async function equipItem(userId, itemId, category) {
+  const { error } = await supabase
+    .from('user_equipped')
+    .upsert({ user_id: userId, category, item_id: itemId }, { onConflict: 'user_id,category' });
+  if (error) {
+    console.error('equipItem error:', error);
+    return false;
+  }
+  return true;
+}
+
+async function unequipItem(userId, category) {
+  const { error } = await supabase
+    .from('user_equipped')
+    .delete()
+    .eq('user_id', userId)
+    .eq('category', category);
+  if (error) {
+    console.error('unequipItem error:', error);
+    return false;
+  }
+  return true;
+}
+
+async function addCoins(userId, amount) {
+  const { data, error } = await supabase.rpc('add_coins', {
+    p_user_id: userId,
+    p_amount: amount
+  });
+  if (error) { console.error('addCoins error:', error); return null; }
+  return data;
+}
+
+// --- DAILY CHALLENGES ---
+
+const CHALLENGE_TEMPLATES = [
+  { type: 'win_duels',          minTarget: 2,    maxTarget: 5,    minReward: 200, maxReward: 400 },
+  { type: 'play_matches',       minTarget: 3,    maxTarget: 7,    minReward: 150, maxReward: 300 },
+  { type: 'type_chars',         minTarget: 3000, maxTarget: 8000, minReward: 200, maxReward: 350 },
+  { type: 'complete_climbs',    minTarget: 2,    maxTarget: 4,    minReward: 200, maxReward: 350 },
+  { type: 'complete_timetrials', minTarget: 2,    maxTarget: 4,    minReward: 200, maxReward: 300 },
+];
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function generateDailyChallenges(dateStr) {
+  const seed = dateStr.split('-').join('') | 0;
+  const rng = seededRandom(seed);
+
+  const shuffled = [...CHALLENGE_TEMPLATES].sort(() => rng() - 0.5);
+  const picked = shuffled.slice(0, 3);
+
+  return picked.map(t => {
+    const range = t.maxTarget - t.minTarget;
+    const target = t.minTarget + Math.round(rng() * range);
+    const pct = range > 0 ? (target - t.minTarget) / range : 0.5;
+    const reward = Math.round(t.minReward + pct * (t.maxReward - t.minReward));
+    return { challenge_type: t.type, target, coin_reward: reward };
+  });
+}
+
+async function getUserDailyChallenges(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: existing, error } = await supabase
+    .from('daily_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', today);
+
+  if (error) { console.error('getUserDailyChallenges error:', error); return []; }
+  if (existing && existing.length > 0) return existing;
+
+  const templates = generateDailyChallenges(today);
+  const rows = templates.map(t => ({
+    user_id: userId,
+    challenge_type: t.challenge_type,
+    target: t.target,
+    coin_reward: t.coin_reward,
+    progress: 0,
+    completed: false,
+    date: today
+  }));
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('daily_challenges')
+    .insert(rows)
+    .select('*');
+
+  if (insertError) {
+    console.error('generateDailyChallenges insert error:', insertError);
+    const { data: retry } = await supabase
+      .from('daily_challenges')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today);
+    return retry || [];
+  }
+  return inserted || [];
+}
+
+async function updateChallengeProgress(userId, challengeType, incrementBy) {
+  if (!userId) return null;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: challenge, error } = await supabase
+    .from('daily_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_type', challengeType)
+    .eq('date', today)
+    .single();
+
+  if (error || !challenge || challenge.completed) return null;
+
+  const newProgress = Math.min(challenge.target, challenge.progress + incrementBy);
+  const nowComplete = newProgress >= challenge.target;
+
+  const { error: updateError } = await supabase
+    .from('daily_challenges')
+    .update({ progress: newProgress, completed: nowComplete })
+    .eq('id', challenge.id);
+
+  if (updateError) { console.error('updateChallengeProgress error:', updateError); return null; }
+
+  if (nowComplete) {
+    await addCoins(userId, challenge.coin_reward);
+  }
+
+  return { challengeType, newProgress, target: challenge.target, completed: nowComplete, reward: nowComplete ? challenge.coin_reward : 0 };
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername, checkUsernameExists,
   updateStats, updateXpOnly, updateEmail, xpToLevel, PLACEMENT_GAMES,
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
-  saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats
+  saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats,
+  computeCoinReward, addCoins,
+  getShopItems, getUserInventory, getUserEquipped,
+  purchaseItem, equipItem, unequipItem,
+  getUserDailyChallenges, updateChallengeProgress
 };

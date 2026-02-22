@@ -289,6 +289,7 @@ const TimeTrial = (() => {
     UI.showScreen('timetrialResult');
 
     try {
+      if (!window.supabase) return;
       const sb = window.supabase.createClient(
         'https://smnhckjzyawgzrgwzjcq.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbmhja2p6eWF3Z3pyZ3d6amNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NTI3MzksImV4cCI6MjA4NzEyODczOX0.Hpd_oSIYrCr6zv2OI1CdOpU0vVhaLFhDHRt4G0LLCnc'
@@ -328,6 +329,10 @@ const TimeTrial = (() => {
         }
 
         xpDisplay.style.display = '';
+
+        if (xp.coinsGained) {
+          UI.showCoinGain(xp.coinsGained, 'tt');
+        }
       }
     } catch (_) {}
   }

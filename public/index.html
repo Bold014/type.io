@@ -133,6 +133,10 @@
   <div id="screen-home" class="screen">
     <header class="home-header">
       <div class="home-user-area">
+        <span class="home-coin-pill" id="home-coin-pill" style="display:none">
+          <span class="coin-icon-sm"></span>
+          <span id="home-coin-count">0</span>
+        </span>
         <span class="home-level-pill" id="home-level-pill" style="display:none">
           <span class="home-level-badge-icon" id="home-level-badge-icon"></span>
           <span class="home-level-text">LV. <span id="home-level-num">1</span></span>
@@ -183,6 +187,17 @@
           <span class="home-row-hint">press L</span>
         </button>
 
+        <button type="button" class="home-row home-row-shop" id="btn-landing-shop" data-accent-color="#f0a500" style="display:none">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#f0a500; border-color:rgba(240,165,0,0.35); box-shadow:0 6px 0 0 rgba(240,165,0,0.5)">B</div>
+              <span class="home-row-title" style="color:#f0a500">UY</span>
+            </div>
+            <span class="home-row-sub">Shop for cosmetics with coins</span>
+          </div>
+          <span class="home-row-hint">press B</span>
+        </button>
+
         <a href="https://discord.gg/fu22pZ5mcD" target="_blank" rel="noopener noreferrer" class="home-row home-row-dc" id="btn-landing-discord" data-accent-color="#5865F2">
           <div class="home-row-body">
             <div class="home-row-primary">
@@ -195,17 +210,24 @@
         </a>
       </div>
 
-      <div class="home-mini-lb" id="home-mini-lb">
-        <div class="mini-lb-tabs">
-          <button class="mini-lb-tab" data-mlb-cat="rating">RATING</button>
-          <button class="mini-lb-tab active" data-mlb-cat="best_wpm">WPM</button>
-          <button class="mini-lb-tab" data-mlb-cat="wins">WINS</button>
-          <button class="mini-lb-tab" data-mlb-cat="xp">LEVEL</button>
+      <div class="home-bottom-panels">
+        <div class="home-mini-lb" id="home-mini-lb">
+          <div class="mini-lb-tabs">
+            <button class="mini-lb-tab" data-mlb-cat="rating">RATING</button>
+            <button class="mini-lb-tab active" data-mlb-cat="best_wpm">WPM</button>
+            <button class="mini-lb-tab" data-mlb-cat="wins">WINS</button>
+            <button class="mini-lb-tab" data-mlb-cat="xp">LEVEL</button>
+          </div>
+          <div class="mini-lb-body" id="mini-lb-body">
+            <div class="mini-lb-loading">Loading...</div>
+          </div>
+          <button type="button" class="mini-lb-view-all" id="btn-mini-lb-view-all">VIEW FULL LEADERBOARD &rarr;</button>
         </div>
-        <div class="mini-lb-body" id="mini-lb-body">
-          <div class="mini-lb-loading">Loading...</div>
+
+        <div class="home-challenges" id="home-challenges" style="display:none">
+          <h3 class="challenges-title">DAILY CHALLENGES</h3>
+          <div class="challenges-list" id="challenges-list"></div>
         </div>
-        <button type="button" class="mini-lb-view-all" id="btn-mini-lb-view-all">VIEW FULL LEADERBOARD &rarr;</button>
       </div>
 
       <footer class="home-footer">&copy; 2026 typeduel.io</footer>
@@ -304,6 +326,30 @@
           </div>
           <span class="home-row-soon">SOON</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP SCREEN -->
+  <div id="screen-shop" class="screen">
+    <header class="home-header">
+      <button type="button" id="btn-shop-back" class="home-header-left home-header-back">HOME</button>
+      <span class="home-header-left" style="margin-left:auto">SHOP</span>
+      <span class="shop-header-coins" id="shop-header-coins">
+        <span class="coin-icon-sm"></span>
+        <span id="shop-coin-count">0</span>
+      </span>
+    </header>
+    <div class="shop-wrapper">
+      <div class="shop-tabs" id="shop-tabs">
+        <button class="shop-tab active" data-shop-cat="username_color">COLORS</button>
+        <button class="shop-tab" data-shop-cat="cursor_skin">CURSORS</button>
+        <button class="shop-tab" data-shop-cat="badge">BADGES</button>
+        <button class="shop-tab" data-shop-cat="title">TITLES</button>
+        <button class="shop-tab" data-shop-cat="chat_emote">EMOTES</button>
+      </div>
+      <div class="shop-grid" id="shop-grid">
+        <div class="shop-loading">Loading...</div>
       </div>
     </div>
   </div>
@@ -681,6 +727,10 @@
         <span class="xp-gain-pb" id="xp-gain-pb" style="display:none">PERSONAL BEST!</span>
         <span class="xp-gain-levelup" id="xp-gain-levelup" style="display:none"></span>
       </div>
+      <div class="coin-gain-display" id="coin-gain-display" style="display:none">
+        <span class="coin-icon-sm"></span>
+        <span class="coin-gain-amount" id="coin-gain-amount">+0</span>
+      </div>
       <div class="ad-banner">
         <ins class="adsbygoogle"
              style="display:block"
@@ -766,6 +816,10 @@
         <span class="xp-gain-amount" id="tt-xp-gain-amount"></span>
         <span class="xp-gain-pb" id="tt-xp-gain-pb" style="display:none">PERSONAL BEST!</span>
         <span class="xp-gain-levelup" id="tt-xp-gain-levelup" style="display:none"></span>
+      </div>
+      <div class="coin-gain-display" id="tt-coin-gain-display" style="display:none">
+        <span class="coin-icon-sm"></span>
+        <span class="coin-gain-amount" id="tt-coin-gain-amount">+0</span>
       </div>
       <div class="match-result-buttons">
         <button id="btn-tt-again" class="btn btn-primary">Play Again</button>
@@ -953,6 +1007,10 @@
         <span class="xp-gain-amount" id="ascend-xp-gain-amount"></span>
         <span class="xp-gain-pb" id="ascend-xp-gain-pb" style="display:none">PERSONAL BEST!</span>
         <span class="xp-gain-levelup" id="ascend-xp-gain-levelup" style="display:none"></span>
+      </div>
+      <div class="coin-gain-display" id="ascend-coin-gain-display" style="display:none">
+        <span class="coin-icon-sm"></span>
+        <span class="coin-gain-amount" id="ascend-coin-gain-amount">+0</span>
       </div>
       <div class="ad-banner">
         <ins class="adsbygoogle"

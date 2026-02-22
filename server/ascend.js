@@ -1,5 +1,5 @@
 const { pickSentencesForTier } = require('./sentences');
-const { updateXpOnly, saveAscendRun } = require('./db');
+const { updateXpOnly, saveAscendRun, updateChallengeProgress } = require('./db');
 
 const COUNTDOWN_SECONDS = 3;
 const COMBO_THRESHOLD = 20;
@@ -796,23 +796,28 @@ async function endRun(io, lobby, socketId) {
   const avgWpm = player.lastTypingState?.wpm || 0;
 
   let xpGain = null;
+  const tier = player.finalTier || player.tier;
   if (player.userId) {
-    xpGain = await updateXpOnly(player.userId, false, avgWpm, 'ascend', totalTimeMs);
+    xpGain = await updateXpOnly(player.userId, false, avgWpm, 'ascend', totalTimeMs, { tier });
+
     await saveAscendRun(
       player.userId,
       player.username,
       Math.round(player.height * 10) / 10,
-      player.tier,
+      tier,
       totalTimeMs
     );
+
+    updateChallengeProgress(player.userId, 'complete_climbs', 1).catch(() => {});
   }
 
   player.socket.emit('ascend:run:end', {
     height: Math.round((player.finalHeight || player.height) * 10) / 10,
-    tier: player.finalTier || player.tier,
+    tier,
     duration: totalTimeMs,
     knockouts: player.knockouts,
-    xpGain
+    xpGain,
+    coinsGained: xpGain?.coinsGained || 0
   });
 
   player.socket.leave(lobby.lobbyId);

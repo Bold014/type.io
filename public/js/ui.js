@@ -166,7 +166,8 @@ const UI = (() => {
     timetrialResult: document.getElementById('screen-timetrial-result'),
     ascendLobby: document.getElementById('screen-ascend-lobby'),
     ascend: document.getElementById('screen-ascend'),
-    ascendResult: document.getElementById('screen-ascend-result')
+    ascendResult: document.getElementById('screen-ascend-result'),
+    shop: document.getElementById('screen-shop')
   };
 
   const els = {
@@ -317,7 +318,25 @@ const UI = (() => {
 
     btnAscendAgain: document.getElementById('btn-ascend-again'),
     btnAscendQuit: document.getElementById('btn-ascend-quit'),
-    btnAscendExit: document.getElementById('btn-ascend-exit')
+    btnAscendExit: document.getElementById('btn-ascend-exit'),
+
+    homeCoinPill: document.getElementById('home-coin-pill'),
+    homeCoinCount: document.getElementById('home-coin-count'),
+    btnLandingShop: document.getElementById('btn-landing-shop'),
+    homeChallenges: document.getElementById('home-challenges'),
+    challengesList: document.getElementById('challenges-list'),
+
+    btnShopBack: document.getElementById('btn-shop-back'),
+    shopCoinCount: document.getElementById('shop-coin-count'),
+    shopTabs: document.getElementById('shop-tabs'),
+    shopGrid: document.getElementById('shop-grid'),
+
+    coinGainDisplay: document.getElementById('coin-gain-display'),
+    coinGainAmount: document.getElementById('coin-gain-amount'),
+    ascendCoinGainDisplay: document.getElementById('ascend-coin-gain-display'),
+    ascendCoinGainAmount: document.getElementById('ascend-coin-gain-amount'),
+    ttCoinGainDisplay: document.getElementById('tt-coin-gain-display'),
+    ttCoinGainAmount: document.getElementById('tt-coin-gain-amount')
   };
 
   function showScreen(name) {
@@ -359,9 +378,22 @@ const UI = (() => {
 
   const PLACEMENT_GAMES = 5;
 
-  function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed) {
+  function updateCoinDisplay(coins) {
+    const c = coins || 0;
+    if (els.homeCoinPill) {
+      els.homeCoinPill.style.display = c >= 0 ? '' : 'none';
+      els.homeCoinCount.textContent = c.toLocaleString();
+    }
+    if (els.shopCoinCount) {
+      els.shopCoinCount.textContent = c.toLocaleString();
+    }
+  }
+
+  function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed, coins) {
     els.homeUsername.textContent = username.toUpperCase();
     if (isLoggedIn) {
+      updateCoinDisplay(coins || 0);
+      if (els.btnLandingShop) els.btnLandingShop.style.display = '';
       const level = xpToLevel(xp || 0);
       const rgp = rankedGamesPlayed || 0;
       const placementsDone = rgp >= PLACEMENT_GAMES;
@@ -407,6 +439,8 @@ const UI = (() => {
       els.rankedLock.style.display = '';
       els.cardRanked.classList.add('disabled');
       hideHeaderLevel();
+      if (els.homeCoinPill) els.homeCoinPill.style.display = 'none';
+      if (els.btnLandingShop) els.btnLandingShop.style.display = 'none';
     }
   }
 
@@ -994,6 +1028,150 @@ const UI = (() => {
     body.innerHTML = html;
   }
 
+  // --- SHOP RENDERING ---
+
+  const CATEGORY_LABELS = {
+    username_color: 'COLORS',
+    cursor_skin: 'CURSORS',
+    badge: 'BADGES',
+    title: 'TITLES',
+    chat_emote: 'EMOTES'
+  };
+
+  const BADGE_SVGS = {
+    star: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>',
+    lightning: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>',
+    crown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h20v2H2zm1-7l4-7 5 4 4.5-6L21 13v5H3z"/></svg>',
+    flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 23c-3.6 0-7-2.5-7-7 0-3.2 2-5.5 3.5-7.5.4-.5 1.2-.3 1.3.3.3 1 .8 1.8 1.5 2.5.1-.8.5-1.8 1.2-2.8 1.2-1.7 2-3.5 2-5.5 0-.5.5-.8 1-.5C18.5 5 20 8.5 20 11.5c0 6.5-4.5 11.5-8 11.5z"/></svg>',
+    skull: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.5 4.5 8.3V22h3v-1h5v1h3v-1.7C20.2 18.5 22 15.5 22 12c0-5.5-4.5-10-10-10zM8.5 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm7 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
+  };
+
+  function renderShopItemPreview(item) {
+    const d = item.data || {};
+    switch (item.category) {
+      case 'username_color':
+        return `<span class="shop-preview-color" style="background:${d.hex || '#fff'}"></span>`;
+      case 'cursor_skin':
+        return `<span class="shop-preview-cursor shop-cursor-${d.style || 'block'}"></span>`;
+      case 'badge':
+        return `<span class="shop-preview-badge">${BADGE_SVGS[d.icon] || ''}</span>`;
+      case 'title':
+        return `<span class="shop-preview-title">${escapeHtml(d.text || item.name)}</span>`;
+      case 'chat_emote':
+        return `<span class="shop-preview-emote">${escapeHtml(d.text || item.name)}</span>`;
+      default:
+        return '';
+    }
+  }
+
+  function renderShop(items, inventory, equipped, coins, category) {
+    if (!els.shopGrid) return;
+    updateCoinDisplay(coins);
+
+    const ownedSet = new Set((inventory || []).map(i => i.item_id));
+    const equippedMap = {};
+    (equipped || []).forEach(e => { equippedMap[e.category] = e.item_id; });
+
+    const filtered = (items || []).filter(i => i.category === category);
+
+    if (filtered.length === 0) {
+      els.shopGrid.innerHTML = '<div class="shop-empty">No items in this category</div>';
+      return;
+    }
+
+    let html = '';
+    for (const item of filtered) {
+      const owned = ownedSet.has(item.id);
+      const isEquipped = equippedMap[item.category] === item.id;
+      const levelLocked = item.level_required > 0;
+
+      let stateClass = '';
+      let btnText = `${item.price} <span class="coin-icon-xs"></span>`;
+      let btnClass = 'shop-card-btn shop-btn-buy';
+
+      if (isEquipped) {
+        stateClass = ' shop-card-equipped';
+        btnText = 'EQUIPPED';
+        btnClass = 'shop-card-btn shop-btn-equipped';
+      } else if (owned) {
+        stateClass = ' shop-card-owned';
+        btnText = 'EQUIP';
+        btnClass = 'shop-card-btn shop-btn-equip';
+      }
+
+      html += `<div class="shop-card${stateClass}" data-item-id="${item.id}" data-item-cat="${item.category}">
+        <div class="shop-card-preview">${renderShopItemPreview(item)}</div>
+        <div class="shop-card-name">${escapeHtml(item.name)}</div>
+        ${levelLocked && !owned ? `<div class="shop-card-lvl">LV. ${item.level_required}</div>` : ''}
+        <button class="${btnClass}" data-action="${isEquipped ? 'unequip' : owned ? 'equip' : 'buy'}">${btnText}</button>
+      </div>`;
+    }
+    els.shopGrid.innerHTML = html;
+  }
+
+  // --- CHALLENGE RENDERING ---
+
+  const CHALLENGE_LABELS = {
+    win_duels: n => `Win ${n} duel${n > 1 ? 's' : ''}`,
+    play_matches: n => `Play ${n} match${n > 1 ? 'es' : ''}`,
+    type_chars: n => `Type ${n.toLocaleString()} characters`,
+    complete_climbs: n => `Complete ${n} Climb run${n > 1 ? 's' : ''}`,
+    complete_timetrials: n => `Complete ${n} Time Trial${n > 1 ? 's' : ''}`
+  };
+
+  function renderChallenges(challenges) {
+    if (!els.challengesList || !els.homeChallenges) return;
+    if (!challenges || challenges.length === 0) {
+      els.homeChallenges.style.display = 'none';
+      return;
+    }
+
+    els.homeChallenges.style.display = '';
+    let html = '';
+    for (const c of challenges) {
+      const labelFn = CHALLENGE_LABELS[c.challenge_type];
+      const desc = labelFn ? labelFn(c.target) : c.challenge_type;
+      const pct = Math.min(100, Math.round((c.progress / c.target) * 100));
+      const done = c.completed;
+
+      html += `<div class="challenge-card${done ? ' challenge-done' : ''}">
+        <div class="challenge-info">
+          <span class="challenge-desc">${escapeHtml(desc)}</span>
+          <span class="challenge-reward">${done ? 'DONE' : c.coin_reward + ' <span class="coin-icon-xs"></span>'}</span>
+        </div>
+        <div class="challenge-bar-row">
+          <div class="challenge-progress-bar">
+            <div class="challenge-progress-fill" style="width:${pct}%"></div>
+          </div>
+          <span class="challenge-progress-text">${c.progress} / ${c.target}</span>
+        </div>
+      </div>`;
+    }
+    els.challengesList.innerHTML = html;
+  }
+
+  // --- COIN GAIN DISPLAY ---
+
+  function showCoinGain(coinsGained, target) {
+    const displayEl = target === 'ascend' ? els.ascendCoinGainDisplay
+      : target === 'tt' ? els.ttCoinGainDisplay
+      : els.coinGainDisplay;
+    const amountEl = target === 'ascend' ? els.ascendCoinGainAmount
+      : target === 'tt' ? els.ttCoinGainAmount
+      : els.coinGainAmount;
+
+    if (!displayEl || !amountEl) return;
+
+    if (!coinsGained || coinsGained <= 0) {
+      displayEl.style.display = 'none';
+      return;
+    }
+
+    amountEl.textContent = `+${coinsGained}`;
+    displayEl.style.display = '';
+  }
+
   return {
     screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
@@ -1004,6 +1182,7 @@ const UI = (() => {
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
     showProfile, showLeaderboard, showTimeTrialProfile, isPlaceholderEmail, getRankTier,
     xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge,
-    renderHomeMiniLeaderboard
+    renderHomeMiniLeaderboard, updateCoinDisplay,
+    renderShop, renderChallenges, showCoinGain
   };
 })();

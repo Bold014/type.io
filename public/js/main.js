@@ -2,7 +2,9 @@
   const SUPABASE_URL = 'https://smnhckjzyawgzrgwzjcq.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbmhja2p6eWF3Z3pyZ3d6amNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NTI3MzksImV4cCI6MjA4NzEyODczOX0.Hpd_oSIYrCr6zv2OI1CdOpU0vVhaLFhDHRt4G0LLCnc';
 
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
 
   let currentUser = null;
   let guestUsername = null;
@@ -44,26 +46,29 @@
       userId: currentUser.id,
       rating: currentUser.rating
     });
-    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
+    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
     UI.showScreen('home');
+    loadChallenges();
   }
 
   async function init() {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session) {
-        const profile = await fetchProfile(session.access_token);
-        if (profile) {
-          loginSuccess(profile, session.access_token);
+    if (sb) {
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          const profile = await fetchProfile(session.access_token);
+          if (profile) {
+            loginSuccess(profile, session.access_token);
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
 
-    sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' && session) {
-        GameSocket.reconnectWithToken(session.access_token);
-      }
-    });
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'TOKEN_REFRESHED' && session) {
+          GameSocket.reconnectWithToken(session.access_token);
+        }
+      });
+    }
 
     bindWelcomeEvents();
     bindHomeEvents();
@@ -71,7 +76,10 @@
     const _origShowScreen = UI.showScreen;
     UI.showScreen = function(name) {
       _origShowScreen(name);
-      if (name === 'home') loadHomeMiniLeaderboard();
+      if (name === 'home') {
+        loadHomeMiniLeaderboard();
+        if (currentUser) loadChallenges();
+      }
     };
 
     bindMultiplayerEvents();
@@ -81,6 +89,7 @@
     bindGameEvents();
     bindResultEvents();
     bindSocketEvents();
+    bindShopEvents();
     TimeTrial.init();
   }
 
@@ -179,6 +188,7 @@
     UI.els.btnCreateAccount.disabled = true;
 
     try {
+      if (!sb) { UI.els.welcomeError.textContent = 'Auth unavailable'; return; }
       const authResult = await sb.auth.signUp({
         email,
         password,
@@ -232,10 +242,12 @@
         return;
       }
 
-      await sb.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token
-      });
+      if (sb) {
+        await sb.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token
+        });
+      }
 
       loginSuccess(data.profile, data.access_token);
     } catch (err) {
@@ -315,6 +327,10 @@
       if (currentUser) openProfile();
     });
 
+    UI.els.btnLandingShop.addEventListener('click', () => {
+      if (currentUser) openShop();
+    });
+
     UI.els.btnHomeAuth.addEventListener('click', () => {
       UI.showWelcomeStep('username');
       UI.showScreen('welcome');
@@ -354,6 +370,7 @@
         m: 'btn-landing-multiplayer',
         s: 'btn-landing-singleplayer',
         l: 'btn-landing-leaderboard',
+        b: 'btn-landing-shop',
         d: 'btn-landing-discord'
       };
       const id = map[e.key.toLowerCase()];
@@ -451,8 +468,9 @@
   }
 
   async function doLogout() {
-    await sb.auth.signOut();
+    if (sb) await sb.auth.signOut();
     currentUser = null;
+    shopCache = null;
     GameSocket.clearToken();
     const name = guestUsername || generateGuestName();
     guestUsername = name;
@@ -519,6 +537,7 @@
     UI.showProfile(currentUser, null, null, null);
 
     try {
+      if (!sb) return;
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
 
@@ -533,7 +552,7 @@
 
       if (profileRes) {
         currentUser = profileRes;
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
       }
 
       UI.showProfile(currentUser, ascendRes, historyRes, ttRes);
@@ -568,6 +587,7 @@
     UI.els.btnProfileSaveEmail.disabled = true;
 
     try {
+      if (!sb) { UI.els.profileEmailError.textContent = 'Not logged in'; return; }
       const { data: { session } } = await sb.auth.getSession();
       if (!session) {
         UI.els.profileEmailError.textContent = 'Not logged in';
@@ -601,6 +621,136 @@
       UI.els.btnProfileSaveEmail.textContent = 'SAVE EMAIL';
       UI.els.btnProfileSaveEmail.disabled = false;
     }
+  }
+
+  // --- SHOP & CHALLENGES ---
+
+  let shopCache = null;
+  let currentShopCategory = 'username_color';
+
+  async function loadChallenges() {
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/challenges', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      if (res.ok) {
+        const challenges = await res.json();
+        UI.renderChallenges(challenges);
+      }
+    } catch (_) {}
+  }
+
+  async function openShop(category) {
+    if (category) currentShopCategory = category;
+    UI.showScreen('shop');
+
+    document.querySelectorAll('.shop-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.shopCat === currentShopCategory)
+    );
+
+    if (shopCache) {
+      UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+      return;
+    }
+
+    if (UI.els.shopGrid) UI.els.shopGrid.innerHTML = '<div class="shop-loading">Loading...</div>';
+
+    try {
+      const session = sb ? (await sb.auth.getSession()).data.session : null;
+      const headers = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+      const res = await fetch('/api/shop', { headers });
+      const data = await res.json();
+      shopCache = data;
+      if (currentUser) currentUser.coins = data.coins;
+      UI.renderShop(data.items, data.inventory, data.equipped, data.coins, currentShopCategory);
+    } catch (_) {
+      if (UI.els.shopGrid) UI.els.shopGrid.innerHTML = '<div class="shop-empty">Failed to load shop</div>';
+    }
+  }
+
+  async function handleShopAction(itemId, category, action) {
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      };
+
+      if (action === 'buy') {
+        const res = await fetch('/api/shop/purchase', {
+          method: 'POST', headers,
+          body: JSON.stringify({ itemId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Purchase failed');
+          return;
+        }
+        currentUser.coins = data.newBalance;
+        if (shopCache) {
+          shopCache.coins = data.newBalance;
+          shopCache.inventory.push({ item_id: itemId, purchased_at: new Date().toISOString() });
+        }
+      } else if (action === 'equip') {
+        const res = await fetch('/api/shop/equip', {
+          method: 'POST', headers,
+          body: JSON.stringify({ itemId, category })
+        });
+        if (!res.ok) return;
+        if (shopCache) {
+          shopCache.equipped = shopCache.equipped.filter(e => e.category !== category);
+          shopCache.equipped.push({ category, item_id: itemId });
+        }
+      } else if (action === 'unequip') {
+        const res = await fetch('/api/shop/unequip', {
+          method: 'POST', headers,
+          body: JSON.stringify({ category })
+        });
+        if (!res.ok) return;
+        if (shopCache) {
+          shopCache.equipped = shopCache.equipped.filter(e => e.category !== category);
+        }
+      }
+
+      UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+      if (shopCache) {
+        UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+      }
+    } catch (_) {}
+  }
+
+  function bindShopEvents() {
+    UI.els.btnShopBack.addEventListener('click', () => {
+      UI.showScreen('home');
+    });
+
+    document.querySelectorAll('.shop-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        currentShopCategory = tab.dataset.shopCat;
+        document.querySelectorAll('.shop-tab').forEach(t =>
+          t.classList.toggle('active', t.dataset.shopCat === currentShopCategory)
+        );
+        if (shopCache) {
+          UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+        }
+      });
+    });
+
+    UI.els.shopGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.shop-card-btn');
+      if (!btn) return;
+      const card = btn.closest('.shop-card');
+      if (!card) return;
+      const itemId = card.dataset.itemId;
+      const cat = card.dataset.itemCat;
+      const action = btn.dataset.action;
+      handleShopAction(itemId, cat, action);
+    });
   }
 
   // --- GAME ---
@@ -845,12 +995,16 @@
           currentUser.ranked_games_played = data.ratingChange.rankedGamesPlayed;
         }
       }
+      if (data.xpGain && data.xpGain.coinsGained != null) {
+        currentUser.coins = data.xpGain.newCoins;
+      }
       if (currentUser) {
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
       }
 
       UI.showMatchResult(data, myUsername);
       UI.showXpGain(data.xpGain);
+      UI.showCoinGain(data.xpGain?.coinsGained, 'match');
 
       if (data.xpGain && data.xpGain.newLevel > data.xpGain.oldLevel) {
         setTimeout(() => {
@@ -922,8 +1076,12 @@
     GameSocket.on('ascend:run:end', (data) => {
       if (data.xpGain && currentUser) {
         currentUser.xp = data.xpGain.newXp;
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
+        if (data.xpGain.newCoins != null) currentUser.coins = data.xpGain.newCoins;
       }
+      if (currentUser) {
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+      }
+      UI.showCoinGain(data.coinsGained, 'ascend');
       AscendClient.handleRunEnd(data);
     });
   }
