@@ -522,6 +522,23 @@ async function getUserEquipped(userId) {
   return data || [];
 }
 
+async function getUserEquippedWithItems(userId) {
+  const equipped = await getUserEquipped(userId);
+  if (!equipped.length) return [];
+  const itemIds = equipped.map(e => e.item_id);
+  const { data: items, error } = await supabase
+    .from('shop_items')
+    .select('id, category, name, data')
+    .in('id', itemIds);
+  if (error) { console.error('getUserEquippedWithItems shop_items error:', error); return equipped; }
+  const itemMap = {};
+  (items || []).forEach(i => { itemMap[i.id] = i; });
+  return equipped.map(e => {
+    const item = itemMap[e.item_id];
+    return item ? { ...e, ...item } : e;
+  });
+}
+
 async function purchaseItem(userId, itemId) {
   const { data, error } = await supabase.rpc('purchase_shop_item', {
     p_user_id: userId,
@@ -855,7 +872,7 @@ module.exports = {
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats,
   computeCoinReward, addCoins,
-  getShopItems, getUserInventory, getUserEquipped,
+  getShopItems, getUserInventory, getUserEquipped, getUserEquippedWithItems,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,
   getUserWeeklyChallenges, updateWeeklyChallengeProgress,

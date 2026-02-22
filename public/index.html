@@ -142,8 +142,12 @@
           <span class="home-level-text">LV. <span id="home-level-num">1</span></span>
         </span>
         <span class="home-user-info" id="home-user-info">
-          <span class="home-username" id="home-username">GUEST</span>
+          <span class="home-name-row">
+            <span class="home-username" id="home-username">GUEST</span>
+            <span class="home-badge-icon" id="home-badge-icon"></span>
+          </span>
           <span class="home-badge" id="home-badge">GUEST</span>
+          <span class="home-title" id="home-title"></span>
         </span>
         <button id="btn-home-auth" class="btn btn-small">Log In</button>
         <button id="btn-home-logout" class="btn btn-small" style="display:none">Log Out</button>
@@ -369,8 +373,12 @@
       <button id="btn-profile-back" class="home-header-left home-header-back">HOME</button>
       <div class="home-user-area">
         <span class="home-user-info" id="profile-home-user-info">
-          <span class="home-username" id="profile-home-username">USER</span>
+          <span class="home-name-row">
+            <span class="home-username" id="profile-home-username">USER</span>
+            <span class="home-badge-icon" id="profile-home-badge-icon"></span>
+          </span>
           <span class="home-badge" id="profile-home-badge">GUEST</span>
+          <span class="home-title" id="profile-home-title"></span>
         </span>
         <button id="btn-profile-logout-header" class="btn btn-small">Log Out</button>
       </div>
@@ -686,6 +694,12 @@
         </div>
       </div>
     </div>
+
+    <div class="emote-strip" id="emote-strip" style="display:none">
+      <span class="emote-strip-label">Quick chat:</span>
+      <div class="emote-strip-buttons" id="emote-strip-buttons"></div>
+    </div>
+    <div class="emote-toast" id="emote-toast" aria-live="polite"></div>
 
     <div class="attack-notifications" id="attack-notifications"></div>
   </div>

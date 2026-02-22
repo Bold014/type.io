@@ -2,7 +2,7 @@ const {
   supabase, findUserById, findUserByUsername, checkUsernameExists, updateEmail,
   getLeaderboard, getMatchHistory, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats, xpToLevel,
-  getShopItems, getUserInventory, getUserEquipped,
+  getShopItems, getUserInventory, getUserEquipped, getUserEquippedWithItems,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,
   getUserWeeklyChallenges, updateWeeklyChallengeProgress,
@@ -77,7 +77,7 @@ function setupAuthRoutes(app) {
         return res.status(401).json({ error: 'Profile not found' });
       }
 
-      const equipped = await getUserEquipped(user.id);
+      const equipped = await getUserEquippedWithItems(user.id);
       res.json({ ...profile, equipped });
     } catch (err) {
       console.error('Auth error:', err);

@@ -19,6 +19,74 @@
   let opponentSentence = '';
   let opponentTyped = '';
   let opponentInjectedRanges = [];
+  let opponentEquipped = [];
+
+  function getEquippedColor(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'username_color');
+    return (e && e.data && e.data.hex) ? e.data.hex : null;
+  }
+  function getEquippedCursorSkin(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return 'block';
+    const e = equipped.find(x => x.category === 'cursor_skin');
+    return (e && e.data && e.data.style) ? e.data.style : 'block';
+  }
+  function getEquippedBadge(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'badge');
+    return (e && e.data && e.data.icon) ? e.data.icon : null;
+  }
+  function getEquippedTitle(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'title');
+    return (e && e.data && e.data.text) ? e.data.text : null;
+  }
+  function getEquippedEmotes(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return [];
+    const e = equipped.find(x => x.category === 'chat_emote');
+    return (e && e.data && e.data.text) ? [e.data.text] : [];
+  }
+
+  function applyCursorSkinToContainer(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const equipped = (currentUser && currentUser.equipped) || [];
+    const style = getEquippedCursorSkin(equipped);
+    el.classList.remove('cursor-skin-block', 'cursor-skin-underline', 'cursor-skin-line', 'cursor-skin-dot');
+    el.classList.add('cursor-skin-' + style);
+  }
+
+  function renderEmoteStrip() {
+    const strip = document.getElementById('emote-strip');
+    const buttons = document.getElementById('emote-strip-buttons');
+    if (!strip || !buttons) return;
+    const equipped = (currentUser && currentUser.equipped) || [];
+    const emotes = getEquippedEmotes(equipped);
+    buttons.innerHTML = '';
+    if (emotes.length === 0) {
+      strip.style.display = 'none';
+      return;
+    }
+    emotes.forEach(text => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = text;
+      btn.dataset.emoteText = text;
+      buttons.appendChild(btn);
+    });
+    strip.style.display = 'flex';
+  }
+
+  function showEmoteToast(from, text) {
+    const toast = document.getElementById('emote-toast');
+    if (!toast) return;
+    toast.textContent = from + ': ' + text;
+    toast.classList.add('show');
+    clearTimeout(showEmoteToast._tid);
+    showEmoteToast._tid = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2500);
+  }
 
   function generateGuestName() {
     const id = Math.floor(Math.random() * 90000) + 10000;
@@ -46,7 +114,7 @@
       userId: currentUser.id,
       rating: currentUser.rating
     });
-    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
     UI.showScreen('home');
     loadChallenges();
   }
@@ -80,6 +148,9 @@
         loadHomeMiniLeaderboard();
         if (currentUser) loadChallenges();
       }
+      if (name === 'game') applyCursorSkinToContainer('typing-area');
+      if (name === 'timetrial') applyCursorSkinToContainer('tt-typing-area');
+      if (name === 'ascend') applyCursorSkinToContainer('ascend-typing-area');
     };
 
     bindMultiplayerEvents();
@@ -565,7 +636,7 @@
 
       if (profileRes) {
         currentUser = profileRes;
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
       }
 
       UI.showProfile(currentUser, ascendRes, historyRes, ttRes);
@@ -723,6 +794,8 @@
           shopCache.equipped = shopCache.equipped.filter(e => e.category !== category);
           shopCache.equipped.push({ category, item_id: itemId });
         }
+        const profile = await fetchProfile(session.access_token);
+        if (profile && currentUser) { currentUser.equipped = profile.equipped || []; shopCache.equipped = profile.equipped || []; }
       } else if (action === 'unequip') {
         const res = await fetch('/api/shop/unequip', {
           method: 'POST', headers,
@@ -732,9 +805,11 @@
         if (shopCache) {
           shopCache.equipped = shopCache.equipped.filter(e => e.category !== category);
         }
+        const profile = await fetchProfile(session.access_token);
+        if (profile && currentUser) { currentUser.equipped = profile.equipped || []; shopCache.equipped = profile.equipped || []; }
       }
 
-      UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+      UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
       if (shopCache) {
         UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
       }
@@ -835,6 +910,16 @@
       });
     }
 
+    const emoteStripButtons = document.getElementById('emote-strip-buttons');
+    if (emoteStripButtons) {
+      emoteStripButtons.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn && btn.dataset.emoteText) {
+          GameSocket.emit('emote:send', { text: btn.dataset.emoteText });
+        }
+      });
+    }
+
     document.addEventListener('click', () => {
       if (UI.screens.game.classList.contains('active') && TypingEngine.isActive()) {
         input.focus();
@@ -859,6 +944,7 @@
   function bindSocketEvents() {
     GameSocket.on('match:found', (data) => {
       opponentUsername = data.opponent;
+      opponentEquipped = data.opponentEquipped || [];
       UI.els.opponentNameBar.textContent = data.opponent;
       if (UI.els.opponentNamePanel) UI.els.opponentNamePanel.textContent = data.opponent.toUpperCase();
       myProgress = 0;
@@ -866,10 +952,16 @@
       UI.resetGameUI();
       UI.setSentenceHidden(true);
       UI.showScreen('game');
-      UI.showVsIntro(getUsername(), data.opponent);
+      UI.showVsIntro(getUsername(), data.opponent, (currentUser && currentUser.equipped) || [], opponentEquipped);
+      UI.setGameScreenNameColors((currentUser && currentUser.equipped) || [], opponentEquipped, data.opponent);
+      renderEmoteStrip();
     });
 
     GameSocket.on('queue:waiting', () => {});
+
+    GameSocket.on('emote:receive', (data) => {
+      showEmoteToast(data.from || 'Opponent', data.text || '');
+    });
 
     GameSocket.on('round:countdown', (data) => {
       currentSentence = data.sentence;
@@ -894,9 +986,11 @@
         data.round,
         data.totalRounds
       );
+      UI.setGameScreenNameColors((currentUser && currentUser.equipped) || [], opponentEquipped, opponentUsername);
 
       UI.showScreen('game');
       UI.resetGameUI();
+      renderEmoteStrip();
 
       const sourceEl = document.getElementById('quote-source');
       if (sourceEl) {
@@ -1007,7 +1101,7 @@
       UI.hideFinishTimer();
       UI.els.typingInput.disabled = true;
       const myUsername = getUsername();
-      UI.showRoundResult(data, myUsername);
+      UI.showRoundResult(data, myUsername, (currentUser && currentUser.equipped) || [], opponentEquipped);
     });
 
     GameSocket.on('match:result', (data) => {
@@ -1027,7 +1121,7 @@
         currentUser.coins = data.xpGain.newCoins;
       }
       if (currentUser) {
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
       }
 
       UI.showMatchResult(data, myUsername);
@@ -1107,7 +1201,7 @@
         if (data.xpGain.newCoins != null) currentUser.coins = data.xpGain.newCoins;
       }
       if (currentUser) {
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
       }
       UI.showCoinGain(data.coinsGained, 'ascend');
       AscendClient.handleRunEnd(data);

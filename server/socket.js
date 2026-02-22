@@ -1,12 +1,14 @@
-const { supabase, findUserById, xpToLevel } = require('./db');
+const { supabase, findUserById, xpToLevel, getUserEquippedWithItems } = require('./db');
 const matchmaking = require('./matchmaking');
 const {
   createGame, startCountdown, handleTypingUpdate,
-  handleRoundComplete, handleDisconnect
+  handleRoundComplete, handleDisconnect, getGameBySocketId
 } = require('./game');
 const ascend = require('./ascend');
 
 let roomCounter = 0;
+const emoteLastSent = new Map();
+const EMOTE_COOLDOWN_MS = 3000;
 
 function setupSocketHandlers(io) {
   io.use(async (socket, next) => {
@@ -82,6 +84,21 @@ function setupSocketHandlers(io) {
       if (game) handleRoundComplete(io, game, socket.id, data);
     });
 
+    socket.on('emote:send', (data) => {
+      const game = getGameBySocketId(socket.id);
+      if (!game) return;
+      const text = (data && data.text && String(data.text).trim()) || '';
+      if (!text) return;
+      const now = Date.now();
+      const last = emoteLastSent.get(socket.id) || 0;
+      if (now - last < EMOTE_COOLDOWN_MS) return;
+      emoteLastSent.set(socket.id, now);
+      socket.to(game.roomId).emit('emote:receive', {
+        from: socket.data.username || 'Opponent',
+        text: text.slice(0, 64)
+      });
+    });
+
     socket.on('ascend:join', () => {
       if (!socket.data.username) {
         socket.emit('error:message', { message: 'Set a username first' });
@@ -120,7 +137,7 @@ function setupSocketHandlers(io) {
   });
 }
 
-function createMatch(io, player1, player2, mode) {
+async function createMatch(io, player1, player2, mode) {
   roomCounter++;
   const roomId = `room_${roomCounter}_${Date.now()}`;
 
@@ -129,14 +146,21 @@ function createMatch(io, player1, player2, mode) {
 
   const game = createGame(roomId, player1, player2, mode);
 
+  const [p2Equipped, p1Equipped] = await Promise.all([
+    player2.userId ? getUserEquippedWithItems(player2.userId) : Promise.resolve([]),
+    player1.userId ? getUserEquippedWithItems(player1.userId) : Promise.resolve([])
+  ]);
+
   player1.socket.emit('match:found', {
     opponent: player2.username,
     opponentRating: mode === 'ranked' ? player2.rating : null,
+    opponentEquipped: p2Equipped || [],
     roomId
   });
   player2.socket.emit('match:found', {
     opponent: player1.username,
     opponentRating: mode === 'ranked' ? player1.rating : null,
+    opponentEquipped: p1Equipped || [],
     roomId
   });
 

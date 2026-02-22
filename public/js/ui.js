@@ -195,7 +195,9 @@ const UI = (() => {
 
     homeUserInfo: document.getElementById('home-user-info'),
     homeUsername: document.getElementById('home-username'),
+    homeBadgeIcon: document.getElementById('home-badge-icon'),
     homeBadge: document.getElementById('home-badge'),
+    homeTitle: document.getElementById('home-title'),
     btnHomeAuth: document.getElementById('btn-home-auth'),
     btnHomeLogout: document.getElementById('btn-home-logout'),
     btnLandingMultiplayer: document.getElementById('btn-landing-multiplayer'),
@@ -237,6 +239,8 @@ const UI = (() => {
     btnProfileLogoutHeader: document.getElementById('btn-profile-logout-header'),
     profileHomeUsername: document.getElementById('profile-home-username'),
     profileHomeBadge: document.getElementById('profile-home-badge'),
+    profileHomeBadgeIcon: document.getElementById('profile-home-badge-icon'),
+    profileHomeTitle: document.getElementById('profile-home-title'),
     profileAscendHeight: document.getElementById('profile-ascend-height'),
     profileAscendTier: document.getElementById('profile-ascend-tier'),
     profileAscendRuns: document.getElementById('profile-ascend-runs'),
@@ -396,8 +400,21 @@ const UI = (() => {
     }
   }
 
-  function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed, coins) {
+  function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed, coins, equipped) {
     els.homeUsername.textContent = username.toUpperCase();
+    const usernameColor = getEquippedColor(equipped);
+    if (usernameColor) els.homeUsername.style.color = usernameColor;
+    else els.homeUsername.style.color = '';
+    const badgeIcon = getEquippedBadge(equipped);
+    const titleText = getEquippedTitle(equipped);
+    if (els.homeBadgeIcon) {
+      els.homeBadgeIcon.innerHTML = (badgeIcon && BADGE_SVGS[badgeIcon]) ? BADGE_SVGS[badgeIcon] : '';
+      els.homeBadgeIcon.style.display = els.homeBadgeIcon.innerHTML ? '' : 'none';
+    }
+    if (els.homeTitle) {
+      els.homeTitle.textContent = titleText || '';
+      els.homeTitle.style.display = titleText ? '' : 'none';
+    }
     if (isLoggedIn) {
       updateCoinDisplay(coins || 0);
       if (els.btnLandingShop) els.btnLandingShop.style.display = '';
@@ -440,6 +457,8 @@ const UI = (() => {
       els.homeBadge.style.color = '';
       els.homeBadge.style.background = '';
       els.homeBadge.style.boxShadow = '';
+      if (els.homeBadgeIcon) { els.homeBadgeIcon.innerHTML = ''; els.homeBadgeIcon.style.display = 'none'; }
+      if (els.homeTitle) { els.homeTitle.textContent = ''; els.homeTitle.style.display = 'none'; }
       els.btnHomeAuth.style.display = '';
       els.btnHomeLogout.style.display = 'none';
       els.rankedSub.textContent = 'Log in to unlock ranked play';
@@ -536,7 +555,35 @@ const UI = (() => {
     els.roundIndicator.textContent = `ROUND ${round} OF ${totalRounds}`;
   }
 
-  function showRoundResult(data, myUsername) {
+  function setGameScreenNameColors(myEquipped, opponentEquipped, opponentName) {
+    const myColor = getEquippedColor(myEquipped);
+    const oppColor = getEquippedColor(opponentEquipped);
+    const myBadge = getEquippedBadge(myEquipped);
+    const myTitle = getEquippedTitle(myEquipped);
+    const oppBadge = getEquippedBadge(opponentEquipped);
+    const oppTitle = getEquippedTitle(opponentEquipped);
+    const youEl = document.querySelector('.panel-name-you');
+    if (youEl) {
+      youEl.style.color = myColor || '';
+      youEl.innerHTML = 'YOU' +
+        (myBadge && BADGE_SVGS[myBadge] ? `<span class="panel-badge-icon">${BADGE_SVGS[myBadge]}</span>` : '') +
+        (myTitle ? `<span class="panel-title">${escapeHtml(myTitle)}</span>` : '');
+    }
+    if (els.opponentNameBar) {
+      els.opponentNameBar.style.color = oppColor || '';
+      els.opponentNameBar.innerHTML = (opponentName ? escapeHtml(opponentName) : '') +
+        (oppBadge && BADGE_SVGS[oppBadge] ? `<span class="panel-badge-icon">${BADGE_SVGS[oppBadge]}</span>` : '') +
+        (oppTitle ? `<span class="panel-title">${escapeHtml(oppTitle)}</span>` : '');
+    }
+    if (els.opponentNamePanel) {
+      els.opponentNamePanel.style.color = oppColor || '';
+      els.opponentNamePanel.innerHTML = (opponentName ? escapeHtml(opponentName.toUpperCase()) : '') +
+        (oppBadge && BADGE_SVGS[oppBadge] ? `<span class="panel-badge-icon">${BADGE_SVGS[oppBadge]}</span>` : '') +
+        (oppTitle ? `<span class="panel-title">${escapeHtml(oppTitle)}</span>` : '');
+    }
+  }
+
+  function showRoundResult(data, myUsername, myEquipped, opponentEquipped) {
     els.roundResultTitle.textContent = `ROUND ${data.round}`;
     if (data.roundWinner === myUsername) {
       els.roundWinnerText.textContent = 'You won this round!';
@@ -547,6 +594,22 @@ const UI = (() => {
     } else {
       els.roundWinnerText.textContent = 'Round tied!';
       els.roundWinnerText.style.color = 'var(--gold)';
+    }
+
+    const myColor = getEquippedColor(myEquipped);
+    const oppColor = getEquippedColor(opponentEquipped);
+    const myBadge = getEquippedBadge(myEquipped);
+    const myTitle = getEquippedTitle(myEquipped);
+    const oppBadge = getEquippedBadge(opponentEquipped);
+    const oppTitle = getEquippedTitle(opponentEquipped);
+    const youLabel = document.querySelector('.score-card.you h3');
+    if (youLabel) {
+      youLabel.style.color = myColor || '';
+      youLabel.innerHTML = 'You' + (myBadge && BADGE_SVGS[myBadge] ? `<span class="panel-badge-icon">${BADGE_SVGS[myBadge]}</span>` : '') + (myTitle ? `<span class="panel-title">${escapeHtml(myTitle)}</span>` : '');
+    }
+    if (els.resultOppName) {
+      els.resultOppName.style.color = oppColor || '';
+      els.resultOppName.innerHTML = escapeHtml(data.opponent.username) + (oppBadge && BADGE_SVGS[oppBadge] ? `<span class="panel-badge-icon">${BADGE_SVGS[oppBadge]}</span>` : '') + (oppTitle ? `<span class="panel-title">${escapeHtml(oppTitle)}</span>` : '');
     }
 
     els.resultYouWpm.textContent = data.you.wpm;
@@ -621,10 +684,22 @@ const UI = (() => {
     return div.innerHTML;
   }
 
-  function showVsIntro(playerName, opponentName) {
+  function showVsIntro(playerName, opponentName, myEquipped, opponentEquipped) {
     els.vsIntroOverlay.classList.remove('fade-out');
-    els.vsIntroLeft.textContent = playerName;
-    els.vsIntroRight.textContent = opponentName;
+    const myBadge = getEquippedBadge(myEquipped);
+    const myTitle = getEquippedTitle(myEquipped);
+    const oppBadge = getEquippedBadge(opponentEquipped);
+    const oppTitle = getEquippedTitle(opponentEquipped);
+    const myColor = getEquippedColor(myEquipped);
+    const oppColor = getEquippedColor(opponentEquipped);
+    els.vsIntroLeft.innerHTML = `<span class="vs-name" style="color:${myColor || 'inherit'}">${escapeHtml(playerName)}</span>` +
+      (myBadge && BADGE_SVGS[myBadge] ? `<span class="vs-badge-icon">${BADGE_SVGS[myBadge]}</span>` : '') +
+      (myTitle ? `<span class="vs-title">${escapeHtml(myTitle)}</span>` : '');
+    els.vsIntroRight.innerHTML = `<span class="vs-name" style="color:${oppColor || 'inherit'}">${escapeHtml(opponentName)}</span>` +
+      (oppBadge && BADGE_SVGS[oppBadge] ? `<span class="vs-badge-icon">${BADGE_SVGS[oppBadge]}</span>` : '') +
+      (oppTitle ? `<span class="vs-title">${escapeHtml(oppTitle)}</span>` : '');
+    els.vsIntroLeft.style.color = '';
+    els.vsIntroRight.style.color = '';
 
     els.vsIntroLeft.style.animation = 'none';
     els.vsIntroRight.style.animation = 'none';
@@ -805,7 +880,24 @@ const UI = (() => {
 
     els.profileUsername.textContent = (profile.username || '').toUpperCase();
     els.profileHomeUsername.textContent = (profile.username || '').toUpperCase();
-
+    const profileColor = getEquippedColor(profile.equipped);
+    if (profileColor) {
+      els.profileUsername.style.color = profileColor;
+      els.profileHomeUsername.style.color = profileColor;
+    } else {
+      els.profileUsername.style.color = '';
+      els.profileHomeUsername.style.color = '';
+    }
+    const profileBadgeIcon = getEquippedBadge(profile.equipped);
+    const profileTitleText = getEquippedTitle(profile.equipped);
+    if (els.profileHomeBadgeIcon) {
+      els.profileHomeBadgeIcon.innerHTML = (profileBadgeIcon && BADGE_SVGS[profileBadgeIcon]) ? BADGE_SVGS[profileBadgeIcon] : '';
+      els.profileHomeBadgeIcon.style.display = els.profileHomeBadgeIcon.innerHTML ? '' : 'none';
+    }
+    if (els.profileHomeTitle) {
+      els.profileHomeTitle.textContent = profileTitleText || '';
+      els.profileHomeTitle.style.display = profileTitleText ? '' : 'none';
+    }
     if (placementsDone) {
       els.profileHomeBadge.textContent = `${tier.name.toUpperCase()} — ${profile.rating || 1000} SR`;
       els.profileHomeBadge.className = 'home-badge ranked';
@@ -1199,17 +1291,44 @@ const UI = (() => {
     displayEl.style.display = '';
   }
 
+  function getEquippedColor(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'username_color');
+    return (e && e.data && e.data.hex) ? e.data.hex : null;
+  }
+  function getEquippedCursorSkin(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return 'block';
+    const e = equipped.find(x => x.category === 'cursor_skin');
+    return (e && e.data && e.data.style) ? e.data.style : 'block';
+  }
+  function getEquippedBadge(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'badge');
+    return (e && e.data && e.data.icon) ? e.data.icon : null;
+  }
+  function getEquippedTitle(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'title');
+    return (e && e.data && e.data.text) ? e.data.text : null;
+  }
+  function getEquippedEmotes(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return [];
+    const e = equipped.find(x => x.category === 'chat_emote');
+    return (e && e.data && e.data.text) ? [e.data.text] : [];
+  }
+
   return {
     screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
     updateOpponent, updateDuelMeter, showCountdown, hideCountdown, flashError,
     flashSentenceRange, flashOpponentRange,
-    setMatchHeader, showRoundResult, showMatchResult,
+    setMatchHeader, setGameScreenNameColors, showRoundResult, showMatchResult,
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
     showProfile, showLeaderboard, showTimeTrialProfile, isPlaceholderEmail, getRankTier,
     xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge,
     renderHomeMiniLeaderboard, updateCoinDisplay,
-    renderShop, renderChallenges, showCoinGain
+    renderShop, renderChallenges, showCoinGain,
+    getEquippedColor, getEquippedCursorSkin, getEquippedBadge, getEquippedTitle, getEquippedEmotes
   };
 })();

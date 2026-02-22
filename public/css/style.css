@@ -372,12 +372,49 @@ body {
   gap: 10px;
 }
 
+.home-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .home-username {
   font-family: var(--mono);
   font-weight: 700;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
   color: var(--text);
+}
+
+.home-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+.home-badge-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.home-title {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.home-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 .home-badge {
@@ -389,16 +426,6 @@ body {
   border-radius: 2px;
   background: var(--red-dim);
   color: var(--red);
-}
-
-.home-user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  transition: background 0.2s ease;
 }
 
 .home-user-info:hover {
@@ -1882,6 +1909,28 @@ a.mode-key {
   color: var(--red);
 }
 
+.panel-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  color: inherit;
+}
+
+.panel-badge-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.panel-title {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
 .panel-wpm {
   font-family: var(--mono);
   font-weight: 700;
@@ -1990,6 +2039,26 @@ a.mode-key {
 .vs-intro-right {
   color: var(--red);
   animation: vsSlideRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+.vs-name { display: inline; }
+.vs-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--gold);
+}
+.vs-badge-icon svg { width: 100%; height: 100%; }
+.vs-title {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  margin-top: 2px;
 }
 
 .vs-intro-right::before {
@@ -2307,6 +2376,28 @@ a.mode-key {
   animation: cursorGlow 1s step-end infinite;
 }
 
+/* Cursor skins (equipped cosmetic) */
+.cursor-skin-block .sentence-display .char.current {
+  border-left: none;
+  background: var(--accent);
+  color: var(--bg);
+  animation: cursorGlow 1s step-end infinite;
+}
+.cursor-skin-underline .sentence-display .char.current {
+  border-left: none;
+  border-bottom: 3px solid var(--accent);
+  animation: cursorGlow 1s step-end infinite;
+}
+.cursor-skin-line .sentence-display .char.current {
+  border-left: 3px solid var(--accent);
+  animation: cursorGlow 1s step-end infinite;
+}
+.cursor-skin-dot .sentence-display .char.current {
+  border-left: none;
+  box-shadow: 0 2px 0 0 var(--accent);
+  animation: cursorGlow 1s step-end infinite;
+}
+
 @keyframes cursorGlow {
   0%, 100% {
     border-color: var(--accent);
@@ -2348,6 +2439,75 @@ a.mode-key {
 }
 
 /* ===== ATTACK NOTIFICATIONS ===== */
+
+.emote-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: 0 auto 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.emote-strip-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.emote-strip-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.emote-strip-buttons button {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.emote-strip-buttons button:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.emote-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  z-index: 70;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.emote-toast.show {
+  opacity: 1;
+  animation: emoteToastIn 0.2s ease;
+}
+
+@keyframes emoteToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 
 .attack-notifications {
   position: fixed;
