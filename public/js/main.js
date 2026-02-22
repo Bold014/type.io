@@ -629,7 +629,7 @@
   let currentShopCategory = 'username_color';
 
   async function loadChallenges() {
-    if (!currentUser || !sb) return;
+    if (!currentUser) return;
     try {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
@@ -639,8 +639,12 @@
       if (res.ok) {
         const challenges = await res.json();
         UI.renderChallenges(challenges);
+      } else {
+        console.warn('loadChallenges: API returned', res.status);
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn('loadChallenges error:', err);
+    }
   }
 
   async function openShop(category) {
