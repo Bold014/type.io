@@ -427,7 +427,10 @@ const AscendClient = (() => {
 
       if (dotEl) dotEl.className = `ascend-sb-tier-dot ${dotClass}`;
       if (rankNumEl) rankNumEl.textContent = i + 1;
-      if (nameEl) nameEl.textContent = p.username;
+      if (nameEl) {
+        nameEl.textContent = p.username;
+        nameEl.style.color = p.usernameColor || '';
+      }
       if (hpFill) hpFill.style.width = hpPct + '%';
       if (heightEl) heightEl.textContent = p.height + 'm';
       if (wpmEl) wpmEl.textContent = p.wpm || 0;
@@ -765,7 +768,10 @@ const AscendClient = (() => {
 
       if (dotEl) dotEl.className = `ascend-sb-tier-dot ${dotClass}`;
       if (rankNumEl) rankNumEl.textContent = i + 1;
-      if (nameEl) nameEl.textContent = p.username;
+      if (nameEl) {
+        nameEl.textContent = p.username;
+        nameEl.style.color = p.usernameColor || '';
+      }
       if (hpFill) hpFill.style.width = hpPct + '%';
       if (heightEl) heightEl.textContent = p.height + 'm';
       if (wpmEl) wpmEl.textContent = p.wpm || 0;

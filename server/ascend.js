@@ -1,5 +1,5 @@
 const { pickSentencesForTier } = require('./sentences');
-const { updateXpOnly, saveAscendRun, updateChallengeProgress, updateWeeklyChallengeProgress } = require('./db');
+const { updateXpOnly, saveAscendRun, updateChallengeProgress, updateWeeklyChallengeProgress, getUserEquippedWithItems } = require('./db');
 
 const COUNTDOWN_SECONDS = 3;
 const COMBO_THRESHOLD = 20;
@@ -328,6 +328,13 @@ function joinLobby(io, socket) {
   lobby.players.set(socket.id, player);
   socket.join(lobby.lobbyId);
 
+  if (player.userId) {
+    getUserEquippedWithItems(player.userId).then(equipped => {
+      const e = (equipped || []).find(x => x.category === 'username_color');
+      player.usernameColor = (e && e.data && e.data.hex) ? e.data.hex : null;
+    }).catch(() => {});
+  }
+
   if (lobby.initialBotCount === 0) {
     spawnBots(io, lobby);
   } else {
@@ -495,6 +502,7 @@ function buildScoreboard(lobby) {
     if (!p.started && !p.eliminated) return;
     scoreboard.push({
       username: p.username,
+      usernameColor: p.usernameColor || null,
       height: Math.round(p.height * 10) / 10,
       tier: p.tier,
       hp: Math.round(Math.max(0, p.hp)),
