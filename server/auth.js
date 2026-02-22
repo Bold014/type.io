@@ -4,9 +4,10 @@ const {
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats, xpToLevel,
   getShopItems, getUserInventory, getUserEquipped,
   purchaseItem, equipItem, unequipItem,
-  getUserDailyChallenges, updateChallengeProgress
+  getUserDailyChallenges, updateChallengeProgress,
+  saveTowerDefenseRun, getTowerDefenseLeaderboard
 } = require('./db');
-const { pickSentencesForDuration } = require('./sentences');
+const { pickSentencesForDuration, getWordBank } = require('./sentences');
 
 function setupAuthRoutes(app) {
   app.post('/api/check-username', async (req, res) => {
@@ -136,6 +137,12 @@ function setupAuthRoutes(app) {
         return res.json(data);
       }
 
+      if (category === 'tower_defense') {
+        const data = await getTowerDefenseLeaderboard(limit);
+        res.set('Cache-Control', 'no-store');
+        return res.json(data);
+      }
+
       const data = await getLeaderboard(category, limit);
       res.set('Cache-Control', 'no-store');
       res.json(data);
@@ -257,6 +264,54 @@ function setupAuthRoutes(app) {
       res.json(stats);
     } catch (err) {
       console.error('Time trial stats error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // --- TOWER DEFENSE ROUTES ---
+
+  app.get('/api/tower-defense/words', (req, res) => {
+    try {
+      const bank = getWordBank();
+      res.json(bank);
+    } catch (err) {
+      console.error('Tower defense words error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/tower-defense/result', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const profile = await findUserById(user.id);
+      if (!profile) {
+        return res.status(401).json({ error: 'Profile not found' });
+      }
+
+      const { wavesSurvived, enemiesKilled, score, accuracy, durationMs } = req.body;
+      if (wavesSurvived == null || score == null) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const xpResult = await saveTowerDefenseRun(user.id, profile.username, {
+        wavesSurvived, enemiesKilled, score, accuracy, durationMs
+      });
+
+      updateChallengeProgress(user.id, 'complete_towerdefense', 1).catch(() => {});
+
+      res.json({ success: true, xp: xpResult });
+    } catch (err) {
+      console.error('Tower defense result error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

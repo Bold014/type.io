@@ -620,6 +620,28 @@ body {
   user-select: none;
 }
 
+.home-nav-area {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+  align-self: center;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+
+.home-nav-area > .home-rows {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-nav-area > .home-challenges {
+  flex: 0 0 240px;
+  min-width: 0;
+  align-self: stretch;
+}
+
 .home-rows {
   display: flex;
   flex-direction: column;
@@ -5109,8 +5131,10 @@ a.mode-key {
 }
 
 .home-challenges {
-  flex: 0 0 260px;
-  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  padding: 16px;
 }
 
 .challenges-title {
@@ -5119,20 +5143,20 @@ a.mode-key {
   font-weight: 700;
   color: var(--text-dim);
   letter-spacing: 1px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .challenges-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .challenge-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   transition: border-color 0.2s;
 }
 
@@ -5150,19 +5174,20 @@ a.mode-key {
 
 .challenge-desc {
   font-family: var(--sans);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text);
 }
 
 .challenge-reward {
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--gold);
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .challenge-done .challenge-reward {
@@ -5177,7 +5202,7 @@ a.mode-key {
 
 .challenge-progress-bar {
   flex: 1;
-  height: 6px;
+  height: 5px;
   background: var(--bg);
   border-radius: 3px;
   overflow: hidden;
@@ -5196,11 +5221,27 @@ a.mode-key {
 
 .challenge-progress-text {
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   color: var(--text-dim);
-  min-width: 50px;
+  min-width: 44px;
   text-align: right;
+}
+
+@media (max-width: 800px) {
+  .home-nav-area {
+    flex-direction: column;
+    align-items: center;
+  }
+  .home-nav-area > .home-rows {
+    width: 100%;
+    max-width: 680px;
+  }
+  .home-nav-area > .home-challenges {
+    flex: none;
+    width: 100%;
+    max-width: 680px;
+  }
 }
 
 @media (max-width: 700px) {
@@ -5208,8 +5249,7 @@ a.mode-key {
     flex-direction: column;
     align-items: center;
   }
-  .home-bottom-panels > .home-mini-lb,
-  .home-challenges {
+  .home-bottom-panels > .home-mini-lb {
     flex: none;
     width: 100%;
     max-width: 460px;
@@ -5233,4 +5273,392 @@ a.mode-key {
     padding: 6px 10px;
     font-size: 0.65rem;
   }
+}
+
+/* ===== TOWER DEFENSE ===== */
+
+#screen-towerdefense {
+  flex-direction: column;
+  padding: 0;
+  justify-content: flex-start;
+}
+
+.td-layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.td-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 15, 22, 0.95);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.td-header-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.td-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.td-stat-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.td-stat-value {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.td-lives {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.td-heart {
+  width: 18px;
+  height: 18px;
+  color: var(--red);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.td-heart.lost {
+  opacity: 0.2;
+  transform: scale(0.8);
+}
+
+.td-battlefield {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: rgba(10, 10, 18, 0.6);
+  min-height: 300px;
+}
+
+.td-base {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent);
+  border-right: 2px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.td-base-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--red);
+  opacity: 0.5;
+}
+
+.td-base-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.td-lane {
+  position: absolute;
+  inset: 0;
+  left: 60px;
+}
+
+.td-enemy {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: rgba(22, 22, 31, 0.85);
+  color: var(--text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: default;
+  user-select: none;
+  z-index: 3;
+}
+
+.td-enemy .td-enemy-progress {
+  color: var(--green);
+}
+
+.td-enemy.targeted {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(102, 136, 170, 0.3);
+}
+
+.td-enemy.basic { color: var(--text); }
+
+.td-enemy.tank {
+  font-size: 1.2rem;
+  font-weight: 800;
+  padding: 8px 16px;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.td-enemy.sprinter {
+  font-size: 0.85rem;
+  font-style: italic;
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.td-enemy.armored {
+  border-color: rgba(234, 179, 8, 0.5);
+  box-shadow: inset 0 0 8px rgba(234, 179, 8, 0.1);
+}
+
+.td-enemy.scrambled {
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.td-enemy.chaos {
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+.td-enemy.splitter {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.td-enemy.boss {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+  padding: 10px 18px;
+}
+
+.td-enemy-hp-bar {
+  position: absolute;
+  bottom: -6px;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.td-enemy-hp-fill {
+  height: 100%;
+  background: var(--red);
+  transition: width 0.2s;
+}
+
+@keyframes enemyDeath {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0.3); }
+}
+
+.td-enemy.dying {
+  animation: enemyDeath 0.3s ease-out forwards;
+  pointer-events: none;
+}
+
+.td-input-area {
+  padding: 12px 20px;
+  background: rgba(15, 15, 22, 0.95);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.td-input {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  color: var(--text);
+  outline: none;
+  text-align: center;
+  letter-spacing: 0.04em;
+  transition: border-color 0.15s;
+}
+
+.td-input:focus {
+  border-color: var(--accent);
+}
+
+.td-input.error {
+  border-color: var(--red);
+  animation: inputShake 0.3s ease;
+}
+
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.td-wave-banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.td-wave-banner span {
+  font-family: var(--mono);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+  animation: waveBannerPulse 1.5s ease-out forwards;
+}
+
+@keyframes waveBannerPulse {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 1; transform: scale(1.05); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.td-upgrade-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 18, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  gap: 24px;
+}
+
+.td-upgrade-title {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.td-upgrade-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.td-upgrade-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  width: 200px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.td-upgrade-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.td-upgrade-card-key {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  letter-spacing: 0.1em;
+}
+
+.td-upgrade-card-name {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.td-upgrade-card-desc {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* TD Result */
+.td-result-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.td-result-wave {
+  font-family: var(--mono);
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--red);
+  line-height: 1;
+}
+
+.td-result-wave-label {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .td-header-stats { gap: 12px; }
+  .td-stat-value { font-size: 0.9rem; }
+  .td-enemy { font-size: 0.85rem; padding: 5px 10px; }
+  .td-enemy.tank { font-size: 1rem; }
+  .td-enemy.boss { font-size: 0.95rem; }
+  .td-input { font-size: 1rem; padding: 10px 12px; }
+  .td-upgrade-card { width: 160px; padding: 14px; }
+  .td-wave-banner span { font-size: 1.8rem; }
 }

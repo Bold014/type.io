@@ -65,4 +65,29 @@ function pickSentencesForDuration(durationSec) {
   };
 }
 
-module.exports = { quotes, pickSentences, pickSentencesForTier, pickSentencesForDuration };
+let _wordCache = null;
+
+function buildWordBank() {
+  if (_wordCache) return _wordCache;
+  const wordSet = new Set();
+  for (const q of quotes) {
+    const words = q.text.replace(/[^a-zA-Z\s'-]/g, '').split(/\s+/);
+    for (const w of words) {
+      if (w.length >= 3) wordSet.add(w.toLowerCase());
+    }
+  }
+  const all = Array.from(wordSet);
+  _wordCache = {
+    easy: all.filter(w => w.length >= 3 && w.length <= 5),
+    medium: all.filter(w => w.length >= 4 && w.length <= 7),
+    hard: all.filter(w => w.length >= 5 && w.length <= 10),
+    all
+  };
+  return _wordCache;
+}
+
+function getWordBank() {
+  return buildWordBank();
+}
+
+module.exports = { quotes, pickSentences, pickSentencesForTier, pickSentencesForDuration, getWordBank };

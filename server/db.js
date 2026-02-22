@@ -669,6 +669,78 @@ async function updateChallengeProgress(userId, challengeType, incrementBy) {
   return { challengeType, newProgress, target: challenge.target, completed: nowComplete, reward: nowComplete ? challenge.coin_reward : 0 };
 }
 
+// --- TOWER DEFENSE ---
+
+async function saveTowerDefenseRun(userId, username, data) {
+  const { error } = await supabase
+    .from('tower_defense_runs')
+    .insert({
+      user_id: userId,
+      username,
+      waves_survived: data.wavesSurvived,
+      enemies_killed: data.enemiesKilled,
+      score: data.score,
+      accuracy: data.accuracy,
+      duration_ms: data.durationMs,
+      created_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('saveTowerDefenseRun error:', error);
+    return null;
+  }
+
+  const user = await findUserById(userId);
+  if (!user) return null;
+
+  const oldLevel = xpToLevel(user.xp || 0);
+  let xpGained = Math.min(3000, data.wavesSurvived * 100);
+
+  let isPb = false;
+  const currentBest = user.best_td_wave || 0;
+  if (data.wavesSurvived > currentBest) {
+    isPb = true;
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const lastPb = user.last_pb_at ? new Date(user.last_pb_at) : null;
+    if (!lastPb || lastPb < oneDayAgo) {
+      xpGained += 500;
+    }
+  }
+
+  const newXp = (user.xp || 0) + xpGained;
+  const newLevel = xpToLevel(newXp);
+
+  let coinsGained = 30;
+  if (data.wavesSurvived >= 10) coinsGained += 20;
+  if (data.wavesSurvived >= 20) coinsGained += 30;
+  if (isPb) coinsGained += 50;
+  const newCoins = (user.coins || 0) + coinsGained;
+
+  const updatePayload = { xp: newXp, coins: newCoins };
+  if (isPb) {
+    updatePayload.best_td_wave = data.wavesSurvived;
+    updatePayload.last_pb_at = new Date().toISOString();
+  }
+
+  await supabase.from('profiles').update(updatePayload).eq('id', userId);
+
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
+}
+
+async function getTowerDefenseLeaderboard(limit = 50) {
+  const { data, error } = await supabase.rpc('get_td_leaderboard', {
+    p_limit: limit
+  });
+
+  if (error) {
+    console.error('getTowerDefenseLeaderboard error:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername, checkUsernameExists,
   updateStats, updateXpOnly, updateEmail, xpToLevel, PLACEMENT_GAMES,
@@ -678,5 +750,6 @@ module.exports = {
   computeCoinReward, addCoins,
   getShopItems, getUserInventory, getUserEquipped,
   purchaseItem, equipItem, unequipItem,
-  getUserDailyChallenges, updateChallengeProgress
+  getUserDailyChallenges, updateChallengeProgress,
+  saveTowerDefenseRun, getTowerDefenseLeaderboard
 };
