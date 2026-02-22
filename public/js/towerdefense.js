@@ -558,6 +558,7 @@ const TowerDefense = (() => {
     const keyHandler = (e) => {
       const idx = parseInt(e.key) - 1;
       if (idx >= 0 && idx < picks.length) {
+        e.preventDefault();
         applyUpgrade(picks[idx].id);
         els.upgradeOverlay.style.display = 'none';
         els.upgradeCards.removeEventListener('click', clickHandler);
