@@ -969,5 +969,13 @@
   <script src="/js/ascend.js"></script>
   <script src="/js/timetrial.js"></script>
   <script src="/js/main.js"></script>
+  <script>
+    if (window.location.hostname.includes('sbox')) {
+      document.querySelectorAll('a[target="_blank"]').forEach(function(a) {
+        a.removeAttribute('target');
+        a.removeAttribute('rel');
+      });
+    }
+  </script>
 </body>
 </html>
