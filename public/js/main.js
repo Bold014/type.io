@@ -1269,7 +1269,8 @@
 
     if (btnTdQuit) {
       btnTdQuit.addEventListener('click', () => {
-        TowerDefense.exitGame();
+        TowerDefense.reset();
+        UI.showScreen('singleplayer');
       });
     }
 
