@@ -168,6 +168,7 @@ const UI = (() => {
     ascend: document.getElementById('screen-ascend'),
     ascendResult: document.getElementById('screen-ascend-result'),
     shop: document.getElementById('screen-shop'),
+    towerdefenseLobby: document.getElementById('screen-towerdefense-lobby'),
     towerdefense: document.getElementById('screen-towerdefense'),
     towerdefenseResult: document.getElementById('screen-towerdefense-result')
   };

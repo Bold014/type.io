@@ -29,7 +29,6 @@ const TowerDefense = (() => {
   const UPGRADE_DEFS = [
     { id: 'slow_field', name: 'Slow Field', desc: 'All enemies move 15% slower', stackable: true },
     { id: 'extra_life', name: 'Extra Life', desc: '+1 base life', stackable: true },
-    { id: 'critical', name: 'Critical Strike', desc: '10% chance to instant-kill on first keystroke', stackable: true },
     { id: 'chain', name: 'Chain Lightning', desc: 'Kills deal 1 damage to nearest enemy', stackable: false },
     { id: 'shield', name: 'Shield', desc: 'Blocks the next enemy that reaches base', stackable: true },
     { id: 'combo_master', name: 'Combo Master', desc: '+10 bonus score per consecutive kill', stackable: true },
@@ -416,21 +415,6 @@ const TowerDefense = (() => {
       return;
     }
 
-    const critCount = upgrades.filter(u => u === 'critical').length;
-    if (critCount > 0 && value.length === 1) {
-      for (const enemy of enemies) {
-        if (!enemy.alive) continue;
-        const matchWord = enemy.type === 'armored' ? enemy.displayWord : enemy.displayWord;
-        if (matchWord.startsWith(value) && Math.random() < 0.1 * critCount) {
-          correctKeystrokes++;
-          els.input.value = '';
-          killEnemy(enemy);
-          enemies.forEach(e => updateEnemyDisplay(e));
-          return;
-        }
-      }
-    }
-
     let bestMatch = null;
     let bestX = Infinity;
 
@@ -641,6 +625,13 @@ const TowerDefense = (() => {
   }
 
   function endGame() {
+    if (!active && wave === 0) return;
+    const w = wave;
+    const s = score;
+    const k = totalKills;
+    const durationMs = Date.now() - startTime;
+    const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+
     active = false;
     waveActive = false;
 
@@ -652,10 +643,15 @@ const TowerDefense = (() => {
     if (els.input) els.input.disabled = true;
     if (els.upgradeOverlay) els.upgradeOverlay.style.display = 'none';
 
-    const durationMs = Date.now() - startTime;
-    const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+    showResults(w, s, k, accuracy, durationMs);
+  }
 
-    showResults(wave, score, totalKills, accuracy, durationMs);
+  function exitGame() {
+    if (active || wave > 0) {
+      endGame();
+    } else {
+      reset();
+    }
   }
 
   async function showResults(wavesSurvived, finalScore, kills, accuracy, durationMs) {
@@ -754,6 +750,7 @@ const TowerDefense = (() => {
   return {
     startGame,
     reset,
+    exitGame,
     handleInput,
     isActive,
     getInput,

@@ -455,8 +455,7 @@
     });
 
     UI.els.cardTowerDefense.addEventListener('click', () => {
-      UI.showScreen('towerdefense');
-      TowerDefense.startGame();
+      UI.showScreen('towerdefenseLobby');
     });
 
     document.addEventListener('keydown', (e) => {
@@ -1147,9 +1146,24 @@
       });
     }
 
+    const btnTdLobbyBack = document.getElementById('btn-td-lobby-back');
+    const btnTdLobbyStart = document.getElementById('btn-td-lobby-start');
     const btnTdAgain = document.getElementById('btn-td-again');
     const btnTdQuit = document.getElementById('btn-td-quit');
     const btnTdBack = document.getElementById('btn-td-back');
+
+    if (btnTdLobbyBack) {
+      btnTdLobbyBack.addEventListener('click', () => {
+        UI.showScreen('singleplayer');
+      });
+    }
+
+    if (btnTdLobbyStart) {
+      btnTdLobbyStart.addEventListener('click', () => {
+        UI.showScreen('towerdefense');
+        TowerDefense.startGame();
+      });
+    }
 
     if (btnTdAgain) {
       btnTdAgain.addEventListener('click', () => {
@@ -1161,15 +1175,13 @@
 
     if (btnTdQuit) {
       btnTdQuit.addEventListener('click', () => {
-        TowerDefense.reset();
-        UI.showScreen('home');
+        TowerDefense.exitGame();
       });
     }
 
     if (btnTdBack) {
       btnTdBack.addEventListener('click', () => {
-        TowerDefense.reset();
-        UI.showScreen('singleplayer');
+        TowerDefense.exitGame();
       });
     }
   }
