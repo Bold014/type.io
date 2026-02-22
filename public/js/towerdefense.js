@@ -16,6 +16,8 @@ const TowerDefense = (() => {
   let lastFrameTime = 0;
   let startTime = 0;
   let waveActive = false;
+  let waveExpectedCount = 0;
+  let waveSpawnedCount = 0;
   let targetedEnemyId = null;
   let betweenWaves = false;
 
@@ -202,13 +204,14 @@ const TowerDefense = (() => {
       spawnList.push({ type: 'boss', delay: config.count * 800 + 500 });
     }
 
+    waveExpectedCount = spawnList.length;
+    waveSpawnedCount = 0;
+
     updateUI();
     showWaveBanner(`WAVE ${wave}`);
 
     setTimeout(() => {
       waveActive = true;
-      let spawned = 0;
-      const totalToSpawn = spawnList.length;
 
       for (const item of spawnList) {
         setTimeout(() => {
@@ -216,7 +219,7 @@ const TowerDefense = (() => {
           const enemy = createEnemy(item.type, config.speed);
           enemies.push(enemy);
           renderEnemy(enemy);
-          spawned++;
+          waveSpawnedCount++;
         }, item.delay);
       }
     }, 1600);
@@ -294,7 +297,8 @@ const TowerDefense = (() => {
       }
     }
 
-    if (waveActive && allDead && enemies.every(e => !e.alive)) {
+    const allSpawned = waveSpawnedCount >= waveExpectedCount;
+    if (waveActive && allSpawned && allDead && enemies.every(e => !e.alive)) {
       waveActive = false;
       waveComplete();
     }
@@ -613,6 +617,8 @@ const TowerDefense = (() => {
     correctKeystrokes = 0;
     upgrades = [];
     waveActive = false;
+    waveExpectedCount = 0;
+    waveSpawnedCount = 0;
     targetedEnemyId = null;
     betweenWaves = false;
 
