@@ -207,18 +207,11 @@ const TowerDefense = (() => {
     waveExpectedCount = spawnList.length;
     waveSpawnedCount = 0;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:spawnWave',message:'spawnWave called',data:{wave,waveExpectedCount,waveSpawnedCount,enemiesLen:enemies.length,spawnListLen:spawnList.length,speed:config.speed},timestamp:Date.now(),hypothesisId:'H2,H3,H5'})}).catch(()=>{});
-    // #endregion
-
     updateUI();
     showWaveBanner(`WAVE ${wave}`);
 
     setTimeout(() => {
       waveActive = true;
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveActiveSet',message:'waveActive set to true',data:{waveExpectedCount,waveSpawnedCount,enemiesLen:enemies.length,aliveCount:enemies.filter(e=>e.alive).length},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-      // #endregion
 
       for (const item of spawnList) {
         setTimeout(() => {
@@ -227,9 +220,6 @@ const TowerDefense = (() => {
           enemies.push(enemy);
           renderEnemy(enemy);
           waveSpawnedCount++;
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:enemySpawned',message:'enemy spawned',data:{enemyId:enemy.id,type:enemy.type,speed:enemy.speed,waveSpawnedCount,waveExpectedCount},timestamp:Date.now(),hypothesisId:'H2,H5'})}).catch(()=>{});
-          // #endregion
         }, item.delay);
       }
     }, 1600);
@@ -308,15 +298,7 @@ const TowerDefense = (() => {
     }
 
     const allSpawned = waveSpawnedCount >= waveExpectedCount;
-    if (waveActive && allDead) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveCheck',message:'allDead=true in loop',data:{waveActive,allSpawned,waveSpawnedCount,waveExpectedCount,enemiesLen:enemies.length,aliveCount:enemies.filter(e=>e.alive).length,everyNotAlive:enemies.every(e=>!e.alive)},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-      // #endregion
-    }
     if (waveActive && allSpawned && allDead && enemies.every(e => !e.alive)) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveCompleting',message:'WAVE COMPLETING - all conditions met',data:{wave,waveSpawnedCount,waveExpectedCount,enemiesLen:enemies.length},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-      // #endregion
       waveActive = false;
       waveComplete();
     }
@@ -352,11 +334,8 @@ const TowerDefense = (() => {
     }
   }
 
-  function killEnemy(enemy) {
+  function killEnemy(enemy, fromChain) {
     if (!enemy.alive) return;
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:killEnemy',message:'killing enemy',data:{enemyId:enemy.id,type:enemy.type,word:enemy.displayWord,waveSpawnedCount,waveExpectedCount,aliveBeforeKill:enemies.filter(e=>e.alive).length,hasChain:upgrades.includes('chain')},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
     enemy.alive = false;
     totalKills++;
     combo++;
@@ -377,12 +356,12 @@ const TowerDefense = (() => {
       targetedEnemyId = null;
     }
 
-    if (upgrades.includes('chain')) {
+    if (!fromChain && upgrades.includes('chain')) {
       const nearest = findNearestAliveEnemy(enemy);
       if (nearest) {
         nearest.hp--;
         if (nearest.hp <= 0) {
-          killEnemy(nearest);
+          killEnemy(nearest, true);
         }
       }
     }
