@@ -167,7 +167,9 @@ const UI = (() => {
     ascendLobby: document.getElementById('screen-ascend-lobby'),
     ascend: document.getElementById('screen-ascend'),
     ascendResult: document.getElementById('screen-ascend-result'),
-    shop: document.getElementById('screen-shop')
+    shop: document.getElementById('screen-shop'),
+    towerdefense: document.getElementById('screen-towerdefense'),
+    towerdefenseResult: document.getElementById('screen-towerdefense-result')
   };
 
   const els = {
@@ -205,6 +207,7 @@ const UI = (() => {
     cardAscend: document.getElementById('card-ascend'),
     cardLeaderboard: document.getElementById('card-leaderboard'),
     cardTimeTrial: document.getElementById('card-timetrial'),
+    cardTowerDefense: document.getElementById('card-towerdefense'),
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
 
@@ -325,6 +328,7 @@ const UI = (() => {
     btnLandingShop: document.getElementById('btn-landing-shop'),
     homeChallenges: document.getElementById('home-challenges'),
     challengesList: document.getElementById('challenges-list'),
+    weeklyChallengesList: document.getElementById('weekly-challenges-list'),
 
     btnShopBack: document.getElementById('btn-shop-back'),
     shopCoinCount: document.getElementById('shop-coin-count'),
@@ -336,7 +340,9 @@ const UI = (() => {
     ascendCoinGainDisplay: document.getElementById('ascend-coin-gain-display'),
     ascendCoinGainAmount: document.getElementById('ascend-coin-gain-amount'),
     ttCoinGainDisplay: document.getElementById('tt-coin-gain-display'),
-    ttCoinGainAmount: document.getElementById('tt-coin-gain-amount')
+    ttCoinGainAmount: document.getElementById('tt-coin-gain-amount'),
+    tdCoinGainDisplay: document.getElementById('td-coin-gain-display'),
+    tdCoinGainAmount: document.getElementById('td-coin-gain-amount')
   };
 
   function showScreen(name) {
@@ -920,7 +926,8 @@ const UI = (() => {
       wins: 'WINS',
       xp: 'LEVEL',
       ascend: 'HEIGHT',
-      time_trial: 'WPM'
+      time_trial: 'WPM',
+      tower_defense: 'SCORE'
     };
 
     const headerStat = document.querySelector('.lb-col-stat');
@@ -930,6 +937,7 @@ const UI = (() => {
     if (headerTier) {
       if (category === 'ascend') headerTier.textContent = 'TIER';
       else if (category === 'time_trial') headerTier.textContent = 'ACC';
+      else if (category === 'tower_defense') headerTier.textContent = 'WAVE';
       else headerTier.textContent = 'RANK';
     }
 
@@ -944,11 +952,15 @@ const UI = (() => {
 
     const isAscend = category === 'ascend';
     const isTimeTrial = category === 'time_trial';
+    const isTD = category === 'tower_defense';
     let html = '';
     for (let i = 0; i < data.length; i++) {
       const p = data[i];
       let tierDisplay, statValue;
-      if (isAscend) {
+      if (isTD) {
+        tierDisplay = 'Wave ' + (p.waves_survived ?? 0);
+        statValue = p.score ?? 0;
+      } else if (isAscend) {
         tierDisplay = 'Tier ' + (p.tier ?? 0);
         statValue = p.height != null ? p.height.toFixed(1) + 'm' : '—';
       } else if (isTimeTrial) {
@@ -967,7 +979,8 @@ const UI = (() => {
 
       const rankClass = i === 0 ? 'lb-rank-1' : i === 1 ? 'lb-rank-2' : i === 2 ? 'lb-rank-3' : '';
       let tierColor;
-      if (isAscend) tierColor = 'var(--gold)';
+      if (isTD) tierColor = 'var(--red)';
+      else if (isAscend) tierColor = 'var(--gold)';
       else if (isTimeTrial) tierColor = 'var(--accent)';
       else tierColor = getRankTier(p.rating || 1000).color;
 
@@ -1117,17 +1130,11 @@ const UI = (() => {
     play_matches: n => `Play ${n} match${n > 1 ? 'es' : ''}`,
     type_chars: n => `Type ${n.toLocaleString()} characters`,
     complete_climbs: n => `Complete ${n} Climb run${n > 1 ? 's' : ''}`,
-    complete_timetrials: n => `Complete ${n} Time Trial${n > 1 ? 's' : ''}`
+    complete_timetrials: n => `Complete ${n} Time Trial${n > 1 ? 's' : ''}`,
+    complete_towerdefense: n => `Complete ${n} Defense run${n > 1 ? 's' : ''}`
   };
 
-  function renderChallenges(challenges) {
-    if (!els.challengesList || !els.homeChallenges) return;
-    if (!challenges || challenges.length === 0) {
-      els.homeChallenges.style.display = 'none';
-      return;
-    }
-
-    els.homeChallenges.style.display = '';
+  function buildChallengeCards(challenges) {
     let html = '';
     for (const c of challenges) {
       const labelFn = CHALLENGE_LABELS[c.challenge_type];
@@ -1148,7 +1155,24 @@ const UI = (() => {
         </div>
       </div>`;
     }
-    els.challengesList.innerHTML = html;
+    return html;
+  }
+
+  function renderChallenges(daily, weekly) {
+    if (!els.challengesList || !els.homeChallenges) return;
+    const hasDaily = daily && daily.length > 0;
+    const hasWeekly = weekly && weekly.length > 0;
+
+    if (!hasDaily && !hasWeekly) {
+      els.homeChallenges.style.display = 'none';
+      return;
+    }
+
+    els.homeChallenges.style.display = '';
+    els.challengesList.innerHTML = hasDaily ? buildChallengeCards(daily) : '';
+    if (els.weeklyChallengesList) {
+      els.weeklyChallengesList.innerHTML = hasWeekly ? buildChallengeCards(weekly) : '';
+    }
   }
 
   // --- COIN GAIN DISPLAY ---
@@ -1156,9 +1180,11 @@ const UI = (() => {
   function showCoinGain(coinsGained, target) {
     const displayEl = target === 'ascend' ? els.ascendCoinGainDisplay
       : target === 'tt' ? els.ttCoinGainDisplay
+      : target === 'td' ? els.tdCoinGainDisplay
       : els.coinGainDisplay;
     const amountEl = target === 'ascend' ? els.ascendCoinGainAmount
       : target === 'tt' ? els.ttCoinGainAmount
+      : target === 'td' ? els.tdCoinGainAmount
       : els.coinGainAmount;
 
     if (!displayEl || !amountEl) return;

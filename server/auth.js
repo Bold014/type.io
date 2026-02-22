@@ -5,6 +5,7 @@ const {
   getShopItems, getUserInventory, getUserEquipped,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,
+  getUserWeeklyChallenges, updateWeeklyChallengeProgress,
   saveTowerDefenseRun, getTowerDefenseLeaderboard
 } = require('./db');
 const { pickSentencesForDuration, getWordBank } = require('./sentences');
@@ -236,8 +237,10 @@ function setupAuthRoutes(app) {
       });
 
       updateChallengeProgress(user.id, 'complete_timetrials', 1).catch(() => {});
+      updateWeeklyChallengeProgress(user.id, 'complete_timetrials', 1).catch(() => {});
       if (charactersTyped) {
         updateChallengeProgress(user.id, 'type_chars', charactersTyped).catch(() => {});
+        updateWeeklyChallengeProgress(user.id, 'type_chars', charactersTyped).catch(() => {});
       }
 
       res.json({ success: true, xp: xpResult });
@@ -308,6 +311,7 @@ function setupAuthRoutes(app) {
       });
 
       updateChallengeProgress(user.id, 'complete_towerdefense', 1).catch(() => {});
+      updateWeeklyChallengeProgress(user.id, 'complete_towerdefense', 1).catch(() => {});
 
       res.json({ success: true, xp: xpResult });
     } catch (err) {
@@ -452,8 +456,11 @@ function setupAuthRoutes(app) {
         return res.status(401).json({ error: 'Invalid token' });
       }
 
-      const challenges = await getUserDailyChallenges(user.id);
-      res.json(challenges);
+      const [daily, weekly] = await Promise.all([
+        getUserDailyChallenges(user.id),
+        getUserWeeklyChallenges(user.id)
+      ]);
+      res.json({ daily, weekly });
     } catch (err) {
       console.error('Challenges error:', err);
       res.status(500).json({ error: 'Internal server error' });

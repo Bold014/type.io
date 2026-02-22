@@ -669,6 +669,113 @@ async function updateChallengeProgress(userId, challengeType, incrementBy) {
   return { challengeType, newProgress, target: challenge.target, completed: nowComplete, reward: nowComplete ? challenge.coin_reward : 0 };
 }
 
+// --- WEEKLY CHALLENGES ---
+
+const WEEKLY_CHALLENGE_TEMPLATES = [
+  { type: 'win_duels',           minTarget: 10,    maxTarget: 20,    minReward: 600,  maxReward: 1200 },
+  { type: 'play_matches',        minTarget: 15,    maxTarget: 30,    minReward: 500,  maxReward: 1000 },
+  { type: 'type_chars',          minTarget: 20000, maxTarget: 50000, minReward: 600,  maxReward: 1000 },
+  { type: 'complete_climbs',     minTarget: 5,     maxTarget: 10,    minReward: 500,  maxReward: 900 },
+  { type: 'complete_timetrials', minTarget: 5,     maxTarget: 10,    minReward: 500,  maxReward: 900 },
+];
+
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const day = d.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1;
+  d.setUTCDate(d.getUTCDate() - diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function generateWeeklyChallenges(weekStartStr) {
+  const seed = (weekStartStr.split('-').join('') | 0) + 7777;
+  const rng = seededRandom(seed);
+
+  const shuffled = [...WEEKLY_CHALLENGE_TEMPLATES].sort(() => rng() - 0.5);
+  const picked = shuffled.slice(0, 3);
+
+  return picked.map(t => {
+    const range = t.maxTarget - t.minTarget;
+    const target = t.minTarget + Math.round(rng() * range);
+    const pct = range > 0 ? (target - t.minTarget) / range : 0.5;
+    const reward = Math.round(t.minReward + pct * (t.maxReward - t.minReward));
+    return { challenge_type: t.type, target, coin_reward: reward };
+  });
+}
+
+async function getUserWeeklyChallenges(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const weekStart = getWeekStart(today);
+
+  const { data: existing, error } = await supabase
+    .from('weekly_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('week_start', weekStart);
+
+  if (error) { console.error('getUserWeeklyChallenges error:', error); return []; }
+  if (existing && existing.length > 0) return existing;
+
+  const templates = generateWeeklyChallenges(weekStart);
+  const rows = templates.map(t => ({
+    user_id: userId,
+    challenge_type: t.challenge_type,
+    target: t.target,
+    coin_reward: t.coin_reward,
+    progress: 0,
+    completed: false,
+    week_start: weekStart
+  }));
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('weekly_challenges')
+    .insert(rows)
+    .select('*');
+
+  if (insertError) {
+    console.error('getUserWeeklyChallenges insert error:', insertError);
+    const { data: retry } = await supabase
+      .from('weekly_challenges')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('week_start', weekStart);
+    return retry || [];
+  }
+  return inserted || [];
+}
+
+async function updateWeeklyChallengeProgress(userId, challengeType, incrementBy) {
+  if (!userId) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const weekStart = getWeekStart(today);
+
+  const { data: challenge, error } = await supabase
+    .from('weekly_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('challenge_type', challengeType)
+    .eq('week_start', weekStart)
+    .single();
+
+  if (error || !challenge || challenge.completed) return null;
+
+  const newProgress = Math.min(challenge.target, challenge.progress + incrementBy);
+  const nowComplete = newProgress >= challenge.target;
+
+  const { error: updateError } = await supabase
+    .from('weekly_challenges')
+    .update({ progress: newProgress, completed: nowComplete })
+    .eq('id', challenge.id);
+
+  if (updateError) { console.error('updateWeeklyChallengeProgress error:', updateError); return null; }
+
+  if (nowComplete) {
+    await addCoins(userId, challenge.coin_reward);
+  }
+
+  return { challengeType, newProgress, target: challenge.target, completed: nowComplete, reward: nowComplete ? challenge.coin_reward : 0 };
+}
+
 // --- TOWER DEFENSE ---
 
 async function saveTowerDefenseRun(userId, username, data) {
@@ -751,5 +858,6 @@ module.exports = {
   getShopItems, getUserInventory, getUserEquipped,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,
+  getUserWeeklyChallenges, updateWeeklyChallengeProgress,
   saveTowerDefenseRun, getTowerDefenseLeaderboard
 };

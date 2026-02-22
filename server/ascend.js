@@ -1,5 +1,5 @@
 const { pickSentencesForTier } = require('./sentences');
-const { updateXpOnly, saveAscendRun, updateChallengeProgress } = require('./db');
+const { updateXpOnly, saveAscendRun, updateChallengeProgress, updateWeeklyChallengeProgress } = require('./db');
 
 const COUNTDOWN_SECONDS = 3;
 const COMBO_THRESHOLD = 20;
@@ -809,6 +809,7 @@ async function endRun(io, lobby, socketId) {
     );
 
     updateChallengeProgress(player.userId, 'complete_climbs', 1).catch(() => {});
+    updateWeeklyChallengeProgress(player.userId, 'complete_climbs', 1).catch(() => {});
   }
 
   player.socket.emit('ascend:run:end', {

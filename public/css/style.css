@@ -5115,7 +5115,18 @@ a.mode-key {
   background: rgba(232, 216, 168, 0.25);
 }
 
-/* ===== DAILY CHALLENGES ===== */
+/* ===== DAILY & WEEKLY CHALLENGES ===== */
+
+.challenges-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.challenges-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
 
 .home-bottom-panels {
   display: flex;

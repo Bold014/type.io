@@ -454,16 +454,30 @@
       UI.showScreen('timetrial');
     });
 
+    UI.els.cardTowerDefense.addEventListener('click', () => {
+      UI.showScreen('towerdefense');
+      TowerDefense.startGame();
+    });
+
     document.addEventListener('keydown', (e) => {
       if (!UI.screens.singleplayer.classList.contains('active')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key.toLowerCase() !== 't') return;
-      e.preventDefault();
-      const row = document.getElementById('card-timetrial');
-      if (!row) return;
-      row.classList.add('key-active');
-      setTimeout(() => row.classList.remove('key-active'), 180);
-      row.click();
+      const key = e.key.toLowerCase();
+      if (key === 't') {
+        e.preventDefault();
+        const row = document.getElementById('card-timetrial');
+        if (!row) return;
+        row.classList.add('key-active');
+        setTimeout(() => row.classList.remove('key-active'), 180);
+        row.click();
+      } else if (key === 'd') {
+        e.preventDefault();
+        const row = document.getElementById('card-towerdefense');
+        if (!row) return;
+        row.classList.add('key-active');
+        setTimeout(() => row.classList.remove('key-active'), 180);
+        row.click();
+      }
     });
   }
 
@@ -637,8 +651,8 @@
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       if (res.ok) {
-        const challenges = await res.json();
-        UI.renderChallenges(challenges);
+        const { daily, weekly } = await res.json();
+        UI.renderChallenges(daily, weekly);
       } else {
         console.warn('loadChallenges: API returned', res.status);
       }
@@ -815,6 +829,13 @@
       });
     }
 
+    const tdInput = document.getElementById('td-typing-input');
+    if (tdInput) {
+      tdInput.addEventListener('input', () => {
+        TowerDefense.handleInput();
+      });
+    }
+
     document.addEventListener('click', () => {
       if (UI.screens.game.classList.contains('active') && TypingEngine.isActive()) {
         input.focus();
@@ -826,6 +847,10 @@
       if (UI.screens.timetrial && UI.screens.timetrial.classList.contains('active') && TimeTrial.isActive()) {
         const ti = TimeTrial.getInput();
         if (ti) ti.focus();
+      }
+      if (UI.screens.towerdefense && UI.screens.towerdefense.classList.contains('active') && TowerDefense.isActive()) {
+        const di = TowerDefense.getInput();
+        if (di) di.focus();
       }
     });
   }
@@ -1119,6 +1144,32 @@
         GameSocket.emit('ascend:leave');
         AscendClient.reset();
         UI.showScreen('home');
+      });
+    }
+
+    const btnTdAgain = document.getElementById('btn-td-again');
+    const btnTdQuit = document.getElementById('btn-td-quit');
+    const btnTdBack = document.getElementById('btn-td-back');
+
+    if (btnTdAgain) {
+      btnTdAgain.addEventListener('click', () => {
+        TowerDefense.reset();
+        UI.showScreen('towerdefense');
+        TowerDefense.startGame();
+      });
+    }
+
+    if (btnTdQuit) {
+      btnTdQuit.addEventListener('click', () => {
+        TowerDefense.reset();
+        UI.showScreen('home');
+      });
+    }
+
+    if (btnTdBack) {
+      btnTdBack.addEventListener('click', () => {
+        TowerDefense.reset();
+        UI.showScreen('singleplayer');
       });
     }
   }

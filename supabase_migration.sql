@@ -159,7 +159,21 @@ CREATE INDEX IF NOT EXISTS idx_user_inventory_user ON user_inventory(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_equipped_user ON user_equipped(user_id);
 CREATE INDEX IF NOT EXISTS idx_daily_challenges_user_date ON daily_challenges(user_id, date);
 
--- 10. Tower Defense runs
+-- 10. Weekly challenges
+CREATE TABLE IF NOT EXISTS weekly_challenges (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  challenge_type text NOT NULL,
+  target integer NOT NULL,
+  progress integer DEFAULT 0,
+  coin_reward integer NOT NULL,
+  completed boolean DEFAULT false,
+  week_start date NOT NULL,
+  UNIQUE(user_id, challenge_type, week_start)
+);
+CREATE INDEX IF NOT EXISTS idx_weekly_challenges_user_week ON weekly_challenges(user_id, week_start);
+
+-- 11. Tower Defense runs
 CREATE TABLE IF NOT EXISTS tower_defense_runs (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
