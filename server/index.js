@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const fs = require('fs');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
@@ -8,6 +9,7 @@ const { setupAuthRoutes } = require('./auth');
 const { setupSocketHandlers } = require('./socket');
 
 const PORT = process.env.PORT || 3000;
+const BUILD_ID = Date.now().toString(36);
 
 const app = express();
 app.set('trust proxy', true);
@@ -23,6 +25,15 @@ app.get('/api/config', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.type('application/javascript');
   res.send(`window.APP_CONFIG={adsEnabled:${adsEnabled},platform:"${platform}"};`);
+});
+
+const indexHtmlPath = path.join(__dirname, '..', 'public', 'index.html');
+const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8')
+  .replace(/(href|src)="(\/(?:css|js)\/[^"]+)"/g, `$1="$2?v=${BUILD_ID}"`);
+
+app.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.type('html').send(indexHtml);
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
