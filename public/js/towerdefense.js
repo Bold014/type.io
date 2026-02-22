@@ -357,7 +357,7 @@ const TowerDefense = (() => {
     }
 
     if (!fromChain && upgrades.includes('chain')) {
-      const nearest = findNearestAliveEnemy(enemy);
+      const nearest = findNearestAliveEnemy(enemy, CHAIN_RANGE);
       if (nearest) {
         nearest.hp--;
         if (nearest.hp <= 0) {
@@ -387,13 +387,16 @@ const TowerDefense = (() => {
     }
   }
 
-  function findNearestAliveEnemy(source) {
+  const CHAIN_RANGE = 150;
+
+  function findNearestAliveEnemy(source, maxRange) {
     let nearest = null;
     let minDist = Infinity;
+    const limit = maxRange || Infinity;
     for (const e of enemies) {
       if (!e.alive || e.id === source.id) continue;
       const dist = Math.abs(e.x - source.x) + Math.abs(e.y - source.y);
-      if (dist < minDist) {
+      if (dist < minDist && dist <= limit) {
         minDist = dist;
         nearest = e;
       }
