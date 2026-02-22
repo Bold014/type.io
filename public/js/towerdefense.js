@@ -23,8 +23,8 @@ const TowerDefense = (() => {
 
   const HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
 
-  const BASE_SPEED = 30;
-  const SPEED_SCALE_PER_WAVE = 1.5;
+  const BASE_SPEED = 100;
+  const SPEED_SCALE_PER_WAVE = 3;
 
   const UPGRADE_DEFS = [
     { id: 'slow_field', name: 'Slow Field', desc: 'All enemies move 15% slower', stackable: true },
@@ -207,11 +207,18 @@ const TowerDefense = (() => {
     waveExpectedCount = spawnList.length;
     waveSpawnedCount = 0;
 
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:spawnWave',message:'spawnWave called',data:{wave,waveExpectedCount,waveSpawnedCount,enemiesLen:enemies.length,spawnListLen:spawnList.length,speed:config.speed},timestamp:Date.now(),hypothesisId:'H2,H3,H5'})}).catch(()=>{});
+    // #endregion
+
     updateUI();
     showWaveBanner(`WAVE ${wave}`);
 
     setTimeout(() => {
       waveActive = true;
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveActiveSet',message:'waveActive set to true',data:{waveExpectedCount,waveSpawnedCount,enemiesLen:enemies.length,aliveCount:enemies.filter(e=>e.alive).length},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
+      // #endregion
 
       for (const item of spawnList) {
         setTimeout(() => {
@@ -220,6 +227,9 @@ const TowerDefense = (() => {
           enemies.push(enemy);
           renderEnemy(enemy);
           waveSpawnedCount++;
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:enemySpawned',message:'enemy spawned',data:{enemyId:enemy.id,type:enemy.type,speed:enemy.speed,waveSpawnedCount,waveExpectedCount},timestamp:Date.now(),hypothesisId:'H2,H5'})}).catch(()=>{});
+          // #endregion
         }, item.delay);
       }
     }, 1600);
@@ -298,7 +308,15 @@ const TowerDefense = (() => {
     }
 
     const allSpawned = waveSpawnedCount >= waveExpectedCount;
+    if (waveActive && allDead) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveCheck',message:'allDead=true in loop',data:{waveActive,allSpawned,waveSpawnedCount,waveExpectedCount,enemiesLen:enemies.length,aliveCount:enemies.filter(e=>e.alive).length,everyNotAlive:enemies.every(e=>!e.alive)},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
+      // #endregion
+    }
     if (waveActive && allSpawned && allDead && enemies.every(e => !e.alive)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:waveCompleting',message:'WAVE COMPLETING - all conditions met',data:{wave,waveSpawnedCount,waveExpectedCount,enemiesLen:enemies.length},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
+      // #endregion
       waveActive = false;
       waveComplete();
     }
@@ -336,6 +354,9 @@ const TowerDefense = (() => {
 
   function killEnemy(enemy) {
     if (!enemy.alive) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a497a34a-4020-419b-93f1-fa1bf45b215a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'towerdefense.js:killEnemy',message:'killing enemy',data:{enemyId:enemy.id,type:enemy.type,word:enemy.displayWord,waveSpawnedCount,waveExpectedCount,aliveBeforeKill:enemies.filter(e=>e.alive).length,hasChain:upgrades.includes('chain')},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     enemy.alive = false;
     totalKills++;
     combo++;
