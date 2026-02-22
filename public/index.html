@@ -960,6 +960,10 @@
     if (!window.APP_CONFIG || !window.APP_CONFIG.adsEnabled) {
       document.querySelectorAll('.ad-banner').forEach(function(el) { el.remove(); });
     }
+    if (window.APP_CONFIG && window.APP_CONFIG.platform === 'sbox') {
+      var dc = document.getElementById('btn-landing-discord');
+      if (dc) dc.remove();
+    }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/socket.io/socket.io.js"></script>
