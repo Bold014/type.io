@@ -195,6 +195,19 @@
         </a>
       </div>
 
+      <div class="home-mini-lb" id="home-mini-lb">
+        <div class="mini-lb-tabs">
+          <button class="mini-lb-tab" data-mlb-cat="rating">RATING</button>
+          <button class="mini-lb-tab active" data-mlb-cat="best_wpm">WPM</button>
+          <button class="mini-lb-tab" data-mlb-cat="wins">WINS</button>
+          <button class="mini-lb-tab" data-mlb-cat="xp">LEVEL</button>
+        </div>
+        <div class="mini-lb-body" id="mini-lb-body">
+          <div class="mini-lb-loading">Loading...</div>
+        </div>
+        <button type="button" class="mini-lb-view-all" id="btn-mini-lb-view-all">VIEW FULL LEADERBOARD &rarr;</button>
+      </div>
+
       <footer class="home-footer">&copy; 2026 typeduel.io</footer>
     </div>
 
@@ -769,61 +782,70 @@
         <span class="ascend-lobby-title">CLIMB</span>
       </header>
 
-      <div class="ascend-lobby-scroll">
-        <section class="ascend-lobby-hero">
-          <h2 class="ascend-lobby-heading">Climb</h2>
-          <p class="ascend-lobby-desc">Drop into a live match. Type fast, build momentum, and climb higher than everyone else. Slow down and the rising floor catches you. Outlast every player to win.</p>
-        </section>
+      <div class="ascend-lobby-body">
+        <div class="ascend-lobby-scroll">
+          <section class="ascend-lobby-hero">
+            <h2 class="ascend-lobby-heading">Climb</h2>
+            <p class="ascend-lobby-desc">Drop into a live match. Type fast, build momentum, and climb higher than everyone else. Slow down and the rising floor catches you. Outlast every player to win.</p>
+          </section>
 
-        <div class="ascend-lobby-start-area">
-          <button id="btn-ascend-lobby-start" class="ascend-lobby-start-btn">START MATCH</button>
-          <span class="ascend-lobby-start-hint">Press to drop in</span>
+          <div class="ascend-lobby-start-area">
+            <button id="btn-ascend-lobby-start" class="ascend-lobby-start-btn">START MATCH</button>
+            <span class="ascend-lobby-start-hint">Press to drop in</span>
+          </div>
+
+          <div class="ascend-lobby-divider"></div>
+
+          <section class="ascend-lobby-attacks">
+            <h3 class="ascend-lobby-section-title">HOW ATTACKS WORK</h3>
+            <p class="ascend-lobby-section-sub">Type <strong>20 correct characters</strong> in a row to launch an attack at the closest player.</p>
+
+            <div class="attack-cards">
+              <!-- INJECT -->
+              <div class="attack-card" data-attack="inject">
+                <div class="attack-card-header">
+                  <span class="attack-card-name">INJECT</span>
+                  <span class="attack-card-badge inject-badge">+word</span>
+                </div>
+                <p class="attack-card-desc">Inserts a random word into the opponent's sentence.</p>
+                <div class="attack-demo">
+                  <div class="attack-demo-sentence">brown <span class="attack-hl inject-hl">over</span> fox</div>
+                </div>
+              </div>
+
+              <!-- SCRAMBLE -->
+              <div class="attack-card" data-attack="scramble">
+                <div class="attack-card-header">
+                  <span class="attack-card-name">SCRAMBLE</span>
+                  <span class="attack-card-badge scramble-badge">swap</span>
+                </div>
+                <p class="attack-card-desc">Swaps two adjacent letters in the next word.</p>
+                <div class="attack-demo">
+                  <div class="attack-demo-sentence">the <span class="attack-hl scramble-hl">qucik</span> brown</div>
+                </div>
+              </div>
+
+              <!-- CHAOS -->
+              <div class="attack-card" data-attack="chaos">
+                <div class="attack-card-header">
+                  <span class="attack-card-name">CHAOS</span>
+                  <span class="attack-card-badge chaos-badge">CaSe</span>
+                </div>
+                <p class="attack-card-desc">Randomizes capitalization of upcoming characters.</p>
+                <div class="attack-demo">
+                  <div class="attack-demo-sentence">the <span class="attack-hl chaos-hl">qUiCk bRoW</span>n</div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <div class="ascend-lobby-divider"></div>
-
-        <section class="ascend-lobby-attacks">
-          <h3 class="ascend-lobby-section-title">HOW ATTACKS WORK</h3>
-          <p class="ascend-lobby-section-sub">Type <strong>20 correct characters</strong> in a row to launch an attack at the closest player.</p>
-
-          <div class="attack-cards">
-            <!-- INJECT -->
-            <div class="attack-card" data-attack="inject">
-              <div class="attack-card-header">
-                <span class="attack-card-name">INJECT</span>
-                <span class="attack-card-badge inject-badge">+word</span>
-              </div>
-              <p class="attack-card-desc">Inserts a random word into the opponent's sentence.</p>
-              <div class="attack-demo">
-                <div class="attack-demo-sentence">brown <span class="attack-hl inject-hl">over</span> fox</div>
-              </div>
-            </div>
-
-            <!-- SCRAMBLE -->
-            <div class="attack-card" data-attack="scramble">
-              <div class="attack-card-header">
-                <span class="attack-card-name">SCRAMBLE</span>
-                <span class="attack-card-badge scramble-badge">swap</span>
-              </div>
-              <p class="attack-card-desc">Swaps two adjacent letters in the next word.</p>
-              <div class="attack-demo">
-                <div class="attack-demo-sentence">the <span class="attack-hl scramble-hl">qucik</span> brown</div>
-              </div>
-            </div>
-
-            <!-- CHAOS -->
-            <div class="attack-card" data-attack="chaos">
-              <div class="attack-card-header">
-                <span class="attack-card-name">CHAOS</span>
-                <span class="attack-card-badge chaos-badge">CaSe</span>
-              </div>
-              <p class="attack-card-desc">Randomizes capitalization of upcoming characters.</p>
-              <div class="attack-demo">
-                <div class="attack-demo-sentence">the <span class="attack-hl chaos-hl">qUiCk bRoW</span>n</div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <div class="ascend-lobby-scoreboard-panel">
+          <h3 class="ascend-scoreboard-title">LIVE PLAYERS</h3>
+          <div class="ascend-lobby-player-count" id="ascend-lobby-player-count">0 playing</div>
+          <div class="ascend-scoreboard" id="ascend-lobby-scoreboard"></div>
+          <div class="ascend-lobby-sb-empty" id="ascend-lobby-sb-empty">No active players</div>
+        </div>
       </div>
     </div>
   </div>
@@ -975,6 +997,8 @@
         a.removeAttribute('target');
         a.removeAttribute('rel');
       });
+      var dc = document.getElementById('btn-landing-discord');
+      if (dc) dc.remove();
     }
   </script>
 </body>

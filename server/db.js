@@ -41,8 +41,10 @@ function computeXpGain(mode, totalTimeMs, won, wpm, currentBestWpm, lastPbAt) {
   return { xpGained, newBestWpm, isPb, pbBonusXp };
 }
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at';
+const PLACEMENT_GAMES = 5;
+
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played';
 
 async function findUserById(id) {
   const { data, error } = await supabase
@@ -62,7 +64,12 @@ async function findUserByUsername(username) {
     .ilike('username', username)
     .single();
 
-  if (error) return null;
+  if (error) {
+    if (error.code !== 'PGRST116') {
+      console.error('findUserByUsername error:', error.message);
+    }
+    return null;
+  }
   return data;
 }
 
@@ -73,11 +80,15 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   const newGamesPlayed = user.games_played + 1;
   const newAvgWpm = ((user.avg_wpm * user.games_played) + wpm) / newGamesPlayed;
 
-  const K = 32;
+  const rankedPlayed = user.ranked_games_played || 0;
+  const isPlacement = rankedPlayed < PLACEMENT_GAMES;
+  const K = isPlacement ? 64 : 32;
   const expected = 1 / (1 + Math.pow(10, ((opponentRating || 1000) - user.rating) / 400));
   const actual = won ? 1 : 0;
   const ratingDelta = Math.round(K * (actual - expected));
   const newRating = Math.max(0, user.rating + ratingDelta);
+  const newRankedGamesPlayed = rankedPlayed + 1;
+  const placementGamesLeft = Math.max(0, PLACEMENT_GAMES - newRankedGamesPlayed);
 
   const oldLevel = xpToLevel(user.xp || 0);
   const { xpGained, newBestWpm, isPb, pbBonusXp } = computeXpGain(
@@ -92,7 +103,8 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
     avg_wpm: newAvgWpm,
     games_played: newGamesPlayed,
     rating: newRating,
-    xp: newXp
+    xp: newXp,
+    ranked_games_played: newRankedGamesPlayed
   };
 
   if (isPb) {
@@ -112,7 +124,10 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
     return null;
   }
 
-  return { ratingDelta, newRating, xpGained, newXp, oldLevel, newLevel, isPb };
+  return {
+    ratingDelta, newRating, xpGained, newXp, oldLevel, newLevel, isPb,
+    isPlacement, placementGamesLeft, rankedGamesPlayed: newRankedGamesPlayed
+  };
 }
 
 async function updateXpOnly(userId, won, wpm, mode, totalTimeMs) {
@@ -285,9 +300,11 @@ async function getLeaderboard(category = 'rating', limit = 50) {
 
   let query = supabase
     .from('profiles')
-    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm');
+    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, ranked_games_played');
 
-  if (category === 'wins') {
+  if (category === 'rating') {
+    query = query.gte('ranked_games_played', PLACEMENT_GAMES);
+  } else if (category === 'wins') {
     query = query.gt('wins', 0);
   } else if (category === 'best_wpm') {
     query = query.gt('best_wpm', 0);
@@ -418,9 +435,23 @@ async function getUserTimeTrialStats(userId) {
   return { totalRuns, avgWpm, bestByDuration };
 }
 
+async function checkUsernameExists(username) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .ilike('username', username)
+    .limit(1);
+
+  if (error) {
+    console.error('checkUsernameExists error:', error.message);
+    return { exists: false, dbError: true };
+  }
+  return { exists: data && data.length > 0, dbError: false };
+}
+
 module.exports = {
-  supabase, findUserById, findUserByUsername,
-  updateStats, updateXpOnly, updateEmail, xpToLevel,
+  supabase, findUserById, findUserByUsername, checkUsernameExists,
+  updateStats, updateXpOnly, updateEmail, xpToLevel, PLACEMENT_GAMES,
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats

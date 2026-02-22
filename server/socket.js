@@ -1,4 +1,4 @@
-const { supabase, findUserById } = require('./db');
+const { supabase, findUserById, xpToLevel } = require('./db');
 const matchmaking = require('./matchmaking');
 const {
   createGame, startCountdown, handleTypingUpdate,
@@ -40,7 +40,7 @@ function setupSocketHandlers(io) {
       socket.data.rating = data.rating || 1000;
     });
 
-    socket.on('queue:join', (data) => {
+    socket.on('queue:join', async (data) => {
       if (!socket.data.username) {
         socket.emit('error:message', { message: 'Set a username first' });
         return;
@@ -50,6 +50,14 @@ function setupSocketHandlers(io) {
       if (mode === 'ranked' && !socket.data.userId) {
         socket.emit('error:message', { message: 'Must be logged in for ranked' });
         return;
+      }
+
+      if (mode === 'ranked') {
+        const profile = await findUserById(socket.data.userId);
+        if (!profile || xpToLevel(profile.xp || 0) < 5) {
+          socket.emit('error:message', { message: 'Reach level 5 to unlock ranked' });
+          return;
+        }
       }
 
       const match = matchmaking.addToQueue(socket, mode);
@@ -84,6 +92,14 @@ function setupSocketHandlers(io) {
 
     socket.on('ascend:leave', () => {
       ascend.leaveLobby(io, socket.id);
+    });
+
+    socket.on('ascend:peek', () => {
+      ascend.peekLobby(io, socket);
+    });
+
+    socket.on('ascend:peek:leave', () => {
+      ascend.leavePeek(socket);
     });
 
     socket.on('ascend:typing', (data) => {

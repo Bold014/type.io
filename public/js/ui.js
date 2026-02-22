@@ -357,20 +357,43 @@ const UI = (() => {
     }
   }
 
-  function setHomeUser(username, isLoggedIn, rating, xp) {
+  const PLACEMENT_GAMES = 5;
+
+  function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed) {
     els.homeUsername.textContent = username.toUpperCase();
     if (isLoggedIn) {
-      const tier = getRankTier(rating || 1000);
-      els.homeBadge.textContent = `${tier.name.toUpperCase()} — ${rating || 1000} SR`;
-      els.homeBadge.className = 'home-badge ranked';
-      els.homeBadge.style.color = tier.color;
-      els.homeBadge.style.background = tier.color + '1a';
-      els.homeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
+      const level = xpToLevel(xp || 0);
+      const rgp = rankedGamesPlayed || 0;
+      const placementsDone = rgp >= PLACEMENT_GAMES;
+
+      if (placementsDone) {
+        const tier = getRankTier(rating || 1000);
+        els.homeBadge.textContent = `${tier.name.toUpperCase()} — ${rating || 1000} SR`;
+        els.homeBadge.className = 'home-badge ranked';
+        els.homeBadge.style.color = tier.color;
+        els.homeBadge.style.background = tier.color + '1a';
+        els.homeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
+      } else {
+        els.homeBadge.textContent = rgp > 0 ? `UNRANKED — ${rgp}/${PLACEMENT_GAMES} placements` : 'UNRANKED';
+        els.homeBadge.className = 'home-badge ranked';
+        els.homeBadge.style.color = '#888';
+        els.homeBadge.style.background = 'rgba(136,136,136,0.1)';
+        els.homeBadge.style.boxShadow = 'none';
+      }
+
       els.btnHomeAuth.style.display = 'none';
       els.btnHomeLogout.style.display = '';
-      els.rankedSub.textContent = 'Climb the leaderboard';
-      els.rankedLock.style.display = 'none';
-      els.cardRanked.classList.remove('disabled');
+
+      if (level < 5) {
+        els.rankedSub.textContent = `Unlocks at Level 5 (you are Level ${level})`;
+        els.rankedLock.style.display = '';
+        els.cardRanked.classList.add('disabled');
+      } else {
+        els.rankedSub.textContent = 'Climb the leaderboard';
+        els.rankedLock.style.display = 'none';
+        els.cardRanked.classList.remove('disabled');
+      }
+
       renderHeaderLevel(xp || 0);
     } else {
       els.homeBadge.textContent = 'GUEST';
@@ -528,10 +551,22 @@ const UI = (() => {
     }
 
     if (data.ratingChange) {
-      const delta = data.ratingChange.ratingDelta;
-      const sign = delta >= 0 ? '+' : '';
-      els.ratingChange.textContent = `Rating: ${data.ratingChange.newRating} (${sign}${delta})`;
-      els.ratingChange.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+      if (data.ratingChange.isPlacement) {
+        const played = data.ratingChange.rankedGamesPlayed || 0;
+        if (data.ratingChange.placementGamesLeft === 0) {
+          const tier = getRankTier(data.ratingChange.newRating);
+          els.ratingChange.textContent = `Placements complete! ${tier.name} — ${data.ratingChange.newRating} SR`;
+          els.ratingChange.style.color = tier.color;
+        } else {
+          els.ratingChange.textContent = `Placement ${played}/${PLACEMENT_GAMES} complete`;
+          els.ratingChange.style.color = 'var(--text-dim)';
+        }
+      } else {
+        const delta = data.ratingChange.ratingDelta;
+        const sign = delta >= 0 ? '+' : '';
+        els.ratingChange.textContent = `Rating: ${data.ratingChange.newRating} (${sign}${delta})`;
+        els.ratingChange.style.color = delta >= 0 ? 'var(--green)' : 'var(--red)';
+      }
     } else {
       els.ratingChange.textContent = '';
     }
@@ -723,21 +758,38 @@ const UI = (() => {
   }
 
   function showProfile(profile, ascendStats, matchHistory, ttStats) {
+    const rgp = profile.ranked_games_played || 0;
+    const placementsDone = rgp >= PLACEMENT_GAMES;
     const tier = getRankTier(profile.rating || 1000);
 
     els.profileUsername.textContent = (profile.username || '').toUpperCase();
     els.profileHomeUsername.textContent = (profile.username || '').toUpperCase();
-    els.profileHomeBadge.textContent = `${tier.name.toUpperCase()} — ${profile.rating || 1000} SR`;
-    els.profileHomeBadge.className = 'home-badge ranked';
-    els.profileHomeBadge.style.color = tier.color;
-    els.profileHomeBadge.style.background = tier.color + '1a';
-    els.profileHomeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
 
-    els.profileRankBadge.textContent = tier.name.toUpperCase();
-    els.profileRankBadge.style.color = tier.color;
-    els.profileRankBadge.style.borderColor = tier.color;
-    els.profileRankBadge.style.textShadow = `0 0 10px ${tier.color}40`;
-    els.profileSr.textContent = profile.rating || 1000;
+    if (placementsDone) {
+      els.profileHomeBadge.textContent = `${tier.name.toUpperCase()} — ${profile.rating || 1000} SR`;
+      els.profileHomeBadge.className = 'home-badge ranked';
+      els.profileHomeBadge.style.color = tier.color;
+      els.profileHomeBadge.style.background = tier.color + '1a';
+      els.profileHomeBadge.style.boxShadow = `0 0 12px ${tier.color}1a`;
+
+      els.profileRankBadge.textContent = tier.name.toUpperCase();
+      els.profileRankBadge.style.color = tier.color;
+      els.profileRankBadge.style.borderColor = tier.color;
+      els.profileRankBadge.style.textShadow = `0 0 10px ${tier.color}40`;
+      els.profileSr.textContent = profile.rating || 1000;
+    } else {
+      els.profileHomeBadge.textContent = rgp > 0 ? `UNRANKED — ${rgp}/${PLACEMENT_GAMES} placements` : 'UNRANKED';
+      els.profileHomeBadge.className = 'home-badge ranked';
+      els.profileHomeBadge.style.color = '#888';
+      els.profileHomeBadge.style.background = 'rgba(136,136,136,0.1)';
+      els.profileHomeBadge.style.boxShadow = 'none';
+
+      els.profileRankBadge.textContent = 'UNRANKED';
+      els.profileRankBadge.style.color = '#888';
+      els.profileRankBadge.style.borderColor = '#888';
+      els.profileRankBadge.style.textShadow = 'none';
+      els.profileSr.textContent = rgp > 0 ? `${rgp}/${PLACEMENT_GAMES}` : '—';
+    }
 
     const xp = profile.xp || 0;
     const level = xpToLevel(xp);
@@ -895,6 +947,53 @@ const UI = (() => {
     els.lbTableBody.innerHTML = html;
   }
 
+  function renderHomeMiniLeaderboard(data, category) {
+    const body = document.getElementById('mini-lb-body');
+    if (!body) return;
+    const cat = category || 'rating';
+
+    if (!data || data.length === 0) {
+      body.innerHTML = '<div class="mini-lb-empty">No players yet</div>';
+      return;
+    }
+
+    let html = '';
+    for (let i = 0; i < data.length; i++) {
+      const p = data[i];
+      const tier = getRankTier(p.rating || 1000);
+      const rowClass = i < 3 ? ` mini-lb-row-${i + 1}` : '';
+
+      let statValue, statLabel;
+      switch (cat) {
+        case 'best_wpm':
+          statValue = Math.round(p.best_wpm || 0);
+          statLabel = 'WPM';
+          break;
+        case 'wins':
+          statValue = p.wins || 0;
+          statLabel = 'W';
+          break;
+        case 'xp':
+          statValue = 'LV ' + xpToLevel(p.xp || 0);
+          statLabel = '';
+          break;
+        default:
+          statValue = p.rating || 1000;
+          statLabel = 'SR';
+      }
+
+      html += `<div class="mini-lb-row${rowClass}">
+        <span class="mini-lb-rank">${i + 1}</span>
+        <div class="mini-lb-info">
+          <span class="mini-lb-name">${escapeHtml(p.username)}</span>
+          <span class="mini-lb-tier" style="color:${tier.color}">${tier.name}</span>
+        </div>
+        <span class="mini-lb-sr">${statValue}<span class="mini-lb-unit">${statLabel ? ' ' + statLabel : ''}</span></span>
+      </div>`;
+    }
+    body.innerHTML = html;
+  }
+
   return {
     screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
@@ -904,6 +1003,7 @@ const UI = (() => {
     focusInput, resetGameUI, showAttackNotification, showAttackSentNotification,
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
     showProfile, showLeaderboard, showTimeTrialProfile, isPlaceholderEmail, getRankTier,
-    xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge
+    xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge,
+    renderHomeMiniLeaderboard
   };
 })();

@@ -55,6 +55,7 @@ const GARBAGE_WORDS = [
 const lobbies = new Map();
 let activeLobby = null;
 let lobbyCounter = 0;
+const PEEK_ROOM = 'ascend-peek';
 
 function getTier(height) {
   for (let i = TIER_THRESHOLDS.length - 1; i >= 0; i--) {
@@ -511,6 +512,28 @@ function buildScoreboard(lobby) {
 function broadcastScoreboard(io, lobby) {
   const scoreboard = buildScoreboard(lobby);
   io.to(lobby.lobbyId).emit('ascend:update', { scoreboard });
+  io.to(PEEK_ROOM).emit('ascend:peek:scoreboard', {
+    scoreboard,
+    playerCount: lobby.players.size
+  });
+}
+
+function peekLobby(io, socket) {
+  socket.join(PEEK_ROOM);
+  const lobby = activeLobby;
+  if (lobby && lobby.players.size > 0) {
+    const scoreboard = buildScoreboard(lobby);
+    socket.emit('ascend:peek:scoreboard', {
+      scoreboard,
+      playerCount: lobby.players.size
+    });
+  } else {
+    socket.emit('ascend:peek:scoreboard', { scoreboard: [], playerCount: 0 });
+  }
+}
+
+function leavePeek(socket) {
+  socket.leave(PEEK_ROOM);
 }
 
 function handleTypingUpdate(io, lobby, socketId, data) {
@@ -891,5 +914,6 @@ function getLobbyBySocketId(socketId) {
 module.exports = {
   joinLobby, leaveLobby,
   handleTypingUpdate, handleSentenceComplete,
-  handleDisconnect, getLobbyBySocketId
+  handleDisconnect, getLobbyBySocketId,
+  peekLobby, leavePeek
 };

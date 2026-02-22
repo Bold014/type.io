@@ -35,6 +35,15 @@ const io = new Server(server, {
 
 setupSocketHandlers(io);
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`typeduel.io running on http://localhost:${PORT}`);
+
+  const { supabase } = require('./db');
+  const { data, error } = await supabase.from('profiles').select('id').limit(1);
+  if (error) {
+    console.error('\x1b[31m[STARTUP] Supabase connection FAILED:\x1b[0m', error.message);
+    console.error('\x1b[31m  Hint: Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env\x1b[0m');
+  } else {
+    console.log('[STARTUP] Supabase connection OK');
+  }
 });

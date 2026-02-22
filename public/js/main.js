@@ -44,7 +44,7 @@
       userId: currentUser.id,
       rating: currentUser.rating
     });
-    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+    UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
     UI.showScreen('home');
   }
 
@@ -67,6 +67,13 @@
 
     bindWelcomeEvents();
     bindHomeEvents();
+
+    const _origShowScreen = UI.showScreen;
+    UI.showScreen = function(name) {
+      _origShowScreen(name);
+      if (name === 'home') loadHomeMiniLeaderboard();
+    };
+
     bindMultiplayerEvents();
     bindSingleplayerEvents();
     bindProfileEvents();
@@ -137,6 +144,12 @@
         body: JSON.stringify({ username: input })
       });
       const data = await res.json();
+
+      if (!res.ok) {
+        UI.els.welcomeUsername.style.borderColor = 'var(--red)';
+        setTimeout(() => { UI.els.welcomeUsername.style.borderColor = ''; }, 2000);
+        return;
+      }
 
       if (data.exists) {
         UI.showWelcomeStep('login', input);
@@ -239,6 +252,39 @@
     UI.els.matchmakingMode.textContent = mode;
   }
 
+  // --- HOME MINI LEADERBOARD ---
+
+  const miniLbCache = {};
+  const MINI_LB_TTL = 60000;
+  let miniLbCategory = 'best_wpm';
+
+  async function loadHomeMiniLeaderboard(category) {
+    if (category) miniLbCategory = category;
+    const cat = miniLbCategory;
+
+    document.querySelectorAll('.mini-lb-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.mlbCat === cat)
+    );
+
+    const cached = miniLbCache[cat];
+    if (cached && (Date.now() - cached.time) < MINI_LB_TTL) {
+      UI.renderHomeMiniLeaderboard(cached.data, cat);
+      return;
+    }
+
+    const body = document.getElementById('mini-lb-body');
+    if (body) body.innerHTML = '<div class="mini-lb-loading">Loading...</div>';
+
+    try {
+      const res = await fetch(`/api/leaderboard?category=${cat}&limit=10`);
+      const data = await res.json();
+      miniLbCache[cat] = { data, time: Date.now() };
+      if (miniLbCategory === cat) UI.renderHomeMiniLeaderboard(data, cat);
+    } catch {
+      if (body && miniLbCategory === cat) body.innerHTML = '<div class="mini-lb-empty">Failed to load</div>';
+    }
+  }
+
   // --- HOME SCREEN (Landing) ---
 
   function bindHomeEvents() {
@@ -277,6 +323,7 @@
     UI.els.btnAscendLobbyStart.addEventListener('click', () => {
       const name = getUsername();
       if (!name) return;
+      AscendClient.stopPeek();
       GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
       AscendClient.setMyUsername(name);
       UI.showScreen('ascend');
@@ -284,10 +331,21 @@
     });
 
     UI.els.btnAscendLobbyBack.addEventListener('click', () => {
+      AscendClient.stopPeek();
       UI.showScreen('home');
     });
 
     UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
+
+    document.getElementById('btn-mini-lb-view-all')?.addEventListener('click', () => {
+      openLeaderboard(miniLbCategory);
+    });
+
+    document.querySelectorAll('.mini-lb-tab').forEach(tab => {
+      tab.addEventListener('click', () => loadHomeMiniLeaderboard(tab.dataset.mlbCat));
+    });
+
+    loadHomeMiniLeaderboard();
 
     document.addEventListener('keydown', (e) => {
       if (!UI.screens.home.classList.contains('active')) return;
@@ -339,6 +397,7 @@
       if (!name) return;
       currentMode = 'ascend';
       UI.showScreen('ascendLobby');
+      AscendClient.startPeek();
     });
 
     UI.els.cardQuickplay.addEventListener('click', () => {
@@ -357,6 +416,7 @@
         UI.showScreen('welcome');
         return;
       }
+      if (UI.xpToLevel(currentUser.xp || 0) < 5) return;
       currentMode = 'ranked';
       GameSocket.setAuth({ username: currentUser.username, userId: currentUser.id, rating: currentUser.rating });
       setMatchmakingText('Searching for opponent', 'RANKED');
@@ -473,7 +533,7 @@
 
       if (profileRes) {
         currentUser = profileRes;
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
       }
 
       UI.showProfile(currentUser, ascendRes, historyRes, ttRes);
@@ -781,9 +841,12 @@
       }
       if (data.ratingChange && currentUser) {
         currentUser.rating = data.ratingChange.newRating;
+        if (data.ratingChange.rankedGamesPlayed != null) {
+          currentUser.ranked_games_played = data.ratingChange.rankedGamesPlayed;
+        }
       }
       if (currentUser) {
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
       }
 
       UI.showMatchResult(data, myUsername);
@@ -859,7 +922,7 @@
     GameSocket.on('ascend:run:end', (data) => {
       if (data.xpGain && currentUser) {
         currentUser.xp = data.xpGain.newXp;
-        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp);
+        UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played);
       }
       AscendClient.handleRunEnd(data);
     });

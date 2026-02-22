@@ -1,4 +1,4 @@
-const { supabase, findUserById, findUserByUsername, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats, saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats } = require('./db');
+const { supabase, findUserById, findUserByUsername, checkUsernameExists, updateEmail, getLeaderboard, getMatchHistory, getUserAscendStats, saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats } = require('./db');
 const { pickSentencesForDuration } = require('./sentences');
 
 function setupAuthRoutes(app) {
@@ -7,8 +7,11 @@ function setupAuthRoutes(app) {
       const { username } = req.body;
       if (!username) return res.status(400).json({ error: 'Username required' });
 
-      const profile = await findUserByUsername(username);
-      res.json({ exists: !!profile });
+      const result = await checkUsernameExists(username);
+      if (result.dbError) {
+        return res.status(500).json({ error: 'Database connection error' });
+      }
+      res.json({ exists: result.exists });
     } catch (err) {
       console.error('Check username error:', err);
       res.status(500).json({ error: 'Internal server error' });

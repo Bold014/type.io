@@ -709,6 +709,86 @@ const AscendClient = (() => {
     return els.typingInput;
   }
 
+  let peeking = false;
+  let lobbyScoreboardEl = null;
+  let lobbyPlayerCountEl = null;
+  let lobbyEmptyEl = null;
+
+  function peekHandler(data) {
+    renderLobbyScoreboard(data.scoreboard || []);
+    if (lobbyPlayerCountEl) {
+      lobbyPlayerCountEl.textContent = (data.playerCount || 0) + ' playing';
+    }
+  }
+
+  function renderLobbyScoreboard(list) {
+    if (!lobbyScoreboardEl) lobbyScoreboardEl = document.getElementById('ascend-lobby-scoreboard');
+    if (!lobbyEmptyEl) lobbyEmptyEl = document.getElementById('ascend-lobby-sb-empty');
+    if (!lobbyScoreboardEl) return;
+
+    if (lobbyEmptyEl) lobbyEmptyEl.style.display = list.length === 0 ? '' : 'none';
+
+    const existingRows = lobbyScoreboardEl.children;
+
+    while (existingRows.length > list.length) {
+      lobbyScoreboardEl.removeChild(lobbyScoreboardEl.lastChild);
+    }
+
+    list.forEach((p, i) => {
+      const hpPct = Math.max(0, p.hp);
+      const tierClass = p.tier >= 7 ? 'tier-high' : p.tier >= 4 ? 'tier-mid' : 'tier-low';
+      const dotClass = p.tier >= 7 ? 'td-high' : p.tier >= 4 ? 'td-mid' : 'td-low';
+      const elimClass = p.eliminated ? 'ascend-sb-eliminated' : '';
+
+      let row = existingRows[i];
+      if (!row) {
+        row = document.createElement('div');
+        row.innerHTML = `
+          <span class="ascend-sb-rank"><span class="ascend-sb-tier-dot"></span><span class="ascend-sb-rank-num"></span></span>
+          <div class="ascend-sb-name-cell">
+            <span class="ascend-sb-name"></span>
+            <div class="ascend-sb-hp-mini"><div class="ascend-sb-hp-mini-fill"></div></div>
+          </div>
+          <span class="ascend-sb-height"></span>
+          <span class="ascend-sb-wpm"></span>`;
+        lobbyScoreboardEl.appendChild(row);
+      }
+
+      row.className = `ascend-sb-row ${tierClass} ${elimClass}`.replace(/\s+/g, ' ').trim();
+
+      const rankNumEl = row.querySelector('.ascend-sb-rank-num');
+      const dotEl = row.querySelector('.ascend-sb-tier-dot');
+      const nameEl = row.querySelector('.ascend-sb-name');
+      const hpFill = row.querySelector('.ascend-sb-hp-mini-fill');
+      const heightEl = row.querySelector('.ascend-sb-height');
+      const wpmEl = row.querySelector('.ascend-sb-wpm');
+
+      if (dotEl) dotEl.className = `ascend-sb-tier-dot ${dotClass}`;
+      if (rankNumEl) rankNumEl.textContent = i + 1;
+      if (nameEl) nameEl.textContent = p.username;
+      if (hpFill) hpFill.style.width = hpPct + '%';
+      if (heightEl) heightEl.textContent = p.height + 'm';
+      if (wpmEl) wpmEl.textContent = p.wpm || 0;
+    });
+  }
+
+  function startPeek() {
+    if (peeking) return;
+    peeking = true;
+    lobbyScoreboardEl = document.getElementById('ascend-lobby-scoreboard');
+    lobbyPlayerCountEl = document.getElementById('ascend-lobby-player-count');
+    lobbyEmptyEl = document.getElementById('ascend-lobby-sb-empty');
+    GameSocket.on('ascend:peek:scoreboard', peekHandler);
+    GameSocket.emit('ascend:peek');
+  }
+
+  function stopPeek() {
+    if (!peeking) return;
+    peeking = false;
+    GameSocket.off('ascend:peek:scoreboard', peekHandler);
+    GameSocket.emit('ascend:peek:leave');
+  }
+
   return {
     cacheEls, reset, setMyUsername,
     handleJoined, startCountdown, startGame,
@@ -716,6 +796,7 @@ const AscendClient = (() => {
     handleAttackReceived, handleAttackSent,
     handleScoreboardUpdate, handleTierUp, handleMomentumUp, handleHpUpdate,
     handleKnockout, handleEliminated, handleFloorUpdate, handleRunEnd,
-    isActive, getInput
+    isActive, getInput,
+    startPeek, stopPeek
   };
 })();

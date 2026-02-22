@@ -425,6 +425,180 @@ body {
   padding: 0;
 }
 
+/* ===== HOME MINI LEADERBOARD ===== */
+
+.home-mini-lb {
+  width: 100%;
+  max-width: 680px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-lb-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.mini-lb-tab {
+  flex: 1;
+  padding: 10px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.15s ease, background 0.15s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.mini-lb-tab:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+
+.mini-lb-tab.active {
+  color: #4ade80;
+  border-bottom-color: #4ade80;
+}
+
+.mini-lb-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mini-lb-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s ease;
+}
+
+.mini-lb-row:nth-child(odd) {
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+.mini-lb-row:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+
+.mini-lb-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.mini-lb-rank {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.mini-lb-row-1 .mini-lb-rank { color: var(--gold); }
+.mini-lb-row-2 .mini-lb-rank { color: #c0c0c0; }
+.mini-lb-row-3 .mini-lb-rank { color: #cd7f32; }
+
+.mini-lb-row-1 .mini-lb-name { color: var(--gold); }
+
+.mini-lb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+.mini-lb-name {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.mini-lb-tier {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  line-height: 1.2;
+}
+
+.mini-lb-sr {
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.mini-lb-unit {
+  font-weight: 600;
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.mini-lb-view-all {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: #4ade80;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+}
+
+.mini-lb-view-all:hover {
+  background: rgba(74,222,128,0.08);
+}
+
+.mini-lb-loading,
+.mini-lb-empty {
+  grid-column: 1 / -1;
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .mini-lb-body {
+    grid-template-columns: 1fr;
+  }
+  .mini-lb-row:nth-child(odd) {
+    border-right: none;
+  }
+  .mini-lb-row:nth-last-child(-n+2) {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .mini-lb-row:last-child {
+    border-bottom: none;
+  }
+}
+
 /* ===== KEYCAP ROW LAYOUT ===== */
 
 .home-center {
@@ -2978,6 +3152,12 @@ a.mode-key {
   color: #f04444;
 }
 
+.ascend-lobby-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
 .ascend-lobby-scroll {
   flex: 1;
   overflow-y: auto;
@@ -3089,6 +3269,34 @@ a.mode-key {
 
 .ascend-lobby-section-sub strong {
   color: var(--text);
+}
+
+/* --- Lobby Scoreboard Panel --- */
+
+.ascend-lobby-scoreboard-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.ascend-lobby-player-count {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.ascend-lobby-sb-empty {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  padding: 16px 0;
 }
 
 /* --- Attack Cards Grid --- */
@@ -4027,6 +4235,16 @@ a.mode-key {
 /* --- Ascend Responsive --- */
 
 @media (max-width: 900px) {
+  .ascend-lobby-body {
+    flex-direction: column;
+  }
+  .ascend-lobby-scoreboard-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    max-height: 200px;
+  }
   .ascend-game-body {
     flex-direction: column;
     gap: 12px;
