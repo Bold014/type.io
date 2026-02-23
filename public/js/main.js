@@ -717,7 +717,7 @@
     try {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
-      const res = await fetch('/api/challenges', {
+      const res = await fetch(`/api/challenges?_=${Date.now()}`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       if (res.ok) {
