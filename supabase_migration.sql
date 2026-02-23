@@ -274,8 +274,25 @@ AS $$
   LIMIT p_limit;
 $$;
 
+-- 15. RPC: Safe coin deduction (only deducts if balance >= amount)
+CREATE OR REPLACE FUNCTION deduct_coins_safe(p_user_id uuid, p_amount integer)
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_new_balance integer;
+BEGIN
+  UPDATE profiles
+  SET coins = coins - p_amount
+  WHERE id = p_user_id AND coins >= p_amount
+  RETURNING coins INTO v_new_balance;
+  IF NOT FOUND THEN RETURN -1; END IF;
+  RETURN v_new_balance;
+END;
+$$;
+
 -- ============================================================
--- 15. RLS policies for daily_challenges & weekly_challenges
+-- 16. RLS policies for daily_challenges & weekly_challenges
 -- Run this to fix "row-level security policy" insert errors
 -- ============================================================
 

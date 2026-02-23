@@ -583,6 +583,25 @@ async function addCoins(userId, amount) {
   return data;
 }
 
+async function deductCoinsSafe(userId, amount) {
+  const { data, error } = await supabase.rpc('deduct_coins_safe', {
+    p_user_id: userId,
+    p_amount: amount
+  });
+  if (error) { console.error('deductCoinsSafe error:', error); return -1; }
+  return data;
+}
+
+async function getUserBalance(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('coins')
+    .eq('id', userId)
+    .single();
+  if (error || !data) return 0;
+  return data.coins || 0;
+}
+
 // --- DAILY CHALLENGES ---
 
 const CHALLENGE_TEMPLATES = [
@@ -881,7 +900,7 @@ module.exports = {
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats,
-  computeMoneyFromChars, addCoins, CHAR_VALUE_UPGRADES, upgradeCharValue,
+  computeMoneyFromChars, addCoins, deductCoinsSafe, getUserBalance, CHAR_VALUE_UPGRADES, upgradeCharValue,
   getShopItems, getUserInventory, getUserEquipped, getUserEquippedWithItems,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,

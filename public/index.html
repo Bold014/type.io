@@ -161,7 +161,8 @@
           <div class="global-chat-header">GLOBAL CHAT</div>
           <div class="global-chat-messages" id="global-chat-messages"></div>
           <div class="global-chat-input-area" id="global-chat-input-area" style="display:none">
-            <input type="text" id="global-chat-input" placeholder="Type a message..." maxlength="200" autocomplete="off">
+            <input type="text" id="global-chat-input" placeholder="Message... or /wager amount" maxlength="200" autocomplete="off">
+            <button id="global-chat-wager" class="btn btn-small wager-btn" title="Start a wager duel">$</button>
             <button id="global-chat-send" class="btn btn-small">SEND</button>
           </div>
           <div class="global-chat-login-hint" id="global-chat-login-hint">Log in to chat</div>
@@ -317,6 +318,13 @@
           <span class="home-row-soon" id="ranked-lock" style="display:none">LOCKED</span>
           <span class="home-row-hint">press R</span>
         </button>
+        <div class="wager-hint-card" id="wager-hint-card">
+          <div class="wager-hint-icon">$</div>
+          <div class="wager-hint-body">
+            <div class="wager-hint-title">WAGER DUEL</div>
+            <div class="wager-hint-desc">Bet coins on a Best of 3! Type <strong>/wager 500</strong> in chat to challenge anyone, or <strong>/wager 500 @name</strong> to challenge someone specific.</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -786,6 +794,9 @@
       <div class="money-gain-display" id="coin-gain-display" style="display:none">
         <span class="money-gain-amount" id="coin-gain-amount">+$0</span>
         <span class="money-gain-breakdown" id="coin-gain-breakdown"></span>
+      </div>
+      <div class="wager-result-display" id="wager-result-display" style="display:none">
+        <span class="wager-result-amount" id="wager-result-amount"></span>
       </div>
       <div class="ad-banner">
         <ins class="adsbygoogle"

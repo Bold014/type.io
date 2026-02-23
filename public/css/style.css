@@ -6496,3 +6496,276 @@ a.mode-key {
   color: transparent;
   display: inline-block;
 }
+
+/* ===== WAGER DUEL SYSTEM ===== */
+
+.wager-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.08);
+  transition: all 0.15s ease;
+}
+
+.wager-btn:hover {
+  background: rgba(234, 179, 8, 0.2);
+  border-color: #eab308;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.15);
+}
+
+/* Wager challenge card in chat */
+.gchat-wager-card {
+  margin: 6px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-left: 3px solid #eab308;
+  border-radius: 8px;
+  background: rgba(234, 179, 8, 0.06);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.gchat-wager-card.gchat-wager-expired {
+  opacity: 0.4;
+  filter: grayscale(0.6);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.gchat-wager-card.gchat-wager-accepted {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.gchat-wager-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.gchat-wager-body {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.gchat-wager-amount {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #eab308;
+  text-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+}
+
+.gchat-wager-desc {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.gchat-wager-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gchat-wager-accept-btn {
+  padding: 4px 14px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #000;
+  background: linear-gradient(135deg, #eab308, #f59e0b);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gchat-wager-accept-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.3);
+  transform: translateY(-1px);
+}
+
+.gchat-wager-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gchat-wager-cancel-btn {
+  padding: 4px 12px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gchat-wager-cancel-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.gchat-wager-timer {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(234, 179, 8, 0.6);
+  margin-left: auto;
+}
+
+/* Wager matched announcement */
+.gchat-wager-matched-msg {
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.06);
+  border-radius: 6px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  margin: 4px 0;
+}
+
+/* System tip message */
+.gchat-system-tip {
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: rgba(234, 179, 8, 0.7);
+  background: rgba(234, 179, 8, 0.04);
+  border-radius: 6px;
+  border-left: 2px solid rgba(234, 179, 8, 0.3);
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.gchat-system-tip code {
+  background: rgba(234, 179, 8, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.gchat-tip-icon {
+  font-weight: 800;
+  font-size: 0.7rem;
+  color: #eab308;
+}
+
+/* Wager toast (error flash override) */
+.error-flash.wager-toast {
+  background: rgba(234, 179, 8, 0.95);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 9999;
+  position: fixed;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Wager result display on match result screen */
+.wager-result-display {
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin: 12px 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+.wager-result-win {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+}
+
+.wager-result-loss {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.wager-result-draw {
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+/* Wager hint card on multiplayer menu */
+.wager-hint-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  background: rgba(234, 179, 8, 0.06);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 10px;
+  max-width: 420px;
+}
+
+.wager-hint-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 8px;
+}
+
+.wager-hint-title {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #eab308;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.wager-hint-desc {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.wager-hint-desc strong {
+  color: var(--text);
+}
+
+.wager-hint-desc code {
+  font-family: var(--mono);
+  color: #eab308;
+  font-weight: 600;
+}

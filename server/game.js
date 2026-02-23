@@ -1,5 +1,5 @@
 const { pickSentences } = require('./sentences');
-const { updateStats, updateXpOnly, saveMatchResult, updateChallengeProgress, updateWeeklyChallengeProgress } = require('./db');
+const { updateStats, updateXpOnly, saveMatchResult, updateChallengeProgress, updateWeeklyChallengeProgress, addCoins } = require('./db');
 
 const ROUNDS_TO_WIN = 2;
 const TOTAL_ROUNDS = 3;
@@ -575,14 +575,43 @@ async function endMatch(io, game) {
     }
   }
 
+  let wagerResult = null;
+  if (game.wagerAmount) {
+    wagerResult = {};
+    if (matchWinner) {
+      const winnerId = playerIds.find(id => game.players[id].username === matchWinner);
+      const loserId = playerIds.find(id => id !== winnerId);
+      if (winnerId && game.players[winnerId].userId) {
+        const payout = game.wagerAmount * 2;
+        const newBal = await addCoins(game.players[winnerId].userId, payout);
+        wagerResult[game.players[winnerId].username] = { won: true, amount: game.wagerAmount, payout, newBalance: newBal };
+      }
+      if (loserId && game.players[loserId].userId) {
+        wagerResult[game.players[loserId].username] = { won: false, amount: game.wagerAmount, payout: 0 };
+      }
+    } else {
+      for (const id of playerIds) {
+        if (game.players[id].userId) {
+          const newBal = await addCoins(game.players[id].userId, game.wagerAmount);
+          wagerResult[game.players[id].username] = { won: null, amount: game.wagerAmount, payout: game.wagerAmount, refunded: true, newBalance: newBal };
+        }
+      }
+    }
+  }
+
   playerIds.forEach(id => {
-    game.players[id].socket.emit('match:result', {
+    const resultPayload = {
       winner: matchWinner,
       matchScore,
       ratingChange: ratingChanges[game.players[id].username] || null,
       xpGain: xpChanges[game.players[id].username] || null,
       rounds: game.roundResults
-    });
+    };
+    if (wagerResult) {
+      resultPayload.wagerResult = wagerResult[game.players[id].username] || null;
+      resultPayload.wagerAmount = game.wagerAmount;
+    }
+    game.players[id].socket.emit('match:result', resultPayload);
   });
 
   setTimeout(() => {
@@ -616,6 +645,13 @@ async function handleDisconnect(io, socketId) {
 
   const totalTimeMs = Date.now() - (game.matchStartTime || Date.now());
 
+  let wagerResultForWinner = null;
+  if (game.wagerAmount && opPlayer.userId) {
+    const payout = game.wagerAmount * 2;
+    const newBal = await addCoins(opPlayer.userId, payout);
+    wagerResultForWinner = { won: true, amount: game.wagerAmount, payout, newBalance: newBal };
+  }
+
   if (opPlayer.userId) {
     const dcPlayerRating = game.players[socketId].rating;
     const avgWpm = game.roundResults.length > 0
@@ -644,21 +680,31 @@ async function handleDisconnect(io, socketId) {
       if (result) xpGain = result;
     }
 
-    opPlayer.socket.emit('match:result', {
+    const resultPayload = {
       winner: opPlayer.username,
       matchScore,
       ratingChange,
       xpGain,
       rounds: game.roundResults,
       forfeit: true
-    });
+    };
+    if (wagerResultForWinner) {
+      resultPayload.wagerResult = wagerResultForWinner;
+      resultPayload.wagerAmount = game.wagerAmount;
+    }
+    opPlayer.socket.emit('match:result', resultPayload);
   } else {
-    opPlayer.socket.emit('match:result', {
+    const resultPayload = {
       winner: opPlayer.username,
       matchScore,
       rounds: game.roundResults,
       forfeit: true
-    });
+    };
+    if (wagerResultForWinner) {
+      resultPayload.wagerResult = wagerResultForWinner;
+      resultPayload.wagerAmount = game.wagerAmount;
+    }
+    opPlayer.socket.emit('match:result', resultPayload);
   }
 
   if (game.players[socketId].userId) {

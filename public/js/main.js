@@ -567,6 +567,166 @@
     GameSocket.emit('globalchat:send', { text });
   }
 
+  const activeWagerCards = new Map();
+  let currentWagerMode = null;
+
+  function renderWagerCard(wager) {
+    const container = UI.els.globalChatMessages;
+    if (!container) return;
+
+    const empty = container.querySelector('.gchat-empty');
+    if (empty) empty.remove();
+
+    const div = document.createElement('div');
+    div.className = 'gchat-wager-card';
+    div.dataset.wagerId = wager.wagerId;
+
+    const equipped = wager.equipped || [];
+    const badge = UI.getEquippedBadge(equipped);
+    const title = UI.getEquippedTitle(equipped);
+
+    const header = document.createElement('div');
+    header.className = 'gchat-wager-header';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'gchat-msg-name';
+    nameSpan.textContent = (wager.username || '').toUpperCase();
+    UI.applyUsernameStyle(nameSpan, equipped);
+    header.appendChild(nameSpan);
+
+    if (badge && UI.BADGE_SVGS[badge]) {
+      const badgeSpan = document.createElement('span');
+      badgeSpan.className = 'gchat-msg-badge';
+      badgeSpan.innerHTML = UI.BADGE_SVGS[badge];
+      header.appendChild(badgeSpan);
+    }
+    if (title) {
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'gchat-msg-title';
+      titleSpan.textContent = title;
+      header.appendChild(titleSpan);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'gchat-wager-body';
+
+    const amountSpan = document.createElement('span');
+    amountSpan.className = 'gchat-wager-amount';
+    amountSpan.textContent = '$' + wager.amount.toLocaleString();
+
+    let descText;
+    if (wager.targetUsername) {
+      descText = ' wager duel to @' + wager.targetUsername + '!';
+    } else {
+      descText = ' wager duel — Best of 3!';
+    }
+
+    const descSpan = document.createElement('span');
+    descSpan.className = 'gchat-wager-desc';
+    descSpan.textContent = descText;
+
+    body.appendChild(amountSpan);
+    body.appendChild(descSpan);
+
+    const timerSpan = document.createElement('span');
+    timerSpan.className = 'gchat-wager-timer';
+    const remaining = Math.max(0, Math.ceil((wager.expiresAt - Date.now()) / 1000));
+    timerSpan.textContent = remaining + 's';
+
+    const footer = document.createElement('div');
+    footer.className = 'gchat-wager-footer';
+
+    const myUsername = getUsername();
+    const isChallenger = wager.username.toLowerCase() === (myUsername || '').toLowerCase();
+    const isTarget = !wager.targetUsername || wager.targetUsername.toLowerCase() === (myUsername || '').toLowerCase();
+
+    if (!isChallenger && isTarget && currentUser) {
+      const acceptBtn = document.createElement('button');
+      acceptBtn.className = 'gchat-wager-accept-btn';
+      acceptBtn.textContent = 'ACCEPT';
+      acceptBtn.addEventListener('click', () => {
+        GameSocket.emit('wager:accept', { wagerId: wager.wagerId });
+        acceptBtn.disabled = true;
+        acceptBtn.textContent = '...';
+      });
+      footer.appendChild(acceptBtn);
+    } else if (isChallenger) {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'gchat-wager-cancel-btn';
+      cancelBtn.textContent = 'CANCEL';
+      cancelBtn.addEventListener('click', () => {
+        GameSocket.emit('wager:cancel');
+      });
+      footer.appendChild(cancelBtn);
+    }
+
+    footer.appendChild(timerSpan);
+
+    div.appendChild(header);
+    div.appendChild(body);
+    div.appendChild(footer);
+    container.appendChild(div);
+
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    if (isNearBottom) container.scrollTop = container.scrollHeight;
+
+    const timerInterval = setInterval(() => {
+      const r = Math.max(0, Math.ceil((wager.expiresAt - Date.now()) / 1000));
+      timerSpan.textContent = r + 's';
+      if (r <= 0) {
+        clearInterval(timerInterval);
+        expireWagerCard(wager.wagerId);
+      }
+    }, 1000);
+
+    activeWagerCards.set(wager.wagerId, { el: div, timerInterval });
+  }
+
+  function expireWagerCard(wagerId) {
+    const card = activeWagerCards.get(wagerId);
+    if (!card) return;
+    clearInterval(card.timerInterval);
+    card.el.classList.add('gchat-wager-expired');
+    const btn = card.el.querySelector('.gchat-wager-accept-btn, .gchat-wager-cancel-btn');
+    if (btn) btn.remove();
+    const timer = card.el.querySelector('.gchat-wager-timer');
+    if (timer) timer.textContent = 'EXPIRED';
+    activeWagerCards.delete(wagerId);
+  }
+
+  function acceptWagerCard(wagerId, challengerUsername, accepterUsername, amount) {
+    const card = activeWagerCards.get(wagerId);
+    if (card) {
+      clearInterval(card.timerInterval);
+      card.el.classList.add('gchat-wager-accepted');
+      const btn = card.el.querySelector('.gchat-wager-accept-btn, .gchat-wager-cancel-btn');
+      if (btn) btn.remove();
+      const timer = card.el.querySelector('.gchat-wager-timer');
+      if (timer) timer.textContent = 'MATCHED!';
+      activeWagerCards.delete(wagerId);
+    }
+
+    const container = UI.els.globalChatMessages;
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'gchat-wager-matched-msg';
+    div.textContent = accepterUsername.toUpperCase() + ' accepted ' + challengerUsername.toUpperCase() + '\'s $' + amount.toLocaleString() + ' wager!';
+    container.appendChild(div);
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    if (isNearBottom) container.scrollTop = container.scrollHeight;
+  }
+
+  function renderWagerTip() {
+    const container = UI.els.globalChatMessages;
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'gchat-system-tip';
+    div.innerHTML = '<span class="gchat-tip-icon">$</span> <strong>Tip:</strong> Type <code>/wager 500</code> to challenge anyone, or <code>/wager 500 @username</code> to duel someone specific!';
+    container.appendChild(div);
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    if (isNearBottom) container.scrollTop = container.scrollHeight;
+  }
+
   function bindGlobalChatEvents() {
     GameSocket.on('globalchat:history', (messages) => {
       renderGlobalChatHistory(messages);
@@ -581,6 +741,26 @@
       renderGlobalChatMessage(msg);
     });
 
+    GameSocket.on('globalchat:wager', (wager) => {
+      renderWagerCard(wager);
+    });
+
+    GameSocket.on('wager:expired', (data) => {
+      expireWagerCard(data.wagerId);
+    });
+
+    GameSocket.on('wager:accepted', (data) => {
+      acceptWagerCard(data.wagerId, data.challengerUsername, data.accepterUsername, data.amount);
+    });
+
+    GameSocket.on('wager:error', (data) => {
+      showWagerToast(data.message);
+    });
+
+    GameSocket.on('globalchat:wager-tip', () => {
+      renderWagerTip();
+    });
+
     if (UI.els.globalChatSend) {
       UI.els.globalChatSend.addEventListener('click', sendGlobalChatMessage);
     }
@@ -593,6 +773,30 @@
         }
       });
     }
+
+    const wagerBtn = document.getElementById('global-chat-wager');
+    if (wagerBtn) {
+      wagerBtn.addEventListener('click', () => {
+        const input = UI.els.globalChatInput;
+        if (!input) return;
+        if (!input.value.startsWith('/wager')) {
+          input.value = '/wager ';
+        }
+        input.focus();
+      });
+    }
+  }
+
+  function showWagerToast(message) {
+    const flash = document.getElementById('error-flash');
+    if (!flash) return;
+    flash.textContent = message;
+    flash.classList.add('show', 'wager-toast');
+    clearTimeout(showWagerToast._tid);
+    showWagerToast._tid = setTimeout(() => {
+      flash.classList.remove('show', 'wager-toast');
+      flash.textContent = '';
+    }, 3000);
   }
 
   // --- MULTIPLAYER MENU ---
@@ -1306,14 +1510,20 @@
       if (data.xpGain && data.xpGain.coinsGained != null) {
         currentUser.coins = data.xpGain.newCoins;
       }
+      if (data.wagerResult && data.wagerResult.newBalance != null && currentUser) {
+        currentUser.coins = data.wagerResult.newBalance;
+      }
       if (currentUser) {
         UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
         refreshHomeUpgrade();
       }
 
+      currentWagerMode = data.wagerAmount ? 'wager' : null;
+
       UI.showMatchResult(data, myUsername);
       UI.showXpGain(data.xpGain);
       UI.showMoneyGain(data.xpGain?.coinsGained, 'match', data.xpGain?.charsTyped, data.xpGain?.charValue);
+      showWagerResult(data);
 
       if (data.xpGain && data.xpGain.newLevel > data.xpGain.oldLevel) {
         setTimeout(() => {
@@ -1396,10 +1606,36 @@
     });
   }
 
+  function showWagerResult(data) {
+    const wagerDisplay = document.getElementById('wager-result-display');
+    if (!wagerDisplay) return;
+    if (!data.wagerResult) {
+      wagerDisplay.style.display = 'none';
+      return;
+    }
+    const wr = data.wagerResult;
+    wagerDisplay.style.display = '';
+    const amount = document.getElementById('wager-result-amount');
+    if (wr.refunded) {
+      wagerDisplay.className = 'wager-result-display wager-result-draw';
+      if (amount) amount.textContent = 'Wager refunded: $' + wr.amount.toLocaleString() + ' returned';
+    } else if (wr.won) {
+      wagerDisplay.className = 'wager-result-display wager-result-win';
+      if (amount) amount.textContent = 'You won $' + (wr.payout - wr.amount).toLocaleString() + ' from the wager!';
+    } else {
+      wagerDisplay.className = 'wager-result-display wager-result-loss';
+      if (amount) amount.textContent = 'You lost $' + wr.amount.toLocaleString() + ' from the wager.';
+    }
+  }
+
   // --- RESULT EVENTS ---
 
   function bindResultEvents() {
     UI.els.btnPlayAgain.addEventListener('click', () => {
+      if (currentWagerMode === 'wager') {
+        UI.showScreen('home');
+        return;
+      }
       setMatchmakingText('Searching for opponent', currentMode === 'ranked' ? 'RANKED' : 'QUICK DUEL');
       UI.showScreen('matchmaking');
       GameSocket.joinQueue(currentMode);
