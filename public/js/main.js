@@ -365,7 +365,7 @@
 
   const miniLbCache = {};
   const MINI_LB_TTL = 60000;
-  let miniLbCategory = 'best_wpm';
+  let miniLbCategory = 'coins';
 
   async function loadHomeMiniLeaderboard(category) {
     if (category) miniLbCategory = category;
@@ -503,27 +503,41 @@
     const container = UI.els.globalChatMessages;
     if (!container) return;
 
+    const equipped = msg.equipped || [];
+    const badge = UI.getEquippedBadge(equipped);
+    const title = UI.getEquippedTitle(equipped);
+
     const div = document.createElement('div');
     div.className = 'gchat-msg';
 
-    const equipped = msg.equipped || [];
-    const nameStyle = UI.applyUsernameStyleInline(equipped);
-    const badge = UI.getEquippedBadge(equipped);
-    const title = UI.getEquippedTitle(equipped);
-    const nameEffect = UI.getEquippedNameEffect ? UI.getEquippedNameEffect(equipped) : null;
+    const header = document.createElement('div');
+    header.className = 'gchat-msg-header';
 
-    let headerHtml = `<span class="gchat-msg-name${nameEffect ? ' name-effect-' + UI.escapeHtml(nameEffect) : ''}" style="${nameStyle}">${UI.escapeHtml((msg.username || '').toUpperCase())}</span>`;
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'gchat-msg-name';
+    nameSpan.textContent = (msg.username || '').toUpperCase();
+    UI.applyUsernameStyle(nameSpan, equipped);
+    header.appendChild(nameSpan);
+
     if (badge && UI.BADGE_SVGS[badge]) {
-      headerHtml += `<span class="gchat-msg-badge">${UI.BADGE_SVGS[badge]}</span>`;
+      const badgeSpan = document.createElement('span');
+      badgeSpan.className = 'gchat-msg-badge';
+      badgeSpan.innerHTML = UI.BADGE_SVGS[badge];
+      header.appendChild(badgeSpan);
     }
     if (title) {
-      headerHtml += `<span class="gchat-msg-title">${UI.escapeHtml(title)}</span>`;
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'gchat-msg-title';
+      titleSpan.textContent = title;
+      header.appendChild(titleSpan);
     }
 
-    div.innerHTML =
-      `<div class="gchat-msg-header">${headerHtml}</div>` +
-      `<div class="gchat-msg-text">${UI.escapeHtml(msg.text)}</div>`;
+    const textDiv = document.createElement('div');
+    textDiv.className = 'gchat-msg-text';
+    textDiv.textContent = msg.text;
 
+    div.appendChild(header);
+    div.appendChild(textDiv);
     container.appendChild(div);
 
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;

@@ -1020,6 +1020,7 @@ const UI = (() => {
       best_wpm: 'WPM',
       wins: 'WINS',
       xp: 'LEVEL',
+      coins: 'MONEY',
       ascend: 'HEIGHT',
       time_trial: 'WPM',
       tower_defense: 'SCORE'
@@ -1068,6 +1069,7 @@ const UI = (() => {
           case 'best_wpm': statValue = Math.round(p.best_wpm || 0); break;
           case 'wins': statValue = p.wins || 0; break;
           case 'xp': statValue = xpToLevel(p.xp || 0); break;
+          case 'coins': statValue = '$' + (p.coins || 0).toLocaleString(); break;
           default: statValue = p.rating || 1000;
         }
       }
@@ -1107,6 +1109,10 @@ const UI = (() => {
 
       let statValue, statLabel;
       switch (cat) {
+        case 'coins':
+          statValue = '$' + (p.coins || 0).toLocaleString();
+          statLabel = '';
+          break;
         case 'best_wpm':
           statValue = Math.round(p.best_wpm || 0);
           statLabel = 'WPM';

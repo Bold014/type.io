@@ -326,14 +326,15 @@ async function getLeaderboard(category = 'rating', limit = 50) {
     rating: { column: 'rating', ascending: false },
     best_wpm: { column: 'best_wpm', ascending: false },
     wins: { column: 'wins', ascending: false },
-    xp: { column: 'xp', ascending: false }
+    xp: { column: 'xp', ascending: false },
+    coins: { column: 'coins', ascending: false }
   };
 
   const config = validCategories[category] || validCategories.rating;
 
   let query = supabase
     .from('profiles')
-    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, ranked_games_played');
+    .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, ranked_games_played, coins');
 
   if (category === 'rating') {
     query = query.gte('ranked_games_played', PLACEMENT_GAMES);
@@ -341,6 +342,8 @@ async function getLeaderboard(category = 'rating', limit = 50) {
     query = query.gt('wins', 0);
   } else if (category === 'best_wpm') {
     query = query.gt('best_wpm', 0);
+  } else if (category === 'coins') {
+    query = query.gt('coins', 0);
   } else {
     query = query.gt('xp', 0);
   }
