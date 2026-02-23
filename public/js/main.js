@@ -130,24 +130,6 @@
   }
 
   async function init() {
-    if (sb) {
-      try {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) {
-          const profile = await fetchProfile(session.access_token);
-          if (profile) {
-            loginSuccess(profile, session.access_token);
-          }
-        }
-      } catch (_) {}
-
-      sb.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'TOKEN_REFRESHED' && session) {
-          GameSocket.reconnectWithToken(session.access_token);
-        }
-      });
-    }
-
     bindWelcomeEvents();
     bindHomeEvents();
 
@@ -179,6 +161,24 @@
     bindSocketEvents();
     bindShopEvents();
     TimeTrial.init();
+
+    if (sb) {
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          const profile = await fetchProfile(session.access_token);
+          if (profile) {
+            loginSuccess(profile, session.access_token);
+          }
+        }
+      } catch (_) {}
+
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'TOKEN_REFRESHED' && session) {
+          GameSocket.reconnectWithToken(session.access_token);
+        }
+      });
+    }
   }
 
   // --- WELCOME SCREEN ---

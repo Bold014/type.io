@@ -663,10 +663,12 @@ body {
   min-width: 0;
 }
 
-.home-nav-area > .home-challenges {
-  flex: 0 0 240px;
+.home-nav-area > .home-right-col {
+  flex: 0 0 260px;
   min-width: 0;
-  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ===== GLOBAL CHAT PANEL ===== */
@@ -5556,7 +5558,7 @@ a.mode-key {
     width: 100%;
     max-width: 680px;
   }
-  .home-nav-area > .home-challenges {
+  .home-nav-area > .home-right-col {
     flex: none;
     width: 100%;
     max-width: 680px;
@@ -5569,7 +5571,7 @@ a.mode-key {
     order: 1;
   }
   .home-nav-area > .home-rows { order: 0; }
-  .home-nav-area > .home-challenges { order: 2; }
+  .home-nav-area > .home-right-col { order: 2; }
 }
 
 @media (max-width: 700px) {
@@ -6355,9 +6357,7 @@ a.mode-key {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px 20px;
-  max-width: 320px;
   width: 100%;
-  margin: 0 auto;
 }
 
 .upgrade-widget-header {
