@@ -335,3 +335,35 @@ CREATE POLICY "Users can update own weekly challenges"
   ON weekly_challenges FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- 17. RLS policies for shop tables
+ALTER TABLE shop_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read access on shop_items"
+  ON shop_items FOR SELECT
+  TO public
+  USING (true);
+
+ALTER TABLE user_inventory ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own inventory"
+  ON user_inventory FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role full access on user_inventory"
+  ON user_inventory FOR ALL
+  TO service_role
+  USING (true);
+
+ALTER TABLE user_equipped ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own equipped"
+  ON user_equipped FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role full access on user_equipped"
+  ON user_equipped FOR ALL
+  TO service_role
+  USING (true);
