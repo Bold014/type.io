@@ -115,8 +115,18 @@
       rating: currentUser.rating
     });
     UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+    refreshHomeUpgrade();
     UI.showScreen('home');
     loadChallenges();
+  }
+
+  function refreshHomeUpgrade() {
+    if (!currentUser) return;
+    UI.updateHomeUpgradeWidget({
+      charValueLevel: currentUser.char_value_level || 0,
+      totalCharsTyped: currentUser.total_chars_typed || 0,
+      coins: currentUser.coins || 0
+    });
   }
 
   async function init() {
@@ -142,15 +152,22 @@
     bindHomeEvents();
 
     const _origShowScreen = UI.showScreen;
+    let _lastScreen = null;
     UI.showScreen = function(name) {
+      if (_lastScreen === 'home' && name !== 'home') {
+        GameSocket.emit('globalchat:leave');
+      }
       _origShowScreen(name);
       if (name === 'home') {
         loadHomeMiniLeaderboard();
         if (currentUser) loadChallenges();
+        GameSocket.emit('globalchat:join');
+        updateGlobalChatInputVisibility();
       }
       if (name === 'game') applyCursorSkinToContainer('typing-area');
       if (name === 'timetrial') applyCursorSkinToContainer('tt-typing-area');
       if (name === 'ascend') applyCursorSkinToContainer('ascend-typing-area');
+      _lastScreen = name;
     };
 
     bindMultiplayerEvents();
@@ -424,6 +441,10 @@
 
     UI.els.btnHomeLogout.addEventListener('click', () => doLogout());
 
+    document.getElementById('btn-home-upgrade')?.addEventListener('click', () => {
+      handleUpgradeCharValue();
+    });
+
     document.getElementById('btn-mini-lb-view-all')?.addEventListener('click', () => {
       openLeaderboard(miniLbCategory);
     });
@@ -437,6 +458,7 @@
     document.addEventListener('keydown', (e) => {
       if (!UI.screens.home.classList.contains('active')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.activeElement === UI.els.globalChatInput) return;
       const map = {
         m: 'btn-landing-multiplayer',
         s: 'btn-landing-singleplayer',
@@ -453,6 +475,101 @@
       setTimeout(() => row.classList.remove('key-active'), 180);
       row.click();
     });
+
+    bindGlobalChatEvents();
+  }
+
+  // --- GLOBAL CHAT ---
+
+  function updateGlobalChatInputVisibility() {
+    if (UI.els.globalChatInputArea) {
+      UI.els.globalChatInputArea.style.display = currentUser ? 'flex' : 'none';
+    }
+    if (UI.els.globalChatLoginHint) {
+      UI.els.globalChatLoginHint.style.display = currentUser ? 'none' : '';
+    }
+  }
+
+  function renderGlobalChatMessage(msg) {
+    const container = UI.els.globalChatMessages;
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.className = 'gchat-msg';
+
+    const equipped = msg.equipped || [];
+    const nameStyle = UI.applyUsernameStyleInline(equipped);
+    const badge = UI.getEquippedBadge(equipped);
+    const title = UI.getEquippedTitle(equipped);
+    const nameEffect = UI.getEquippedNameEffect ? UI.getEquippedNameEffect(equipped) : null;
+
+    let headerHtml = `<span class="gchat-msg-name${nameEffect ? ' name-effect-' + UI.escapeHtml(nameEffect) : ''}" style="${nameStyle}">${UI.escapeHtml((msg.username || '').toUpperCase())}</span>`;
+    if (badge && UI.BADGE_SVGS[badge]) {
+      headerHtml += `<span class="gchat-msg-badge">${UI.BADGE_SVGS[badge]}</span>`;
+    }
+    if (title) {
+      headerHtml += `<span class="gchat-msg-title">${UI.escapeHtml(title)}</span>`;
+    }
+
+    div.innerHTML =
+      `<div class="gchat-msg-header">${headerHtml}</div>` +
+      `<div class="gchat-msg-text">${UI.escapeHtml(msg.text)}</div>`;
+
+    container.appendChild(div);
+
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+    if (isNearBottom) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  function renderGlobalChatHistory(messages) {
+    const container = UI.els.globalChatMessages;
+    if (!container) return;
+    container.innerHTML = '';
+    if (!messages || messages.length === 0) {
+      container.innerHTML = '<div class="gchat-empty">No messages yet. Say hello!</div>';
+      return;
+    }
+    messages.forEach(msg => renderGlobalChatMessage(msg));
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function sendGlobalChatMessage() {
+    const input = UI.els.globalChatInput;
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    GameSocket.emit('globalchat:send', { text });
+  }
+
+  function bindGlobalChatEvents() {
+    GameSocket.on('globalchat:history', (messages) => {
+      renderGlobalChatHistory(messages);
+    });
+
+    GameSocket.on('globalchat:message', (msg) => {
+      const container = UI.els.globalChatMessages;
+      if (container) {
+        const empty = container.querySelector('.gchat-empty');
+        if (empty) empty.remove();
+      }
+      renderGlobalChatMessage(msg);
+    });
+
+    if (UI.els.globalChatSend) {
+      UI.els.globalChatSend.addEventListener('click', sendGlobalChatMessage);
+    }
+
+    if (UI.els.globalChatInput) {
+      UI.els.globalChatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sendGlobalChatMessage();
+        }
+      });
+    }
   }
 
   // --- MULTIPLAYER MENU ---
@@ -637,6 +754,7 @@
       if (profileRes) {
         currentUser = profileRes;
         UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+        refreshHomeUpgrade();
       }
 
       UI.showProfile(currentUser, ascendRes, historyRes, ttRes);
@@ -740,7 +858,8 @@
     );
 
     if (shopCache) {
-      UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+      const upgradeData = currentUser ? { charValueLevel: currentUser.char_value_level || 0, totalCharsTyped: currentUser.total_chars_typed || 0, coins: currentUser.coins || 0 } : {};
+      UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory, upgradeData);
       return;
     }
 
@@ -753,7 +872,8 @@
       const data = await res.json();
       shopCache = data;
       if (currentUser) currentUser.coins = data.coins;
-      UI.renderShop(data.items, data.inventory, data.equipped, data.coins, currentShopCategory);
+      const upgradeData = currentUser ? { charValueLevel: currentUser.char_value_level || 0, totalCharsTyped: currentUser.total_chars_typed || 0, coins: currentUser.coins || 0 } : {};
+      UI.renderShop(data.items, data.inventory, data.equipped, data.coins, currentShopCategory, upgradeData);
     } catch (_) {
       if (UI.els.shopGrid) UI.els.shopGrid.innerHTML = '<div class="shop-empty">Failed to load shop</div>';
     }
@@ -810,8 +930,10 @@
       }
 
       UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+      refreshHomeUpgrade();
       if (shopCache) {
-        UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+        const upgradeData = currentUser ? { charValueLevel: currentUser.char_value_level || 0, totalCharsTyped: currentUser.total_chars_typed || 0, coins: currentUser.coins || 0 } : {};
+        UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory, upgradeData);
       }
     } catch (_) {}
   }
@@ -828,12 +950,19 @@
           t.classList.toggle('active', t.dataset.shopCat === currentShopCategory)
         );
         if (shopCache) {
-          UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory);
+          const upgradeData = currentUser ? { charValueLevel: currentUser.char_value_level || 0, totalCharsTyped: currentUser.total_chars_typed || 0, coins: currentUser.coins || 0 } : {};
+          UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory, upgradeData);
         }
       });
     });
 
     UI.els.shopGrid.addEventListener('click', (e) => {
+      const upgradeBtn = e.target.closest('#btn-upgrade-char-value');
+      if (upgradeBtn) {
+        handleUpgradeCharValue();
+        return;
+      }
+
       const btn = e.target.closest('.shop-card-btn');
       if (!btn) return;
       const card = btn.closest('.shop-card');
@@ -843,6 +972,40 @@
       const action = btn.dataset.action;
       handleShopAction(itemId, cat, action);
     });
+  }
+
+  async function handleUpgradeCharValue() {
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch('/api/upgrade/char-value', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Upgrade failed');
+        return;
+      }
+
+      currentUser.char_value_level = data.newLevel;
+      currentUser.coins = data.newBalance;
+      if (shopCache) shopCache.coins = data.newBalance;
+
+      UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+      refreshHomeUpgrade();
+      const upgradeData = { charValueLevel: currentUser.char_value_level || 0, totalCharsTyped: currentUser.total_chars_typed || 0, coins: currentUser.coins || 0 };
+      if (shopCache) {
+        UI.renderShop(shopCache.items, shopCache.inventory, shopCache.equipped, shopCache.coins, currentShopCategory, upgradeData);
+      }
+    } catch (_) {
+      alert('Connection error');
+    }
   }
 
   // --- GAME ---
@@ -1122,11 +1285,12 @@
       }
       if (currentUser) {
         UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+        refreshHomeUpgrade();
       }
 
       UI.showMatchResult(data, myUsername);
       UI.showXpGain(data.xpGain);
-      UI.showCoinGain(data.xpGain?.coinsGained, 'match');
+      UI.showMoneyGain(data.xpGain?.coinsGained, 'match', data.xpGain?.charsTyped, data.xpGain?.charValue);
 
       if (data.xpGain && data.xpGain.newLevel > data.xpGain.oldLevel) {
         setTimeout(() => {
@@ -1202,8 +1366,9 @@
       }
       if (currentUser) {
         UI.setHomeUser(currentUser.username, true, currentUser.rating, currentUser.xp, currentUser.ranked_games_played, currentUser.coins, currentUser.equipped);
+        refreshHomeUpgrade();
       }
-      UI.showCoinGain(data.coinsGained, 'ascend');
+      UI.showMoneyGain(data.coinsGained, 'ascend', data.xpGain?.charsTyped, data.xpGain?.charValue);
       AscendClient.handleRunEnd(data);
     });
   }

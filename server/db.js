@@ -41,30 +41,28 @@ function computeXpGain(mode, totalTimeMs, won, wpm, currentBestWpm, lastPbAt) {
   return { xpGained, newBestWpm, isPb, pbBonusXp };
 }
 
-function computeCoinReward(mode, won, extras = {}) {
-  let coins = 0;
-  switch (mode) {
-    case 'ranked':
-    case 'quick':
-      coins = 50;
-      if (won) coins += 25;
-      break;
-    case 'ascend':
-      coins = 20 + ((extras.tier || 0) * 10);
-      break;
-    case 'timetrial':
-      coins = 30;
-      if (extras.isPb) coins += 50;
-      break;
-  }
-  if (extras.isDailyFirstWin) coins += 100;
-  return coins;
+const CHAR_VALUE_UPGRADES = [
+  { level: 0, value: 1,   cost: 0 },
+  { level: 1, value: 2,   cost: 500 },
+  { level: 2, value: 4,   cost: 2000 },
+  { level: 3, value: 7,   cost: 8000 },
+  { level: 4, value: 12,  cost: 30000 },
+  { level: 5, value: 20,  cost: 100000 },
+  { level: 6, value: 35,  cost: 350000 },
+  { level: 7, value: 60,  cost: 1000000 },
+  { level: 8, value: 100, cost: 3000000 },
+  { level: 9, value: 175, cost: 10000000 },
+];
+
+function computeMoneyFromChars(charsTyped, charValueLevel) {
+  const upgrade = CHAR_VALUE_UPGRADES[charValueLevel] || CHAR_VALUE_UPGRADES[0];
+  return (charsTyped || 0) * upgrade.value;
 }
 
 const PLACEMENT_GAMES = 5;
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win';
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level';
 
 async function findUserById(id) {
   const { data, error } = await supabase
@@ -93,7 +91,7 @@ async function findUserByUsername(username) {
   return data;
 }
 
-async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) {
+async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs, charsTyped) {
   const user = await findUserById(userId);
   if (!user) return null;
 
@@ -117,10 +115,10 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const isDailyFirstWin = won && user.last_daily_win !== today;
-  const coinsGained = computeCoinReward(mode || 'ranked', won, { isDailyFirstWin });
+  const charLevel = user.char_value_level || 0;
+  const coinsGained = computeMoneyFromChars(charsTyped || 0, charLevel);
   const newCoins = (user.coins || 0) + coinsGained;
+  const newTotalChars = (user.total_chars_typed || 0) + (charsTyped || 0);
 
   const updatePayload = {
     wins: user.wins + (won ? 1 : 0),
@@ -130,7 +128,8 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
     rating: newRating,
     xp: newXp,
     ranked_games_played: newRankedGamesPlayed,
-    coins: newCoins
+    coins: newCoins,
+    total_chars_typed: newTotalChars
   };
 
   if (isPb) {
@@ -138,9 +137,6 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   }
   if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
-  }
-  if (isDailyFirstWin) {
-    updatePayload.last_daily_win = today;
   }
 
   const { error } = await supabase
@@ -156,11 +152,11 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs) 
   return {
     ratingDelta, newRating, xpGained, newXp, oldLevel, newLevel, isPb,
     isPlacement, placementGamesLeft, rankedGamesPlayed: newRankedGamesPlayed,
-    coinsGained, newCoins
+    coinsGained, newCoins, charsTyped: charsTyped || 0, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value
   };
 }
 
-async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
+async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, charsTyped) {
   const user = await findUserById(userId);
   if (!user) return null;
 
@@ -174,11 +170,10 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
   const newGamesPlayed = (user.games_played || 0) + 1;
   const newAvgWpm = ((user.avg_wpm || 0) * (user.games_played || 0) + wpm) / newGamesPlayed;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const isDailyFirstWin = won && user.last_daily_win !== today;
-  const extras = { isDailyFirstWin, ...(coinExtras || {}) };
-  const coinsGained = computeCoinReward(mode || 'quick', won, extras);
+  const charLevel = user.char_value_level || 0;
+  const coinsGained = computeMoneyFromChars(charsTyped || 0, charLevel);
   const newCoins = (user.coins || 0) + coinsGained;
+  const newTotalChars = (user.total_chars_typed || 0) + (charsTyped || 0);
 
   const updatePayload = {
     xp: newXp,
@@ -186,7 +181,8 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
     avg_wpm: newAvgWpm,
     wins: (user.wins || 0) + (won ? 1 : 0),
     losses: (user.losses || 0) + (won ? 0 : 1),
-    coins: newCoins
+    coins: newCoins,
+    total_chars_typed: newTotalChars
   };
 
   if (isPb) {
@@ -194,9 +190,6 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
   }
   if (pbBonusXp) {
     updatePayload.last_pb_at = new Date().toISOString();
-  }
-  if (isDailyFirstWin) {
-    updatePayload.last_daily_win = today;
   }
 
   const { error } = await supabase
@@ -209,7 +202,7 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, coinExtras) {
     return null;
   }
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped: charsTyped || 0, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value };
 }
 
 async function updateEmail(userId, email) {
@@ -425,10 +418,13 @@ async function saveTimeTrialRun(userId, username, data) {
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
-  const coinsGained = computeCoinReward('timetrial', false, { isPb });
+  const charLevel = user.char_value_level || 0;
+  const charsTyped = data.charactersTyped || 0;
+  const coinsGained = computeMoneyFromChars(charsTyped, charLevel);
   const newCoins = (user.coins || 0) + coinsGained;
+  const newTotalChars = (user.total_chars_typed || 0) + charsTyped;
 
-  const updatePayload = { xp: newXp, coins: newCoins };
+  const updatePayload = { xp: newXp, coins: newCoins, total_chars_typed: newTotalChars };
   if (isPb) {
     updatePayload.best_tt_wpm = data.wpm;
     updatePayload.last_pb_at = new Date().toISOString();
@@ -436,7 +432,7 @@ async function saveTimeTrialRun(userId, username, data) {
 
   await supabase.from('profiles').update(updatePayload).eq('id', userId);
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value };
 }
 
 async function getTimeTrialLeaderboard(duration, limit = 50) {
@@ -835,13 +831,13 @@ async function saveTowerDefenseRun(userId, username, data) {
   const newXp = (user.xp || 0) + xpGained;
   const newLevel = xpToLevel(newXp);
 
-  let coinsGained = 30;
-  if (data.wavesSurvived >= 10) coinsGained += 20;
-  if (data.wavesSurvived >= 20) coinsGained += 30;
-  if (isPb) coinsGained += 50;
+  const charLevel = user.char_value_level || 0;
+  const charsTyped = data.charsTyped || 0;
+  const coinsGained = computeMoneyFromChars(charsTyped, charLevel);
   const newCoins = (user.coins || 0) + coinsGained;
+  const newTotalChars = (user.total_chars_typed || 0) + charsTyped;
 
-  const updatePayload = { xp: newXp, coins: newCoins };
+  const updatePayload = { xp: newXp, coins: newCoins, total_chars_typed: newTotalChars };
   if (isPb) {
     updatePayload.best_td_wave = data.wavesSurvived;
     updatePayload.last_pb_at = new Date().toISOString();
@@ -849,7 +845,7 @@ async function saveTowerDefenseRun(userId, username, data) {
 
   await supabase.from('profiles').update(updatePayload).eq('id', userId);
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value };
 }
 
 async function getTowerDefenseLeaderboard(limit = 50) {
@@ -865,13 +861,24 @@ async function getTowerDefenseLeaderboard(limit = 50) {
   return data || [];
 }
 
+async function upgradeCharValue(userId) {
+  const { data, error } = await supabase.rpc('upgrade_char_value', {
+    p_user_id: userId
+  });
+  if (error) {
+    console.error('upgradeCharValue RPC error:', error);
+    return { success: false, error: 'Database error' };
+  }
+  return data || { success: false, error: 'Unknown error' };
+}
+
 module.exports = {
   supabase, findUserById, findUserByUsername, checkUsernameExists,
   updateStats, updateXpOnly, updateEmail, xpToLevel, PLACEMENT_GAMES,
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats,
-  computeCoinReward, addCoins,
+  computeMoneyFromChars, addCoins, CHAR_VALUE_UPGRADES, upgradeCharValue,
   getShopItems, getUserInventory, getUserEquipped, getUserEquippedWithItems,
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,

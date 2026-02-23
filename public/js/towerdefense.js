@@ -11,6 +11,7 @@ const TowerDefense = (() => {
   let totalKills = 0;
   let totalKeystrokes = 0;
   let correctKeystrokes = 0;
+  let totalCharsTyped = 0;
   let upgrades = [];
   let animFrameId = null;
   let lastFrameTime = 0;
@@ -337,6 +338,7 @@ const TowerDefense = (() => {
     if (!enemy.alive) return;
     enemy.alive = false;
     totalKills++;
+    totalCharsTyped += enemy.displayWord.length;
     combo++;
 
     let killScore = enemy.displayWord.length * 10;
@@ -603,6 +605,7 @@ const TowerDefense = (() => {
     totalKills = 0;
     totalKeystrokes = 0;
     correctKeystrokes = 0;
+    totalCharsTyped = 0;
     upgrades = [];
     waveActive = false;
     waveExpectedCount = 0;
@@ -709,7 +712,8 @@ const TowerDefense = (() => {
           enemiesKilled: kills,
           score: finalScore,
           accuracy,
-          durationMs
+          durationMs,
+          charsTyped: totalCharsTyped
         })
       });
 
@@ -734,10 +738,8 @@ const TowerDefense = (() => {
         xpDisplay.style.display = '';
       }
 
-      if (data.xp && data.xp.coinsGained && coinDisplay) {
-        const coinAmount = document.getElementById('td-coin-gain-amount');
-        if (coinAmount) coinAmount.textContent = `+${data.xp.coinsGained}`;
-        coinDisplay.style.display = '';
+      if (data.xp && data.xp.coinsGained) {
+        UI.showMoneyGain(data.xp.coinsGained, 'td', data.xp.charsTyped, data.xp.charValue);
       }
     } catch (e) {
       console.error('TD result submit error:', e);

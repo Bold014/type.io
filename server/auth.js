@@ -6,7 +6,8 @@ const {
   purchaseItem, equipItem, unequipItem,
   getUserDailyChallenges, updateChallengeProgress,
   getUserWeeklyChallenges, updateWeeklyChallengeProgress,
-  saveTowerDefenseRun, getTowerDefenseLeaderboard
+  saveTowerDefenseRun, getTowerDefenseLeaderboard,
+  upgradeCharValue, CHAR_VALUE_UPGRADES
 } = require('./db');
 const { pickSentencesForDuration, getWordBank } = require('./sentences');
 
@@ -301,13 +302,13 @@ function setupAuthRoutes(app) {
         return res.status(401).json({ error: 'Profile not found' });
       }
 
-      const { wavesSurvived, enemiesKilled, score, accuracy, durationMs } = req.body;
+      const { wavesSurvived, enemiesKilled, score, accuracy, durationMs, charsTyped } = req.body;
       if (wavesSurvived == null || score == null) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       const xpResult = await saveTowerDefenseRun(user.id, profile.username, {
-        wavesSurvived, enemiesKilled, score, accuracy, durationMs
+        wavesSurvived, enemiesKilled, score, accuracy, durationMs, charsTyped: charsTyped || 0
       });
 
       updateChallengeProgress(user.id, 'complete_towerdefense', 1).catch(() => {});
@@ -316,6 +317,43 @@ function setupAuthRoutes(app) {
       res.json({ success: true, xp: xpResult });
     } catch (err) {
       console.error('Tower defense result error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // --- UPGRADE ROUTES ---
+
+  app.post('/api/upgrade/char-value', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const result = await upgradeCharValue(user.id);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      const newLevel = result.newLevel;
+      const upgrade = CHAR_VALUE_UPGRADES[newLevel] || CHAR_VALUE_UPGRADES[0];
+      const nextUpgrade = CHAR_VALUE_UPGRADES[newLevel + 1] || null;
+
+      res.json({
+        success: true,
+        newLevel,
+        newBalance: result.newBalance,
+        charValue: upgrade.value,
+        nextCost: nextUpgrade ? nextUpgrade.cost : null
+      });
+    } catch (err) {
+      console.error('Upgrade char value error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

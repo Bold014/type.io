@@ -344,6 +344,7 @@ function handleRoundComplete(io, game, socketId, data) {
     correctedErrors,
     score,
     time: elapsedMs,
+    charsTyped,
     username: game.players[socketId].username
   };
 
@@ -516,8 +517,13 @@ async function endMatch(io, game) {
       return sum + (opScore ? opScore.wpm : 0);
     }, 0) / game.roundResults.length;
 
+    const totalCharsTyped = game.roundResults.reduce((sum, r) => {
+      const myScore = r.scores.find(s => s.username === player.username);
+      return sum + (myScore ? (myScore.charsTyped || 0) : 0);
+    }, 0);
+
     if (game.mode === 'ranked') {
-      const result = await updateStats(player.userId, won, avgWpm, opponentRating, game.mode, totalTimeMs);
+      const result = await updateStats(player.userId, won, avgWpm, opponentRating, game.mode, totalTimeMs, totalCharsTyped);
       if (result) {
         ratingChanges[player.username] = result;
         xpChanges[player.username] = {
@@ -527,7 +533,9 @@ async function endMatch(io, game) {
           newLevel: result.newLevel,
           isPb: result.isPb,
           coinsGained: result.coinsGained,
-          newCoins: result.newCoins
+          newCoins: result.newCoins,
+          charsTyped: result.charsTyped,
+          charValue: result.charValue
         };
         saveMatchResult(player.userId, {
           opponentUsername,
@@ -542,7 +550,7 @@ async function endMatch(io, game) {
         });
       }
     } else {
-      const result = await updateXpOnly(player.userId, won, avgWpm, game.mode, totalTimeMs);
+      const result = await updateXpOnly(player.userId, won, avgWpm, game.mode, totalTimeMs, totalCharsTyped);
       if (result) {
         xpChanges[player.username] = result;
         saveMatchResult(player.userId, {
@@ -617,17 +625,22 @@ async function handleDisconnect(io, socketId) {
         }, 0) / game.roundResults.length
       : 0;
 
+    const opTotalChars = game.roundResults.reduce((sum, r) => {
+      const myScore = r.scores.find(s => s.username === opPlayer.username);
+      return sum + (myScore ? (myScore.charsTyped || 0) : 0);
+    }, 0);
+
     let ratingChange = null;
     let xpGain = null;
 
     if (game.mode === 'ranked') {
-      const result = await updateStats(opPlayer.userId, true, avgWpm, dcPlayerRating, game.mode, totalTimeMs);
+      const result = await updateStats(opPlayer.userId, true, avgWpm, dcPlayerRating, game.mode, totalTimeMs, opTotalChars);
       if (result) {
         ratingChange = result;
-        xpGain = { xpGained: result.xpGained, newXp: result.newXp, oldLevel: result.oldLevel, newLevel: result.newLevel, isPb: result.isPb };
+        xpGain = { xpGained: result.xpGained, newXp: result.newXp, oldLevel: result.oldLevel, newLevel: result.newLevel, isPb: result.isPb, coinsGained: result.coinsGained, newCoins: result.newCoins, charsTyped: result.charsTyped, charValue: result.charValue };
       }
     } else {
-      const result = await updateXpOnly(opPlayer.userId, true, avgWpm, game.mode, totalTimeMs);
+      const result = await updateXpOnly(opPlayer.userId, true, avgWpm, game.mode, totalTimeMs, opTotalChars);
       if (result) xpGain = result;
     }
 
@@ -656,10 +669,15 @@ async function handleDisconnect(io, socketId) {
         }, 0) / game.roundResults.length
       : 0;
 
+    const dcChars = game.roundResults.reduce((sum, r) => {
+      const myScore = r.scores.find(s => s.username === game.players[socketId].username);
+      return sum + (myScore ? (myScore.charsTyped || 0) : 0);
+    }, 0);
+
     if (game.mode === 'ranked') {
-      await updateStats(game.players[socketId].userId, false, avgWpm, opPlayer.rating, game.mode, totalTimeMs);
+      await updateStats(game.players[socketId].userId, false, avgWpm, opPlayer.rating, game.mode, totalTimeMs, dcChars);
     } else {
-      await updateXpOnly(game.players[socketId].userId, false, avgWpm, game.mode, totalTimeMs);
+      await updateXpOnly(game.players[socketId].userId, false, avgWpm, game.mode, totalTimeMs, dcChars);
     }
   }
 

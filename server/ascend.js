@@ -322,7 +322,8 @@ function joinLobby(io, socket) {
     startTime: null,
     knockouts: 0,
     floorHeight: 0,
-    started: false
+    started: false,
+    totalCharsTyped: 0
   };
 
   lobby.players.set(socket.id, player);
@@ -575,6 +576,7 @@ function handleTypingUpdate(io, lobby, socketId, data) {
   } else if (pos > combo.lastPosition) {
     const charsTyped = pos - combo.lastPosition;
     combo.comboChars += charsTyped;
+    player.totalCharsTyped = (player.totalCharsTyped || 0) + charsTyped;
 
     player.momentumProgress += charsTyped;
     const threshold = MOMENTUM_THRESHOLDS[Math.min(player.momentum - 1, MOMENTUM_THRESHOLDS.length - 1)];
@@ -806,7 +808,7 @@ async function endRun(io, lobby, socketId) {
   let xpGain = null;
   const tier = player.finalTier || player.tier;
   if (player.userId) {
-    xpGain = await updateXpOnly(player.userId, false, avgWpm, 'ascend', totalTimeMs, { tier });
+    xpGain = await updateXpOnly(player.userId, false, avgWpm, 'ascend', totalTimeMs, player.totalCharsTyped || 0);
 
     await saveAscendRun(
       player.userId,

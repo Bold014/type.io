@@ -214,6 +214,12 @@ const UI = (() => {
     rankedSub: document.getElementById('ranked-sub'),
     rankedLock: document.getElementById('ranked-lock'),
 
+    globalChatMessages: document.getElementById('global-chat-messages'),
+    globalChatInput: document.getElementById('global-chat-input'),
+    globalChatSend: document.getElementById('global-chat-send'),
+    globalChatInputArea: document.getElementById('global-chat-input-area'),
+    globalChatLoginHint: document.getElementById('global-chat-login-hint'),
+
     btnAscendLobbyBack: document.getElementById('btn-ascend-lobby-back'),
     btnAscendLobbyStart: document.getElementById('btn-ascend-lobby-start'),
 
@@ -389,7 +395,7 @@ const UI = (() => {
 
   const PLACEMENT_GAMES = 5;
 
-  function updateCoinDisplay(coins) {
+  function updateMoneyDisplay(coins) {
     const c = coins || 0;
     if (els.homeCoinPill) {
       els.homeCoinPill.style.display = c >= 0 ? '' : 'none';
@@ -400,11 +406,11 @@ const UI = (() => {
     }
   }
 
+  function updateCoinDisplay(coins) { updateMoneyDisplay(coins); }
+
   function setHomeUser(username, isLoggedIn, rating, xp, rankedGamesPlayed, coins, equipped) {
     els.homeUsername.textContent = username.toUpperCase();
-    const usernameColor = getEquippedColor(equipped);
-    if (usernameColor) els.homeUsername.style.color = usernameColor;
-    else els.homeUsername.style.color = '';
+    applyUsernameStyle(els.homeUsername, equipped);
     const badgeIcon = getEquippedBadge(equipped);
     const titleText = getEquippedTitle(equipped);
     if (els.homeBadgeIcon) {
@@ -416,7 +422,7 @@ const UI = (() => {
       els.homeTitle.style.display = titleText ? '' : 'none';
     }
     if (isLoggedIn) {
-      updateCoinDisplay(coins || 0);
+      updateMoneyDisplay(coins || 0);
       if (els.btnLandingShop) els.btnLandingShop.style.display = '';
       const level = xpToLevel(xp || 0);
       const rgp = rankedGamesPlayed || 0;
@@ -690,14 +696,16 @@ const UI = (() => {
     const myTitle = getEquippedTitle(myEquipped);
     const oppBadge = getEquippedBadge(opponentEquipped);
     const oppTitle = getEquippedTitle(opponentEquipped);
-    const myColor = getEquippedColor(myEquipped);
-    const oppColor = getEquippedColor(opponentEquipped);
-    els.vsIntroLeft.innerHTML = `<span class="vs-name" style="color:${myColor || 'inherit'}">${escapeHtml(playerName)}</span>` +
+    els.vsIntroLeft.innerHTML = `<span class="vs-name">${escapeHtml(playerName)}</span>` +
       (myBadge && BADGE_SVGS[myBadge] ? `<span class="vs-badge-icon">${BADGE_SVGS[myBadge]}</span>` : '') +
       (myTitle ? `<span class="vs-title">${escapeHtml(myTitle)}</span>` : '');
-    els.vsIntroRight.innerHTML = `<span class="vs-name" style="color:${oppColor || 'inherit'}">${escapeHtml(opponentName)}</span>` +
+    els.vsIntroRight.innerHTML = `<span class="vs-name">${escapeHtml(opponentName)}</span>` +
       (oppBadge && BADGE_SVGS[oppBadge] ? `<span class="vs-badge-icon">${BADGE_SVGS[oppBadge]}</span>` : '') +
       (oppTitle ? `<span class="vs-title">${escapeHtml(oppTitle)}</span>` : '');
+    const myNameEl = els.vsIntroLeft.querySelector('.vs-name');
+    const oppNameEl = els.vsIntroRight.querySelector('.vs-name');
+    if (myNameEl) applyUsernameStyle(myNameEl, myEquipped);
+    if (oppNameEl) applyUsernameStyle(oppNameEl, opponentEquipped);
     els.vsIntroLeft.style.color = '';
     els.vsIntroRight.style.color = '';
 
@@ -880,14 +888,8 @@ const UI = (() => {
 
     els.profileUsername.textContent = (profile.username || '').toUpperCase();
     els.profileHomeUsername.textContent = (profile.username || '').toUpperCase();
-    const profileColor = getEquippedColor(profile.equipped);
-    if (profileColor) {
-      els.profileUsername.style.color = profileColor;
-      els.profileHomeUsername.style.color = profileColor;
-    } else {
-      els.profileUsername.style.color = '';
-      els.profileHomeUsername.style.color = '';
-    }
+    applyUsernameStyle(els.profileUsername, profile.equipped);
+    applyUsernameStyle(els.profileHomeUsername, profile.equipped);
     const profileBadgeIcon = getEquippedBadge(profile.equipped);
     const profileTitleText = getEquippedTitle(profile.equipped);
     if (els.profileHomeBadgeIcon) {
@@ -1138,10 +1140,13 @@ const UI = (() => {
 
   const CATEGORY_LABELS = {
     username_color: 'COLORS',
+    username_gradient: 'GRADIENTS',
+    name_effect: 'EFFECTS',
     cursor_skin: 'CURSORS',
     badge: 'BADGES',
     title: 'TITLES',
-    chat_emote: 'EMOTES'
+    chat_emote: 'EMOTES',
+    upgrades: 'UPGRADES'
   };
 
   const BADGE_SVGS = {
@@ -1150,7 +1155,8 @@ const UI = (() => {
     crown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h20v2H2zm1-7l4-7 5 4 4.5-6L21 13v5H3z"/></svg>',
     flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 23c-3.6 0-7-2.5-7-7 0-3.2 2-5.5 3.5-7.5.4-.5 1.2-.3 1.3.3.3 1 .8 1.8 1.5 2.5.1-.8.5-1.8 1.2-2.8 1.2-1.7 2-3.5 2-5.5 0-.5.5-.8 1-.5C18.5 5 20 8.5 20 11.5c0 6.5-4.5 11.5-8 11.5z"/></svg>',
     skull: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.5 4.5 8.3V22h3v-1h5v1h3v-1.7C20.2 18.5 22 15.5 22 12c0-5.5-4.5-10-10-10zM8.5 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm7 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>',
-    heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
+    heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+    diamond: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 22,9 12,22 2,9"/></svg>'
   };
 
   function renderShopItemPreview(item) {
@@ -1158,10 +1164,17 @@ const UI = (() => {
     switch (item.category) {
       case 'username_color':
         return `<span class="shop-preview-color" style="background:${d.hex || '#fff'}"></span>`;
+      case 'username_gradient':
+        return `<span class="shop-preview-gradient" style="background:linear-gradient(90deg,${d.from || '#fff'},${d.to || '#fff'})">${escapeHtml(item.name)}</span>`;
+      case 'name_effect':
+        return `<span class="shop-preview-effect name-effect-${d.effect || 'glow'}" style="color:#fff">${escapeHtml(item.name)}</span>`;
       case 'cursor_skin':
         return `<span class="shop-preview-cursor shop-cursor-${d.style || 'block'}"></span>`;
-      case 'badge':
-        return `<span class="shop-preview-badge">${BADGE_SVGS[d.icon] || ''}</span>`;
+      case 'badge': {
+        const icon = d.icon || '';
+        const animated = d.animated ? (icon === 'diamond' ? ' badge-diamond' : ' badge-animated') : '';
+        return `<span class="shop-preview-badge${animated}">${BADGE_SVGS[icon] || ''}</span>`;
+      }
       case 'title':
         return `<span class="shop-preview-title">${escapeHtml(d.text || item.name)}</span>`;
       case 'chat_emote':
@@ -1171,9 +1184,14 @@ const UI = (() => {
     }
   }
 
-  function renderShop(items, inventory, equipped, coins, category) {
+  function renderShop(items, inventory, equipped, coins, category, upgradeData) {
     if (!els.shopGrid) return;
-    updateCoinDisplay(coins);
+    updateMoneyDisplay(coins);
+
+    if (category === 'upgrades') {
+      renderUpgradePanel(upgradeData || {});
+      return;
+    }
 
     const ownedSet = new Set((inventory || []).map(i => i.item_id));
     const equippedMap = {};
@@ -1193,7 +1211,7 @@ const UI = (() => {
       const levelLocked = item.level_required > 0;
 
       let stateClass = '';
-      let btnText = `${item.price} <span class="coin-icon-xs"></span>`;
+      let btnText = `<span class="shop-card-price">$${item.price.toLocaleString()}</span>`;
       let btnClass = 'shop-card-btn shop-btn-buy';
 
       if (isEquipped) {
@@ -1214,6 +1232,107 @@ const UI = (() => {
       </div>`;
     }
     els.shopGrid.innerHTML = html;
+  }
+
+  const CHAR_VALUE_UPGRADES = [
+    { level: 0, value: 1,   cost: 0 },
+    { level: 1, value: 2,   cost: 500 },
+    { level: 2, value: 4,   cost: 2000 },
+    { level: 3, value: 7,   cost: 8000 },
+    { level: 4, value: 12,  cost: 30000 },
+    { level: 5, value: 20,  cost: 100000 },
+    { level: 6, value: 35,  cost: 350000 },
+    { level: 7, value: 60,  cost: 1000000 },
+    { level: 8, value: 100, cost: 3000000 },
+    { level: 9, value: 175, cost: 10000000 },
+  ];
+
+  function renderUpgradePanel(data) {
+    if (!els.shopGrid) return;
+    const level = data.charValueLevel || 0;
+    const current = CHAR_VALUE_UPGRADES[level] || CHAR_VALUE_UPGRADES[0];
+    const next = CHAR_VALUE_UPGRADES[level + 1] || null;
+    const totalChars = data.totalCharsTyped || 0;
+    const balance = data.coins || 0;
+    const isMax = !next;
+    const canAfford = next && balance >= next.cost;
+
+    let html = `<div class="upgrade-panel">
+      <div class="upgrade-level-display">
+        <div class="upgrade-level-label">Character Value Level</div>
+        <div class="upgrade-level-num">${level}</div>
+      </div>
+      <div class="upgrade-char-value">$${current.value} per character</div>
+      <div class="upgrade-stat-row">
+        <span>Total characters typed</span>
+        <span class="upgrade-stat-value">${totalChars.toLocaleString()}</span>
+      </div>
+      <div class="upgrade-stat-row">
+        <span>Total earned (lifetime)</span>
+        <span class="upgrade-stat-value">$${(totalChars * current.value).toLocaleString()}</span>
+      </div>`;
+
+    if (!isMax) {
+      const pct = Math.min(100, Math.round((balance / next.cost) * 100));
+      html += `
+      <div class="upgrade-stat-row">
+        <span>Next: $${(CHAR_VALUE_UPGRADES[level + 1].value)} / char</span>
+        <span class="upgrade-stat-value">$${next.cost.toLocaleString()}</span>
+      </div>
+      <div class="upgrade-progress"><div class="upgrade-progress-fill" style="width:${pct}%"></div></div>
+      <button class="upgrade-btn" id="btn-upgrade-char-value" ${canAfford ? '' : 'disabled'}>
+        UPGRADE — $${next.cost.toLocaleString()}
+      </button>`;
+    } else {
+      html += `<button class="upgrade-btn upgrade-btn-max" disabled>MAX LEVEL</button>`;
+    }
+
+    html += `</div>`;
+    els.shopGrid.innerHTML = html;
+  }
+
+  function updateHomeUpgradeWidget(data) {
+    const widget = document.getElementById('home-upgrade-widget');
+    if (!widget) return;
+    const level = data.charValueLevel || 0;
+    const current = CHAR_VALUE_UPGRADES[level] || CHAR_VALUE_UPGRADES[0];
+    const next = CHAR_VALUE_UPGRADES[level + 1] || null;
+    const totalChars = data.totalCharsTyped || 0;
+    const balance = data.coins || 0;
+    const isMax = !next;
+
+    widget.style.display = '';
+
+    const valEl = document.getElementById('home-upgrade-value');
+    const lvlEl = document.getElementById('home-upgrade-level');
+    const charsEl = document.getElementById('home-upgrade-total-chars');
+    const costEl = document.getElementById('home-upgrade-cost');
+    const btn = document.getElementById('btn-home-upgrade');
+    const progressFill = document.getElementById('home-upgrade-progress-fill');
+
+    if (valEl) valEl.textContent = '$' + current.value;
+    if (lvlEl) lvlEl.textContent = level;
+    if (charsEl) charsEl.textContent = totalChars.toLocaleString();
+
+    if (isMax) {
+      if (btn) {
+        btn.textContent = 'MAX LEVEL';
+        btn.disabled = true;
+        btn.classList.add('maxed');
+      }
+      if (progressFill) progressFill.style.width = '100%';
+    } else {
+      if (costEl) costEl.textContent = next.cost.toLocaleString();
+      if (btn) {
+        btn.innerHTML = 'UPGRADE — $<span id="home-upgrade-cost">' + next.cost.toLocaleString() + '</span>';
+        btn.disabled = balance < next.cost;
+        btn.classList.remove('maxed');
+      }
+      if (progressFill) {
+        const pct = Math.min(100, Math.round((balance / next.cost) * 100));
+        progressFill.style.width = pct + '%';
+      }
+    }
   }
 
   // --- CHALLENGE RENDERING ---
@@ -1238,7 +1357,7 @@ const UI = (() => {
       html += `<div class="challenge-card${done ? ' challenge-done' : ''}">
         <div class="challenge-info">
           <span class="challenge-desc">${escapeHtml(desc)}</span>
-          <span class="challenge-reward">${done ? 'DONE' : c.coin_reward + ' <span class="coin-icon-xs"></span>'}</span>
+          <span class="challenge-reward">${done ? 'DONE' : '$' + c.coin_reward.toLocaleString()}</span>
         </div>
         <div class="challenge-bar-row">
           <div class="challenge-progress-bar">
@@ -1270,7 +1389,7 @@ const UI = (() => {
 
   // --- COIN GAIN DISPLAY ---
 
-  function showCoinGain(coinsGained, target) {
+  function showMoneyGain(moneyGained, target, charsTyped, charValue) {
     const displayEl = target === 'ascend' ? els.ascendCoinGainDisplay
       : target === 'tt' ? els.ttCoinGainDisplay
       : target === 'td' ? els.tdCoinGainDisplay
@@ -1280,15 +1399,30 @@ const UI = (() => {
       : target === 'td' ? els.tdCoinGainAmount
       : els.coinGainAmount;
 
+    const breakdownElId = target === 'ascend' ? 'ascend-coin-gain-breakdown'
+      : target === 'tt' ? 'tt-coin-gain-breakdown'
+      : target === 'td' ? 'td-coin-gain-breakdown'
+      : 'coin-gain-breakdown';
+    const breakdownEl = document.getElementById(breakdownElId);
+
     if (!displayEl || !amountEl) return;
 
-    if (!coinsGained || coinsGained <= 0) {
+    if (!moneyGained || moneyGained <= 0) {
       displayEl.style.display = 'none';
       return;
     }
 
-    amountEl.textContent = `+${coinsGained}`;
+    amountEl.textContent = `+$${moneyGained.toLocaleString()}`;
+    if (breakdownEl && charsTyped && charValue) {
+      breakdownEl.textContent = `${charsTyped.toLocaleString()} chars × $${charValue}`;
+    } else if (breakdownEl) {
+      breakdownEl.textContent = '';
+    }
     displayEl.style.display = '';
+  }
+
+  function showCoinGain(coinsGained, target, charsTyped, charValue) {
+    showMoneyGain(coinsGained, target, charsTyped, charValue);
   }
 
   function getEquippedColor(equipped) {
@@ -1306,6 +1440,11 @@ const UI = (() => {
     const e = equipped.find(x => x.category === 'badge');
     return (e && e.data && e.data.icon) ? e.data.icon : null;
   }
+  function getEquippedBadgeAnimated(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return false;
+    const e = equipped.find(x => x.category === 'badge');
+    return (e && e.data && e.data.animated) ? true : false;
+  }
   function getEquippedTitle(equipped) {
     if (!equipped || !Array.isArray(equipped)) return null;
     const e = equipped.find(x => x.category === 'title');
@@ -1315,6 +1454,52 @@ const UI = (() => {
     if (!equipped || !Array.isArray(equipped)) return [];
     const e = equipped.find(x => x.category === 'chat_emote');
     return (e && e.data && e.data.text) ? [e.data.text] : [];
+  }
+  function getEquippedNameEffect(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'name_effect');
+    return (e && e.data && e.data.effect) ? e.data.effect : null;
+  }
+  function getEquippedGradient(equipped) {
+    if (!equipped || !Array.isArray(equipped)) return null;
+    const e = equipped.find(x => x.category === 'username_gradient');
+    return (e && e.data) ? { from: e.data.from, to: e.data.to } : null;
+  }
+
+  function applyUsernameStyle(el, equipped) {
+    if (!el) return;
+    el.className = el.className.replace(/\bname-effect-\w+\b/g, '').replace(/\bname-gradient\b/g, '').trim();
+    el.style.color = '';
+    el.style.background = '';
+    el.style.backgroundClip = '';
+    el.style.webkitBackgroundClip = '';
+    el.style.textShadow = '';
+
+    const gradient = getEquippedGradient(equipped);
+    if (gradient) {
+      el.style.background = `linear-gradient(90deg, ${gradient.from}, ${gradient.to})`;
+      el.style.backgroundClip = 'text';
+      el.style.webkitBackgroundClip = 'text';
+      el.style.color = 'transparent';
+      el.classList.add('name-gradient');
+    } else {
+      const color = getEquippedColor(equipped);
+      if (color) el.style.color = color;
+    }
+
+    const effect = getEquippedNameEffect(equipped);
+    if (effect) {
+      el.classList.add('name-effect-' + effect);
+    }
+  }
+
+  function applyUsernameStyleInline(equipped) {
+    const gradient = getEquippedGradient(equipped);
+    if (gradient) {
+      return `background:linear-gradient(90deg,${gradient.from},${gradient.to});-webkit-background-clip:text;background-clip:text;color:transparent`;
+    }
+    const color = getEquippedColor(equipped);
+    return color ? `color:${color}` : '';
   }
 
   return {
@@ -1327,8 +1512,12 @@ const UI = (() => {
     showVsIntro, hideVsIntro, setSentenceHidden, showFinishTimer, hideFinishTimer,
     showProfile, showLeaderboard, showTimeTrialProfile, isPlaceholderEmail, getRankTier,
     xpToLevel, renderHeaderLevel, showXpGain, showLevelUp, getLevelBadge,
-    renderHomeMiniLeaderboard, updateCoinDisplay,
-    renderShop, renderChallenges, showCoinGain,
-    getEquippedColor, getEquippedCursorSkin, getEquippedBadge, getEquippedTitle, getEquippedEmotes
+    renderHomeMiniLeaderboard, updateCoinDisplay, updateMoneyDisplay,
+    renderShop, renderChallenges, showCoinGain, showMoneyGain,
+    renderUpgradePanel, updateHomeUpgradeWidget, applyUsernameStyle,
+    getEquippedColor, getEquippedCursorSkin, getEquippedBadge, getEquippedBadgeAnimated,
+    getEquippedTitle, getEquippedEmotes, getEquippedNameEffect, getEquippedGradient,
+    BADGE_SVGS, escapeHtml, applyUsernameStyleInline,
+    CHAR_VALUE_UPGRADES
   };
 })();

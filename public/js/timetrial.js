@@ -331,7 +331,7 @@ const TimeTrial = (() => {
         xpDisplay.style.display = '';
 
         if (xp.coinsGained) {
-          UI.showCoinGain(xp.coinsGained, 'tt');
+          UI.showMoneyGain(xp.coinsGained, 'tt', xp.charsTyped, xp.charValue);
         }
       }
     } catch (_) {}

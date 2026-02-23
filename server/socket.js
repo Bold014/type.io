@@ -10,6 +10,12 @@ let roomCounter = 0;
 const emoteLastSent = new Map();
 const EMOTE_COOLDOWN_MS = 3000;
 
+const GLOBAL_CHAT_MAX = 50;
+const GLOBAL_CHAT_COOLDOWN_MS = 2000;
+const GLOBAL_CHAT_MAX_LEN = 200;
+const globalChatHistory = [];
+const globalChatLastSent = new Map();
+
 function setupSocketHandlers(io) {
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -129,10 +135,50 @@ function setupSocketHandlers(io) {
       if (lobby) ascend.handleSentenceComplete(io, lobby, socket.id, data);
     });
 
+    socket.on('globalchat:join', () => {
+      socket.join('global-chat');
+      socket.emit('globalchat:history', globalChatHistory);
+    });
+
+    socket.on('globalchat:leave', () => {
+      socket.leave('global-chat');
+    });
+
+    socket.on('globalchat:send', async (data) => {
+      if (!socket.data.userId || !socket.data.username) return;
+      const text = (data && data.text && String(data.text).trim()) || '';
+      if (!text || text.length > GLOBAL_CHAT_MAX_LEN) return;
+
+      const now = Date.now();
+      const last = globalChatLastSent.get(socket.id) || 0;
+      if (now - last < GLOBAL_CHAT_COOLDOWN_MS) return;
+      globalChatLastSent.set(socket.id, now);
+
+      let equipped = [];
+      try {
+        equipped = await getUserEquippedWithItems(socket.data.userId) || [];
+      } catch (_) {}
+
+      const msg = {
+        username: socket.data.username,
+        equipped,
+        text,
+        timestamp: now
+      };
+
+      globalChatHistory.push(msg);
+      if (globalChatHistory.length > GLOBAL_CHAT_MAX) {
+        globalChatHistory.shift();
+      }
+
+      io.to('global-chat').emit('globalchat:message', msg);
+    });
+
     socket.on('disconnect', () => {
       matchmaking.removeFromQueue(socket.id);
       handleDisconnect(io, socket.id);
       ascend.handleDisconnect(io, socket.id);
+      globalChatLastSent.delete(socket.id);
     });
   });
 }

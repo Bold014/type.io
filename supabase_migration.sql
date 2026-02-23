@@ -111,48 +111,74 @@ BEGIN
 END;
 $$;
 
--- 8. Seed shop items (exponential pricing within each category)
+-- 8. Seed shop items (rebalanced for character-based $money economy)
 INSERT INTO shop_items (id, category, name, price, data, sort_order, level_required) VALUES
-  -- Username Colors (~1.6x multiplier per tier)
-  ('color_crimson',  'username_color', 'Crimson',   100, '{"hex":"#ef4444"}', 1, 0),
-  ('color_sunset',   'username_color', 'Sunset',    175, '{"hex":"#f97316"}', 2, 0),
-  ('color_gold',     'username_color', 'Gold',      300, '{"hex":"#eab308"}', 3, 0),
-  ('color_emerald',  'username_color', 'Emerald',   500, '{"hex":"#22c55e"}', 4, 0),
-  ('color_cyan',     'username_color', 'Cyan',      850, '{"hex":"#06b6d4"}', 5, 0),
-  ('color_royal',    'username_color', 'Royal',    1400, '{"hex":"#3b82f6"}', 6, 0),
-  ('color_violet',   'username_color', 'Violet',   2400, '{"hex":"#8b5cf6"}', 7, 0),
-  ('color_pink',     'username_color', 'Pink',     4000, '{"hex":"#ec4899"}', 8, 0),
-  -- Cursor Skins (~2.5x multiplier per tier)
-  ('cursor_block',     'cursor_skin', 'Block',      150, '{"style":"block"}',     1, 0),
-  ('cursor_underline', 'cursor_skin', 'Underline',  400, '{"style":"underline"}', 2, 0),
-  ('cursor_line',      'cursor_skin', 'Line',      1000, '{"style":"line"}',      3, 5),
-  ('cursor_dot',       'cursor_skin', 'Dot',       2500, '{"style":"dot"}',       4, 10),
-  -- Badges (~2.3x multiplier per tier, ordered by level)
-  ('badge_star',      'badge', 'Star',       200, '{"icon":"star"}',      1, 0),
-  ('badge_heart',     'badge', 'Heart',      500, '{"icon":"heart"}',     2, 0),
-  ('badge_lightning', 'badge', 'Lightning', 1200, '{"icon":"lightning"}', 3, 5),
-  ('badge_crown',     'badge', 'Crown',     2800, '{"icon":"crown"}',    4, 10),
-  ('badge_flame',     'badge', 'Flame',     6500, '{"icon":"flame"}',    5, 15),
-  ('badge_skull',     'badge', 'Skull',    15000, '{"icon":"skull"}',    6, 20),
-  -- Titles (~1.8x multiplier per tier, ordered by level)
-  ('title_speedster',         'title', 'Speedster',          400, '{"text":"Speedster"}',         1, 5),
-  ('title_word_smith',        'title', 'Word Smith',         750, '{"text":"Word Smith"}',        2, 5),
-  ('title_ghost',             'title', 'Ghost',             1400, '{"text":"Ghost"}',             3, 10),
-  ('title_iron_fingers',      'title', 'Iron Fingers',      2500, '{"text":"Iron Fingers"}',      4, 10),
-  ('title_the_machine',       'title', 'The Machine',       4500, '{"text":"The Machine"}',       5, 15),
-  ('title_keyboard_warrior',  'title', 'Keyboard Warrior',  8000, '{"text":"Keyboard Warrior"}',  6, 15),
-  ('title_untouchable',       'title', 'Untouchable',      14000, '{"text":"Untouchable"}',       7, 20),
-  ('title_type_god',          'title', 'Type God',         25000, '{"text":"Type God"}',          8, 25),
-  -- Chat Emotes (~2.2x multiplier per tier, ordered by level)
-  ('emote_gg',      'chat_emote', 'gg',         50, '{"text":"gg"}',        1, 0),
-  ('emote_nice',    'chat_emote', 'nice',       125, '{"text":"nice"}',      2, 0),
-  ('emote_close',   'chat_emote', 'close one',  300, '{"text":"close one"}', 3, 0),
-  ('emote_rematch', 'chat_emote', 'rematch?',   700, '{"text":"rematch?"}',  4, 0),
-  ('emote_easy',    'chat_emote', 'too easy',  1600, '{"text":"too easy"}',  5, 5),
-  ('emote_wow',     'chat_emote', 'wow',       3500, '{"text":"wow"}',       6, 5)
+  -- Username Colors (solid)
+  ('color_crimson',  'username_color', 'Crimson',    1000, '{"hex":"#ef4444"}', 1, 0),
+  ('color_sunset',   'username_color', 'Sunset',     5000, '{"hex":"#f97316"}', 2, 0),
+  ('color_gold',     'username_color', 'Gold',      10000, '{"hex":"#eab308"}', 3, 0),
+  ('color_emerald',  'username_color', 'Emerald',   20000, '{"hex":"#22c55e"}', 4, 0),
+  ('color_cyan',     'username_color', 'Cyan',      40000, '{"hex":"#06b6d4"}', 5, 5),
+  ('color_royal',    'username_color', 'Royal',     75000, '{"hex":"#3b82f6"}', 6, 5),
+  ('color_violet',   'username_color', 'Violet',   150000, '{"hex":"#8b5cf6"}', 7, 10),
+  ('color_pink',     'username_color', 'Pink',     300000, '{"hex":"#ec4899"}', 8, 10),
+  -- Gradient Colors (two-tone)
+  ('grad_sunset_fade', 'username_gradient', 'Sunset Fade',  100000, '{"from":"#f97316","to":"#ec4899"}', 1, 10),
+  ('grad_ocean_depth', 'username_gradient', 'Ocean Depth',  100000, '{"from":"#3b82f6","to":"#06b6d4"}', 2, 10),
+  ('grad_aurora',      'username_gradient', 'Aurora',       250000, '{"from":"#22c55e","to":"#8b5cf6"}', 3, 15),
+  ('grad_lava',        'username_gradient', 'Lava',         250000, '{"from":"#ef4444","to":"#eab308"}', 4, 15),
+  ('grad_twilight',    'username_gradient', 'Twilight',     500000, '{"from":"#8b5cf6","to":"#1e3a5f"}', 5, 20),
+  ('grad_gold_rush',   'username_gradient', 'Gold Rush',    500000, '{"from":"#eab308","to":"#ffffff"}', 6, 20),
+  ('grad_toxic',       'username_gradient', 'Toxic',       1000000, '{"from":"#22c55e","to":"#d4ff00"}', 7, 25),
+  ('grad_void',        'username_gradient', 'Void',        2000000, '{"from":"#6b21a8","to":"#0a0a0a"}', 8, 30),
+  -- Name Effects (premium)
+  ('effect_glow',      'name_effect', 'Glow',         50000, '{"effect":"glow"}',      1, 5),
+  ('effect_pulse',     'name_effect', 'Pulse',        150000, '{"effect":"pulse"}',     2, 10),
+  ('effect_neon',      'name_effect', 'Neon',         400000, '{"effect":"neon"}',      3, 15),
+  ('effect_rainbow',   'name_effect', 'Rainbow',     1000000, '{"effect":"rainbow"}',   4, 20),
+  ('effect_fire',      'name_effect', 'Fire',        2500000, '{"effect":"fire"}',      5, 25),
+  ('effect_ice',       'name_effect', 'Ice',         2500000, '{"effect":"ice"}',       6, 25),
+  ('effect_glitch',    'name_effect', 'Glitch',      5000000, '{"effect":"glitch"}',    7, 30),
+  ('effect_chromatic', 'name_effect', 'Chromatic',  10000000, '{"effect":"chromatic"}', 8, 35),
+  -- Cursor Skins
+  ('cursor_block',     'cursor_skin', 'Block',       2000, '{"style":"block"}',     1, 0),
+  ('cursor_underline', 'cursor_skin', 'Underline',   8000, '{"style":"underline"}', 2, 0),
+  ('cursor_line',      'cursor_skin', 'Line',       25000, '{"style":"line"}',      3, 5),
+  ('cursor_dot',       'cursor_skin', 'Dot',        75000, '{"style":"dot"}',       4, 10),
+  -- Badges
+  ('badge_star',           'badge', 'Star',            3000, '{"icon":"star"}',           1, 0),
+  ('badge_heart',          'badge', 'Heart',          10000, '{"icon":"heart"}',          2, 0),
+  ('badge_lightning',      'badge', 'Lightning',      30000, '{"icon":"lightning"}',      3, 5),
+  ('badge_crown',          'badge', 'Crown',          80000, '{"icon":"crown"}',          4, 10),
+  ('badge_flame',          'badge', 'Flame',         200000, '{"icon":"flame"}',          5, 15),
+  ('badge_skull',          'badge', 'Skull',         500000, '{"icon":"skull"}',          6, 20),
+  ('badge_flame_animated', 'badge', 'Animated Flame', 750000, '{"icon":"flame","animated":true}', 7, 20),
+  ('badge_crown_animated', 'badge', 'Animated Crown',1500000, '{"icon":"crown","animated":true}', 8, 25),
+  ('badge_diamond',        'badge', 'Diamond',       3000000, '{"icon":"diamond","animated":true}', 9, 30),
+  -- Titles
+  ('title_speedster',         'title', 'Speedster',           5000, '{"text":"Speedster"}',         1, 5),
+  ('title_word_smith',        'title', 'Word Smith',         15000, '{"text":"Word Smith"}',        2, 5),
+  ('title_ghost',             'title', 'Ghost',              35000, '{"text":"Ghost"}',             3, 10),
+  ('title_iron_fingers',      'title', 'Iron Fingers',       75000, '{"text":"Iron Fingers"}',      4, 10),
+  ('title_the_machine',       'title', 'The Machine',       150000, '{"text":"The Machine"}',       5, 15),
+  ('title_keyboard_warrior',  'title', 'Keyboard Warrior',  300000, '{"text":"Keyboard Warrior"}',  6, 15),
+  ('title_untouchable',       'title', 'Untouchable',       600000, '{"text":"Untouchable"}',       7, 20),
+  ('title_type_god',          'title', 'Type God',         1000000, '{"text":"Type God"}',          8, 25),
+  ('title_transcendent',      'title', 'Transcendent',     2000000, '{"text":"Transcendent"}',      9, 30),
+  ('title_the_one',           'title', 'The One',          5000000, '{"text":"The One"}',           10, 35),
+  ('title_goat',              'title', 'GOAT',            10000000, '{"text":"GOAT"}',              11, 40),
+  -- Chat Emotes
+  ('emote_gg',      'chat_emote', 'gg',          500, '{"text":"gg"}',        1, 0),
+  ('emote_nice',    'chat_emote', 'nice',       2000, '{"text":"nice"}',      2, 0),
+  ('emote_close',   'chat_emote', 'close one',  5000, '{"text":"close one"}', 3, 0),
+  ('emote_rematch', 'chat_emote', 'rematch?',  15000, '{"text":"rematch?"}',  4, 0),
+  ('emote_easy',    'chat_emote', 'too easy',  40000, '{"text":"too easy"}',  5, 5),
+  ('emote_wow',     'chat_emote', 'wow',      100000, '{"text":"wow"}',       6, 5)
 ON CONFLICT (id) DO UPDATE SET
   price = EXCLUDED.price,
-  sort_order = EXCLUDED.sort_order;
+  data = EXCLUDED.data,
+  sort_order = EXCLUDED.sort_order,
+  level_required = EXCLUDED.level_required;
 
 -- 9. Index for fast inventory/equipped lookups
 CREATE INDEX IF NOT EXISTS idx_user_inventory_user ON user_inventory(user_id);
@@ -189,7 +215,51 @@ CREATE INDEX IF NOT EXISTS idx_td_runs_user ON tower_defense_runs(user_id);
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS best_td_wave integer DEFAULT 0;
 
--- 11. Tower Defense leaderboard RPC
+-- 12. Cookie Clicker economy columns
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS total_chars_typed bigint DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS char_value_level integer DEFAULT 0;
+
+-- 13. RPC: Atomic character value upgrade
+CREATE OR REPLACE FUNCTION upgrade_char_value(p_user_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_level integer;
+  v_coins integer;
+  v_cost integer;
+  v_costs integer[] := ARRAY[0, 500, 2000, 8000, 30000, 100000, 350000, 1000000, 3000000, 10000000];
+BEGIN
+  SELECT char_value_level, coins INTO v_level, v_coins
+  FROM profiles WHERE id = p_user_id;
+
+  IF v_level IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'User not found');
+  END IF;
+
+  IF v_level >= array_length(v_costs, 1) - 1 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Already max level');
+  END IF;
+
+  v_cost := v_costs[v_level + 2];
+
+  IF v_coins < v_cost THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not enough money');
+  END IF;
+
+  UPDATE profiles
+  SET coins = coins - v_cost, char_value_level = char_value_level + 1
+  WHERE id = p_user_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'newLevel', v_level + 1,
+    'newBalance', v_coins - v_cost
+  );
+END;
+$$;
+
+-- 14. Tower Defense leaderboard RPC
 CREATE OR REPLACE FUNCTION get_td_leaderboard(p_limit integer)
 RETURNS TABLE(username text, waves_survived integer, score integer, enemies_killed integer)
 LANGUAGE sql STABLE
@@ -203,3 +273,48 @@ AS $$
   ORDER BY sub.score DESC
   LIMIT p_limit;
 $$;
+
+-- ============================================================
+-- 15. RLS policies for daily_challenges & weekly_challenges
+-- Run this to fix "row-level security policy" insert errors
+-- ============================================================
+
+-- daily_challenges
+ALTER TABLE daily_challenges ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role full access on daily_challenges"
+  ON daily_challenges FOR ALL
+  USING (true) WITH CHECK (true);
+
+CREATE POLICY "Users can view own daily challenges"
+  ON daily_challenges FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own daily challenges"
+  ON daily_challenges FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own daily challenges"
+  ON daily_challenges FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- weekly_challenges
+ALTER TABLE weekly_challenges ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role full access on weekly_challenges"
+  ON weekly_challenges FOR ALL
+  USING (true) WITH CHECK (true);
+
+CREATE POLICY "Users can view own weekly challenges"
+  ON weekly_challenges FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own weekly challenges"
+  ON weekly_challenges FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own weekly challenges"
+  ON weekly_challenges FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
