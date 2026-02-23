@@ -332,6 +332,7 @@ const TimeTrial = (() => {
 
         if (xp.coinsGained) {
           UI.showMoneyGain(xp.coinsGained, 'tt', xp.charsTyped, xp.charValue);
+          window.dispatchEvent(new CustomEvent('money:earned', { detail: { newCoins: xp.newCoins, newTotalChars: xp.newTotalChars } }));
         }
       }
     } catch (_) {}

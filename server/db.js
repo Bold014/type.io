@@ -432,7 +432,7 @@ async function saveTimeTrialRun(userId, username, data) {
 
   await supabase.from('profiles').update(updatePayload).eq('id', userId);
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value, newTotalChars };
 }
 
 async function getTimeTrialLeaderboard(duration, limit = 50) {
@@ -845,7 +845,7 @@ async function saveTowerDefenseRun(userId, username, data) {
 
   await supabase.from('profiles').update(updatePayload).eq('id', userId);
 
-  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value };
+  return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value, newTotalChars };
 }
 
 async function getTowerDefenseLeaderboard(limit = 50) {

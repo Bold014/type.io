@@ -162,6 +162,15 @@
     bindShopEvents();
     TimeTrial.init();
 
+    window.addEventListener('money:earned', (e) => {
+      if (!currentUser) return;
+      const { newCoins, newTotalChars } = e.detail;
+      if (newCoins != null) currentUser.coins = newCoins;
+      if (newTotalChars != null) currentUser.total_chars_typed = newTotalChars;
+      UI.updateMoneyDisplay(currentUser.coins);
+      refreshHomeUpgrade();
+    });
+
     if (sb) {
       try {
         const { data: { session } } = await sb.auth.getSession();

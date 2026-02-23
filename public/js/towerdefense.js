@@ -740,6 +740,7 @@ const TowerDefense = (() => {
 
       if (data.xp && data.xp.coinsGained) {
         UI.showMoneyGain(data.xp.coinsGained, 'td', data.xp.charsTyped, data.xp.charValue);
+        window.dispatchEvent(new CustomEvent('money:earned', { detail: { newCoins: data.xp.newCoins, newTotalChars: data.xp.newTotalChars } }));
       }
     } catch (e) {
       console.error('TD result submit error:', e);

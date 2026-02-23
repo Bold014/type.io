@@ -675,14 +675,13 @@ body {
   flex: 0 0 280px;
   min-width: 0;
   align-self: stretch;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: rgba(255,255,255,0.02);
   overflow: hidden;
-  min-height: 340px;
-  max-height: 420px;
 }
 
 .global-chat-header {
