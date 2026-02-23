@@ -5440,7 +5440,8 @@ a.mode-key {
   display: flex;
   gap: 16px;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
+  align-self: center;
   align-items: flex-start;
 }
 
