@@ -50,7 +50,7 @@ body {
   position: absolute;
   inset: 0;
   justify-content: center;
-  align-items: center;
+  align-items: safe center;
   overflow-y: auto;
 }
 
@@ -632,10 +632,10 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center;
   align-items: center;
   gap: 32px;
-  padding: 32px 0 24px;
+  padding: 32px 16px 24px;
   position: relative;
   z-index: 1;
 }
@@ -674,7 +674,7 @@ body {
 .home-nav-area > .home-global-chat {
   flex: 0 0 280px;
   min-width: 0;
-  min-height: 420px;
+  min-height: min(420px, 40vh);
   align-self: stretch;
   display: flex;
   flex-direction: column;
@@ -3100,6 +3100,11 @@ a.mode-key {
 
 .welcome-input + .welcome-input {
   margin-top: 8px;
+}
+
+@media (max-height: 700px) {
+  .welcome-wrapper { padding: 24px 20px 20px; }
+  .welcome-tagline { margin-bottom: 24px; }
 }
 
 @media (max-width: 600px) {
@@ -5552,6 +5557,36 @@ a.mode-key {
   color: var(--text-dim);
   min-width: 44px;
   text-align: right;
+}
+
+/* Tighten spacing on shorter viewport heights */
+@media (max-height: 800px) {
+  .home-center {
+    gap: 20px;
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-height: 650px) {
+  .home-center {
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .home-nav-area > .home-global-chat {
+    min-height: min(280px, 35vh);
+  }
+}
+
+/* Medium width: chat column gets narrower before stacking */
+@media (max-width: 1000px) {
+  .home-nav-area > .home-global-chat {
+    flex: 0 0 240px;
+  }
+  .home-bottom-panels {
+    padding-left: calc(240px + 16px);
+  }
 }
 
 @media (max-width: 800px) {
