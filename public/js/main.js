@@ -1335,6 +1335,7 @@
     GameSocket.on('match:found', (data) => {
       opponentUsername = data.opponent;
       opponentEquipped = data.opponentEquipped || [];
+      currentWagerMode = data.wagerAmount ? 'wager' : null;
       UI.els.opponentNameBar.textContent = data.opponent;
       if (UI.els.opponentNamePanel) UI.els.opponentNamePanel.textContent = data.opponent.toUpperCase();
       myProgress = 0;
