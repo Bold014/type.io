@@ -50,6 +50,17 @@ function buildRoundPrompts(totalRounds) {
 function createGame(roomId, player1, player2, mode) {
   const { prompts, usedIndices } = buildRoundPrompts(TOTAL_ROUNDS);
 
+  const botPlayer = [player1, player2].find(p => p.socket.id.startsWith('bot_duel_'));
+  let botState = null;
+  if (botPlayer) {
+    botState = {
+      socketId: botPlayer.socket.id,
+      wpm: botPlayer._botWpm || (40 + Math.floor(Math.random() * 51)),
+      interval: null,
+      typedPosition: 0
+    };
+  }
+
   const game = {
     roomId,
     mode,
@@ -81,7 +92,8 @@ function createGame(roomId, player1, player2, mode) {
     playerSentences: {},
     comboState: {},
     injectedRanges: {},
-    lastTypingState: {}
+    lastTypingState: {},
+    botState
   };
 
   games.set(roomId, game);
@@ -145,6 +157,11 @@ function startRound(io, game) {
   game.roundTimeout = setTimeout(() => {
     endRound(io, game);
   }, ROUND_TIMEOUT_MS);
+
+  if (game.botState) {
+    const duelBot = require('./duelBot');
+    duelBot.startBotRound(io, game, game.botState.socketId);
+  }
 }
 
 function pickGarbageWord() {
@@ -386,6 +403,11 @@ function handleRoundComplete(io, game, socketId, data) {
 function endRound(io, game) {
   if (game.roundState === 'ended') return;
   game.roundState = 'ended';
+
+  if (game.botState) {
+    const duelBot = require('./duelBot');
+    duelBot.stopBotRound(game);
+  }
 
   if (game.roundTimeout) {
     clearTimeout(game.roundTimeout);
@@ -631,6 +653,15 @@ async function handleDisconnect(io, socketId) {
 
   if (game.roundTimeout) clearTimeout(game.roundTimeout);
   if (game.graceTimeout) clearTimeout(game.graceTimeout);
+
+  if (game.botState) {
+    const duelBot = require('./duelBot');
+    duelBot.stopBotRound(game);
+    if (opponent.startsWith('bot_duel_')) {
+      games.delete(game.roomId);
+      return;
+    }
+  }
 
   game.players[opponent].socket.emit('opponent:disconnected', {
     username: game.players[socketId].username

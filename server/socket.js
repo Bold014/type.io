@@ -5,6 +5,7 @@ const {
   handleRoundComplete, handleDisconnect, getGameBySocketId
 } = require('./game');
 const ascend = require('./ascend');
+const duelBot = require('./duelBot');
 
 let roomCounter = 0;
 const emoteLastSent = new Map();
@@ -26,6 +27,11 @@ let lastWagerTipTime = 0;
 const WAGER_TIP_INTERVAL_MS = 300000;
 
 function setupSocketHandlers(io) {
+  matchmaking.setOnBotMatch((player) => {
+    const botPlayer = duelBot.createBotPlayer();
+    createMatch(io, player, botPlayer, 'quick');
+  });
+
   io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (token) {

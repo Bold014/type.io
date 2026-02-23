@@ -171,6 +171,11 @@
       refreshHomeUpgrade();
     });
 
+    scheduleChallengeRefresh();
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && currentUser) loadChallenges();
+    });
+
     if (sb) {
       try {
         const { data: { session } } = await sb.auth.getSession();
@@ -1077,6 +1082,16 @@
     } catch (err) {
       console.warn('loadChallenges error:', err);
     }
+  }
+
+  function scheduleChallengeRefresh() {
+    const now = new Date();
+    const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 1));
+    const msUntil = nextMidnight.getTime() - now.getTime();
+    setTimeout(() => {
+      if (currentUser) loadChallenges();
+      scheduleChallengeRefresh();
+    }, msUntil);
   }
 
   async function openShop(category) {
