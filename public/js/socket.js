@@ -27,24 +27,12 @@ const GameSocket = (() => {
     socket.auth = { token };
     socket.disconnect();
     socket.connect();
-
-    for (const [event, callbacks] of Object.entries(listeners)) {
-      for (const cb of callbacks) {
-        socket.on(event, cb);
-      }
-    }
   }
 
   function clearToken() {
     socket.auth = {};
     socket.disconnect();
     socket.connect();
-
-    for (const [event, callbacks] of Object.entries(listeners)) {
-      for (const cb of callbacks) {
-        socket.on(event, cb);
-      }
-    }
   }
 
   function joinQueue(mode) {
