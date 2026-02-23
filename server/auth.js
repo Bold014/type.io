@@ -61,6 +61,7 @@ function setupAuthRoutes(app) {
   });
 
   app.get('/api/me', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
@@ -361,6 +362,7 @@ function setupAuthRoutes(app) {
   // --- SHOP ROUTES ---
 
   app.get('/api/shop', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
       const items = await getShopItems();
 
@@ -482,6 +484,7 @@ function setupAuthRoutes(app) {
   // --- CHALLENGES ROUTE ---
 
   app.get('/api/challenges', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {

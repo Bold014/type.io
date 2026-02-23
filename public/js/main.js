@@ -99,7 +99,7 @@
   }
 
   async function fetchProfile(token) {
-    const res = await fetch('/api/me', {
+    const res = await fetch(`/api/me?_=${Date.now()}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) return null;
@@ -183,6 +183,9 @@
       } catch (_) {}
 
       sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          shopCache = null;
+        }
         if (event === 'TOKEN_REFRESHED' && session) {
           GameSocket.reconnectWithToken(session.access_token);
         }
@@ -1095,7 +1098,7 @@
     try {
       const session = sb ? (await sb.auth.getSession()).data.session : null;
       const headers = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
-      const res = await fetch('/api/shop', { headers });
+      const res = await fetch(`/api/shop?_=${Date.now()}`, { headers });
       const data = await res.json();
       shopCache = data;
       if (currentUser) currentUser.coins = data.coins;
