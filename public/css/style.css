@@ -663,12 +663,10 @@ body {
   min-width: 0;
 }
 
-.home-nav-area > .home-right-col {
-  flex: 0 0 260px;
+.home-nav-area > .home-challenges {
+  flex: 0 0 240px;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-self: stretch;
 }
 
 /* ===== GLOBAL CHAT PANEL ===== */
@@ -5442,12 +5440,17 @@ a.mode-key {
   display: flex;
   gap: 16px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1000px;
   align-items: flex-start;
 }
 
 .home-bottom-panels > .home-mini-lb {
   flex: 1;
+  min-width: 0;
+}
+
+.home-bottom-panels > .home-upgrade-widget {
+  flex: 0 0 240px;
   min-width: 0;
 }
 
@@ -5558,7 +5561,7 @@ a.mode-key {
     width: 100%;
     max-width: 680px;
   }
-  .home-nav-area > .home-right-col {
+  .home-nav-area > .home-challenges {
     flex: none;
     width: 100%;
     max-width: 680px;
@@ -5571,7 +5574,7 @@ a.mode-key {
     order: 1;
   }
   .home-nav-area > .home-rows { order: 0; }
-  .home-nav-area > .home-right-col { order: 2; }
+  .home-nav-area > .home-challenges { order: 2; }
 }
 
 @media (max-width: 700px) {
@@ -5580,6 +5583,11 @@ a.mode-key {
     align-items: center;
   }
   .home-bottom-panels > .home-mini-lb {
+    flex: none;
+    width: 100%;
+    max-width: 460px;
+  }
+  .home-bottom-panels > .home-upgrade-widget {
     flex: none;
     width: 100%;
     max-width: 460px;
