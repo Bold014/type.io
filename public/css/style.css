@@ -50,7 +50,7 @@ body {
   position: absolute;
   inset: 0;
   justify-content: center;
-  align-items: safe center;
+  align-items: center;
   overflow-y: auto;
 }
 
@@ -306,6 +306,9 @@ body {
   justify-content: flex-start;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 #screen-home::before {
@@ -449,7 +452,8 @@ body {
   letter-spacing: 0.06em;
   color: var(--text-dim);
   opacity: 0.4;
-  padding: 0;
+  padding: 16px 0 24px;
+  flex-shrink: 0;
 }
 
 /* ===== HOME MINI LEADERBOARD ===== */
@@ -629,13 +633,13 @@ body {
 /* ===== KEYCAP ROW LAYOUT ===== */
 
 .home-center {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: safe center;
+  justify-content: flex-start;
   align-items: center;
   gap: 32px;
-  padding: 32px 16px 24px;
+  padding: 32px 0 40px;
   position: relative;
   z-index: 1;
 }
@@ -674,7 +678,7 @@ body {
 .home-nav-area > .home-global-chat {
   flex: 0 0 280px;
   min-width: 0;
-  min-height: min(420px, 40vh);
+  min-height: 420px;
   align-self: stretch;
   display: flex;
   flex-direction: column;
@@ -3100,11 +3104,6 @@ a.mode-key {
 
 .welcome-input + .welcome-input {
   margin-top: 8px;
-}
-
-@media (max-height: 700px) {
-  .welcome-wrapper { padding: 24px 20px 20px; }
-  .welcome-tagline { margin-bottom: 24px; }
 }
 
 @media (max-width: 600px) {
@@ -5557,36 +5556,6 @@ a.mode-key {
   color: var(--text-dim);
   min-width: 44px;
   text-align: right;
-}
-
-/* Tighten spacing on shorter viewport heights */
-@media (max-height: 800px) {
-  .home-center {
-    gap: 20px;
-    padding-top: 20px;
-    padding-bottom: 16px;
-  }
-}
-
-@media (max-height: 650px) {
-  .home-center {
-    gap: 12px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-  .home-nav-area > .home-global-chat {
-    min-height: min(280px, 35vh);
-  }
-}
-
-/* Medium width: chat column gets narrower before stacking */
-@media (max-width: 1000px) {
-  .home-nav-area > .home-global-chat {
-    flex: 0 0 240px;
-  }
-  .home-bottom-panels {
-    padding-left: calc(240px + 16px);
-  }
 }
 
 @media (max-width: 800px) {
