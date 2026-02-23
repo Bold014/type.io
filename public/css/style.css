@@ -5443,6 +5443,8 @@ a.mode-key {
   max-width: 1200px;
   align-self: center;
   align-items: flex-start;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .home-bottom-panels > .home-mini-lb {
