@@ -5440,11 +5440,9 @@ a.mode-key {
   display: flex;
   gap: 16px;
   width: 100%;
-  max-width: 1200px;
-  align-self: center;
+  max-width: 900px;
   align-items: flex-start;
-  margin-left: auto;
-  justify-content: flex-end;
+  margin: 0 auto;
 }
 
 .home-bottom-panels > .home-mini-lb {
