@@ -97,12 +97,20 @@ function setupAuthRoutes(app) {
         return res.status(401).json({ error: 'Token validation failed' });
       }
 
-      const validateData = await validateRes.json();
-      console.log('[STEAM AUTH] Facepunch response:', JSON.stringify(validateData));
-      if (validateData.Status !== 'ok' || String(validateData.SteamId) !== steamIdStr) {
-        console.error('[STEAM AUTH] Token invalid. Status:', validateData.Status, 'SteamId match:', String(validateData.SteamId) === steamIdStr);
+      const responseText = await validateRes.text();
+      const statusMatch = responseText.match(/"Status"\s*:\s*"([^"]+)"/);
+      const steamIdMatch = responseText.match(/"SteamId"\s*:\s*(\d+)/);
+      const status = statusMatch ? statusMatch[1] : null;
+      const responseSteamId = steamIdMatch ? steamIdMatch[1] : null;
+
+      console.log('[STEAM AUTH] Facepunch response - status:', status, 'steamid:', responseSteamId);
+
+      if (status !== 'ok' || responseSteamId !== steamIdStr) {
+        console.error('[STEAM AUTH] Token invalid. Status:', status, 'SteamId match:', responseSteamId === steamIdStr);
         return res.status(401).json({ error: 'Invalid token' });
       }
+
+      console.log('[STEAM AUTH] Token validated successfully');
 
       let playerName = null;
       try {
