@@ -523,7 +523,10 @@ async function endMatch(io, game) {
 
   for (const id of playerIds) {
     const player = game.players[id];
-    if (!player.userId) continue;
+    if (!player.userId) {
+      console.warn('[MATCH] Skipping stats for player without userId:', player.username, '| mode:', game.mode, '| room:', game.roomId);
+      continue;
+    }
 
     const won = player.username === matchWinner;
     const opId = playerIds.find(x => x !== id);

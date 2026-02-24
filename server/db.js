@@ -61,8 +61,8 @@ function computeMoneyFromChars(charsTyped, charValueLevel) {
 
 const PLACEMENT_GAMES = 5;
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, best_td_wave, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, best_td_wave, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
 
 async function findUserById(id) {
   const { data, error } = await supabase

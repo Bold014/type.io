@@ -43,9 +43,16 @@ function setupSocketHandlers(io) {
             socket.data.userId = profile.id;
             socket.data.username = profile.username;
             socket.data.rating = profile.rating;
+            console.log('[SOCKET AUTH] Authenticated:', profile.username, '| userId:', profile.id, '| steam_id:', profile.steam_id || 'none');
+          } else {
+            console.warn('[SOCKET AUTH] Valid token but profile not found for user:', user.id);
           }
+        } else if (error) {
+          console.warn('[SOCKET AUTH] Token validation failed:', error.message);
         }
-      } catch (_) {}
+      } catch (err) {
+        console.error('[SOCKET AUTH] Error during auth:', err.message);
+      }
     }
     next();
   });
@@ -73,6 +80,10 @@ function setupSocketHandlers(io) {
       if (mode === 'ranked' && !socket.data.userId) {
         socket.emit('error:message', { message: 'Must be logged in for ranked' });
         return;
+      }
+
+      if (!socket.data.userId) {
+        console.warn('[QUEUE] Player joining without userId:', socket.data.username, '| mode:', mode, '| stats will NOT be tracked');
       }
 
       if (mode === 'ranked') {
@@ -449,6 +460,8 @@ async function createWagerMatch(io, player1, player2, wagerAmount) {
 async function createMatch(io, player1, player2, mode) {
   roomCounter++;
   const roomId = `room_${roomCounter}_${Date.now()}`;
+
+  console.log('[MATCH] Creating', mode, 'match:', player1.username, (player1.userId ? '(authed)' : '(NO AUTH)'), 'vs', player2.username, (player2.userId ? '(authed)' : '(NO AUTH)'), '| room:', roomId);
 
   player1.socket.join(roomId);
   player2.socket.join(roomId);

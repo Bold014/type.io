@@ -184,6 +184,7 @@
     const sboxToken = urlParams.get('token');
     const sboxSteamId = urlParams.get('steamid');
 
+    let steamAuthDone = false;
     if (sboxToken && sboxSteamId) {
       try {
         console.log('[STEAM AUTH] Attempting auth with steamid:', sboxSteamId);
@@ -202,6 +203,7 @@
             });
           }
           loginSuccess(steamData.profile, steamData.access_token);
+          steamAuthDone = true;
         } else {
           const errBody = await steamRes.text();
           console.error('[STEAM AUTH] Server returned', steamRes.status, errBody);
@@ -212,7 +214,7 @@
       window.history.replaceState({}, '', '/');
     }
 
-    if (sb) {
+    if (sb && !steamAuthDone) {
       try {
         const { data: { session } } = await sb.auth.getSession();
         if (session) {

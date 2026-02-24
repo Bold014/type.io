@@ -149,7 +149,10 @@ function setupAuthRoutes(app) {
 
             const existingProfile = await findUserById(signIn.data.user.id);
             if (existingProfile && !existingProfile.steam_id) {
-              await updateProfileSteamId(signIn.data.user.id, steamIdStr);
+              const linked = await updateProfileSteamId(signIn.data.user.id, steamIdStr);
+              if (!linked) {
+                console.error('[STEAM AUTH] Failed to link steam_id for existing user:', signIn.data.user.id);
+              }
             }
 
             profile = await findUserById(signIn.data.user.id);
@@ -178,7 +181,15 @@ function setupAuthRoutes(app) {
           return res.status(500).json({ error: 'Profile creation timed out' });
         }
 
-        await updateProfileSteamId(newUser.user.id, steamIdStr);
+        const steamIdSaved = await updateProfileSteamId(newUser.user.id, steamIdStr);
+        if (!steamIdSaved) {
+          console.error('[STEAM AUTH] First steam_id save failed, retrying...');
+          await new Promise(r => setTimeout(r, 500));
+          const retry = await updateProfileSteamId(newUser.user.id, steamIdStr);
+          if (!retry) {
+            console.error('[STEAM AUTH] Steam ID save failed after retry for user:', newUser.user.id, 'steamId:', steamIdStr);
+          }
+        }
         if (playerName) {
           const sanitized = sanitizeUsername(playerName);
           if (sanitized && sanitized !== profile.username) {
