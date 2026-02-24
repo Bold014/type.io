@@ -34,11 +34,15 @@ function setupSocketHandlers(io) {
   });
 
   io.use(async (socket, next) => {
-    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    const rawToken = socket.handshake.auth?.token || socket.handshake.query?.token;
+    const source = socket.handshake.auth?.token ? 'auth.token' : 'query.token';
+    const token = typeof rawToken === 'string' && rawToken.startsWith('Bearer ')
+      ? rawToken.slice(7)
+      : rawToken;
     if (token) {
       const segments = String(token).split('.').length;
       if (segments !== 3) {
-        console.warn('[SOCKET AUTH] Malformed token received (segments:', segments, ') – skipping auth. Source:', socket.handshake.auth?.token ? 'auth.token' : 'query.token');
+        console.warn('[SOCKET AUTH] Malformed token (segments:', segments, ', source:', source, ', preview:', String(token).slice(0, 20), ') – socket will be unauthenticated');
         return next();
       }
       try {
