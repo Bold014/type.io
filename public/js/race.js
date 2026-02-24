@@ -49,20 +49,22 @@ const RaceClient = (() => {
   function handleLobbyUpdate(data) {
     inLobby = true;
     players = data.players || [];
-    renderTrack();
-    if (els.playerCount) els.playerCount.textContent = players.length + ' / 8';
-    if (els.timer) els.timer.textContent = 'Waiting...';
+    if (els.trackArea) els.trackArea.style.display = 'none';
+    if (els.playerCount) els.playerCount.textContent = '';
+    if (els.timer) els.timer.textContent = '';
   }
 
   function handleJoined(data) {
     inLobby = false;
     players = data.players || [];
+    if (els.trackArea) els.trackArea.style.display = '';
     renderTrack();
     if (els.playerCount) els.playerCount.textContent = players.length + ' / 8';
   }
 
   function handleCountdown(data) {
     inLobby = false;
+    if (els.trackArea) els.trackArea.style.display = '';
     sentence = data.sentence || '';
     typed = '';
     corrections = 0;
