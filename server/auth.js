@@ -82,15 +82,14 @@ function setupAuthRoutes(app) {
       }
 
       const steamIdStr = String(steamid);
-      console.log('[STEAM AUTH] Validating token for steamid:', steamIdStr, '| token length:', token.length, '| token preview:', token.slice(0, 20) + '...');
+      console.log('[STEAM AUTH] Validating token for steamid:', steamIdStr);
 
-      const facepunchBody = { steamid: Number(steamid), token };
-      console.log('[STEAM AUTH] Sending to Facepunch:', JSON.stringify({ steamid: facepunchBody.steamid, tokenLen: token.length }));
+      const validateBody = `{"steamid":${steamIdStr},"token":${JSON.stringify(token)}}`;
 
       const validateRes = await fetch(FACEPUNCH_AUTH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(facepunchBody)
+        body: validateBody
       });
 
       if (!validateRes.ok) {
