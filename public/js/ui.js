@@ -444,7 +444,8 @@ const UI = (() => {
       }
 
       els.btnHomeAuth.style.display = 'none';
-      els.btnHomeLogout.style.display = '';
+      const isSbox = window.APP_CONFIG && window.APP_CONFIG.platform === 'sbox';
+      els.btnHomeLogout.style.display = isSbox ? 'none' : '';
 
       if (level < 5) {
         els.rankedSub.textContent = `Unlocks at Level 5 (you are Level ${level})`;

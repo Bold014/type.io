@@ -176,6 +176,10 @@
       if (!document.hidden && currentUser) loadChallenges();
     });
 
+    if (window.APP_CONFIG && window.APP_CONFIG.platform === 'sbox') {
+      if (UI.els.btnProfileLogoutHeader) UI.els.btnProfileLogoutHeader.style.display = 'none';
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const sboxToken = urlParams.get('token');
     const sboxSteamId = urlParams.get('steamid');
