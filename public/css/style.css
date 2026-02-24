@@ -6774,3 +6774,709 @@ a.mode-key {
   color: #eab308;
   font-weight: 600;
 }
+
+/* ============================
+   ZEN MODE
+   ============================ */
+
+.zen-layout .tt-game-area {
+  justify-content: flex-start;
+  padding-top: 16px;
+}
+
+.zen-layout .typing-area {
+  align-items: stretch;
+}
+
+.zen-layout .typing-area-frame {
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.zen-layout .typing-area-frame::-webkit-scrollbar {
+  width: 4px;
+}
+
+.zen-layout .typing-area-frame::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+.zen-layout .sentence-display {
+  text-align: left;
+  min-height: auto;
+}
+
+/* ============================
+   CUSTOM MODE
+   ============================ */
+
+.custom-settings {
+  max-width: 500px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.custom-option {
+  margin: 20px 0;
+}
+
+.custom-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.custom-textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  padding: 12px;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+/* ============================
+   RACE MODE
+   ============================ */
+
+.race-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 0;
+}
+
+.race-track-area {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.race-lane {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.race-lane-me {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.race-lane-done {
+  opacity: 0.7;
+}
+
+.race-lane-name {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text);
+  min-width: 100px;
+  font-weight: 600;
+}
+
+.race-place {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.race-lane-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.race-lane-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.race-lane-me .race-lane-fill {
+  background: #3b82f6;
+}
+
+.race-lane-wpm {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  min-width: 60px;
+  text-align: right;
+}
+
+.race-lane-bot {
+  opacity: 0.85;
+}
+
+.race-bot-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--text-dim);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.race-player-count {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.race-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 20px 0;
+}
+
+.race-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.race-result-me {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.race-result-place {
+  font-weight: 700;
+  min-width: 30px;
+  color: var(--gold);
+}
+
+.race-result-name {
+  flex: 1;
+  color: var(--text);
+}
+
+.race-result-wpm {
+  color: var(--text-dim);
+}
+
+/* ============================
+   FRIENDS PANEL
+   ============================ */
+
+.friends-panel {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  width: 300px;
+  max-height: 500px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  z-index: 100;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.friends-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.friends-panel-title {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.friends-search {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.friends-search input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.friends-list, .friends-requests {
+  padding: 8px 12px;
+}
+
+.friend-row, .friend-request-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.friend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.friend-status-dot.friend-online {
+  background: var(--green);
+}
+
+.friend-name {
+  flex: 1;
+  color: var(--text);
+}
+
+.friend-accept-btn {
+  background: var(--green) !important;
+  color: #000 !important;
+}
+
+.friends-empty {
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.friends-section-title {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+/* ============================
+   ACHIEVEMENTS
+   ============================ */
+
+#screen-achievements,
+#screen-analytics,
+#screen-clan,
+#screen-replay {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.achievements-wrapper {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.achievements-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  opacity: 0.5;
+}
+
+.achievement-unlocked {
+  opacity: 1;
+  border-color: var(--gold);
+}
+
+.achievement-icon {
+  font-size: 1.5rem;
+  min-width: 30px;
+  text-align: center;
+}
+
+.achievement-unlocked .achievement-icon {
+  color: var(--gold);
+}
+
+.achievement-info {
+  flex: 1;
+}
+
+.achievement-name {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.achievement-desc {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.achievement-category {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.achievement-points-pill {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--gold);
+  padding: 2px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+}
+
+.achievement-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  z-index: 200;
+  box-shadow: 0 4px 24px rgba(255, 215, 0, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.achievement-toast-icon {
+  font-size: 1.4rem;
+  color: var(--gold);
+}
+
+.achievement-toast-title {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.achievement-toast-name {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ============================
+   ANALYTICS
+   ============================ */
+
+.analytics-wrapper {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analytics-summary {
+  margin-bottom: 24px;
+}
+
+.analytics-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.analytics-section-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.analytics-chart-container {
+  margin-bottom: 24px;
+}
+
+.analytics-chart-container canvas {
+  width: 100%;
+  max-width: 600px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.btn-icon {
+  font-size: 1rem;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+/* ============================
+   LOGIN STREAK
+   ============================ */
+
+.login-streak-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.3s ease;
+}
+
+.login-streak-content {
+  text-align: center;
+  animation: slideDown 0.4s ease;
+}
+
+.login-streak-fire {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.login-streak-text {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.login-streak-reward {
+  font-family: var(--mono);
+  font-size: 1rem;
+  color: var(--green);
+  margin-top: 4px;
+}
+
+/* ============================
+   CLAN
+   ============================ */
+
+.clan-wrapper {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.clan-no-clan {
+  text-align: center;
+}
+
+.clan-no-clan h2 {
+  font-family: var(--mono);
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.clan-actions, .clan-join-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.clan-header-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.clan-name {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.clan-code {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.clan-member-count {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.clan-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clan-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.clan-member-name {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.clan-member-role {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.clan-actions-bottom {
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* ============================
+   REPLAY
+   ============================ */
+
+.replay-wrapper {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.replay-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.replay-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.2s;
+}
+
+.replay-time {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.replay-typing-area {
+  margin-bottom: 12px;
+}
+
+.replay-stats {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* ============================
+   PROFILE ACTION ROW
+   ============================ */
+
+.profile-action-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

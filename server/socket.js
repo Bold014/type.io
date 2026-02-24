@@ -6,6 +6,7 @@ const {
 } = require('./game');
 const ascend = require('./ascend');
 const duelBot = require('./duelBot');
+const race = require('./race');
 
 let roomCounter = 0;
 const emoteLastSent = new Map();
@@ -43,6 +44,8 @@ function setupSocketHandlers(io) {
             socket.data.userId = profile.id;
             socket.data.username = profile.username;
             socket.data.rating = profile.rating;
+            socket.data.avgWpm = profile.avg_wpm || 0;
+            socket.data.bestWpm = profile.best_wpm || 0;
             console.log('[SOCKET AUTH] Authenticated:', profile.username, '| userId:', profile.id, '| steam_id:', profile.steam_id || 'none');
           } else {
             console.warn('[SOCKET AUTH] Valid token but profile not found for user:', user.id);
@@ -62,12 +65,16 @@ function setupSocketHandlers(io) {
       socket.data.userId = null;
       socket.data.username = null;
       socket.data.rating = 1000;
+      socket.data.avgWpm = 0;
+      socket.data.bestWpm = 0;
     }
 
     socket.on('auth:set', (data) => {
       socket.data.username = data.username;
       socket.data.userId = data.userId || null;
       socket.data.rating = data.rating || 1000;
+      socket.data.avgWpm = data.avgWpm || 0;
+      socket.data.bestWpm = data.bestWpm || 0;
     });
 
     socket.on('queue:join', async (data) => {
@@ -210,6 +217,42 @@ function setupSocketHandlers(io) {
       await handleWagerAccept(io, socket, data);
     });
 
+    socket.on('spectate:join', (data) => {
+      const { matchId } = data || {};
+      if (!matchId) return;
+      socket.join(`spectate_${matchId}`);
+      socket.data.spectating = matchId;
+      const game = getGameBySocketId(null);
+      socket.emit('spectate:joined', { matchId });
+    });
+
+    socket.on('spectate:leave', () => {
+      if (socket.data.spectating) {
+        socket.leave(`spectate_${socket.data.spectating}`);
+        socket.data.spectating = null;
+      }
+    });
+
+    socket.on('race:join', () => {
+      if (!socket.data.username) {
+        socket.emit('error:message', { message: 'Set a username first' });
+        return;
+      }
+      race.joinQueue(io, socket);
+    });
+
+    socket.on('race:leave', () => {
+      race.leaveQueue(io, socket.id);
+    });
+
+    socket.on('race:typing', (data) => {
+      race.handleTypingUpdate(io, socket.id, data);
+    });
+
+    socket.on('race:complete', (data) => {
+      race.handleComplete(io, socket.id, data);
+    });
+
     socket.on('wager:cancel', () => {
       const existingId = playerWagers.get(socket.data.userId);
       if (!existingId) return;
@@ -225,6 +268,7 @@ function setupSocketHandlers(io) {
       matchmaking.removeFromQueue(socket.id);
       handleDisconnect(io, socket.id);
       ascend.handleDisconnect(io, socket.id);
+      race.handleDisconnect(io, socket.id);
       globalChatLastSent.delete(socket.id);
 
       if (socket.data.userId) {

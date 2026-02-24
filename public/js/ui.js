@@ -170,7 +170,15 @@ const UI = (() => {
     shop: document.getElementById('screen-shop'),
     towerdefenseLobby: document.getElementById('screen-towerdefense-lobby'),
     towerdefense: document.getElementById('screen-towerdefense'),
-    towerdefenseResult: document.getElementById('screen-towerdefense-result')
+    towerdefenseResult: document.getElementById('screen-towerdefense-result'),
+    zen: document.getElementById('screen-zen'),
+    custom: document.getElementById('screen-custom'),
+    race: document.getElementById('screen-race'),
+    raceResult: document.getElementById('screen-race-result'),
+    achievements: document.getElementById('screen-achievements'),
+    analytics: document.getElementById('screen-analytics'),
+    clan: document.getElementById('screen-clan'),
+    replay: document.getElementById('screen-replay')
   };
 
   const els = {
@@ -1509,6 +1517,209 @@ const UI = (() => {
     return color ? `color:${color}` : '';
   }
 
+  function renderAchievements(allAchievements, userAchievements) {
+    const grid = document.getElementById('achievements-grid');
+    if (!grid) return;
+    const unlockedSet = new Set((userAchievements || []).map(a => a.achievement_id));
+    const points = unlockedSet.size * 10;
+    const pointsPill = document.getElementById('achievement-points-pill');
+    if (pointsPill) pointsPill.textContent = points + ' pts';
+
+    let html = '';
+    for (const a of allAchievements) {
+      const unlocked = unlockedSet.has(a.id);
+      html += `<div class="achievement-card${unlocked ? ' achievement-unlocked' : ''}">
+        <div class="achievement-icon">${unlocked ? '&#9733;' : '&#9734;'}</div>
+        <div class="achievement-info">
+          <div class="achievement-name">${escapeHtml(a.name)}</div>
+          <div class="achievement-desc">${escapeHtml(a.desc)}</div>
+        </div>
+        <div class="achievement-category">${escapeHtml(a.category)}</div>
+      </div>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  function showAchievementToast(name) {
+    const toast = document.getElementById('achievement-toast');
+    const nameEl = document.getElementById('achievement-toast-name');
+    if (!toast || !nameEl) return;
+    nameEl.textContent = name;
+    toast.style.display = 'flex';
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
+  function renderFriendsList(friends, requests) {
+    const listEl = document.getElementById('friends-list');
+    const reqEl = document.getElementById('friends-requests');
+    if (!listEl) return;
+
+    if (requests && requests.length > 0 && reqEl) {
+      let rhtml = '<div class="friends-section-title">REQUESTS</div>';
+      for (const r of requests) {
+        rhtml += `<div class="friend-request-row">
+          <span class="friend-name">${escapeHtml(r.username)}</span>
+          <button class="btn btn-small friend-accept-btn" data-friend-id="${r.id}">ACCEPT</button>
+          <button class="btn btn-small friend-decline-btn" data-friend-id="${r.id}">X</button>
+        </div>`;
+      }
+      reqEl.innerHTML = rhtml;
+      reqEl.style.display = '';
+    } else if (reqEl) {
+      reqEl.innerHTML = '';
+      reqEl.style.display = 'none';
+    }
+
+    if (!friends || friends.length === 0) {
+      listEl.innerHTML = '<div class="friends-empty">No friends yet</div>';
+      return;
+    }
+    let html = '';
+    for (const f of friends) {
+      const onlineCls = f.online ? ' friend-online' : '';
+      html += `<div class="friend-row${onlineCls}">
+        <span class="friend-status-dot${onlineCls}"></span>
+        <span class="friend-name">${escapeHtml(f.username)}</span>
+        <button class="btn btn-small friend-remove-btn" data-friend-id="${f.id}">X</button>
+      </div>`;
+    }
+    listEl.innerHTML = html;
+  }
+
+  function renderAnalytics(data) {
+    const summary = document.getElementById('analytics-summary');
+    const sessionStats = document.getElementById('analytics-session-stats');
+    if (!summary || !data) return;
+
+    summary.innerHTML = `<div class="analytics-stat-row">
+      <div class="profile-stat-card"><span class="profile-stat-card-value">${data.avgWpm || 0}</span><span class="profile-stat-card-label">Avg WPM (30d)</span></div>
+      <div class="profile-stat-card"><span class="profile-stat-card-value">${data.bestWpm || 0}</span><span class="profile-stat-card-label">Best WPM (30d)</span></div>
+      <div class="profile-stat-card"><span class="profile-stat-card-value">${data.totalGames || 0}</span><span class="profile-stat-card-label">Games (30d)</span></div>
+      <div class="profile-stat-card"><span class="profile-stat-card-value">${data.avgAccuracy || 0}%</span><span class="profile-stat-card-label">Avg Accuracy</span></div>
+    </div>`;
+
+    if (sessionStats) {
+      sessionStats.innerHTML = `<div class="analytics-stat-row">
+        <div class="profile-stat-card"><span class="profile-stat-card-value">${data.todayGames || 0}</span><span class="profile-stat-card-label">Games Today</span></div>
+        <div class="profile-stat-card"><span class="profile-stat-card-value">${data.todayAvgWpm || 0}</span><span class="profile-stat-card-label">Today Avg WPM</span></div>
+        <div class="profile-stat-card"><span class="profile-stat-card-value">${data.weekAvgWpm || 0}</span><span class="profile-stat-card-label">Week Avg WPM</span></div>
+      </div>`;
+    }
+
+    renderWpmChart(data.wpmHistory || []);
+  }
+
+  function renderWpmChart(history) {
+    const canvas = document.getElementById('analytics-wpm-chart');
+    if (!canvas || !history.length) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const padding = 40;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const values = history.map(p => p.wpm);
+    const maxVal = Math.max(...values, 1);
+    const minVal = Math.min(...values, 0);
+    const range = maxVal - minVal || 1;
+
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, h - padding);
+    ctx.lineTo(w - padding, h - padding);
+    ctx.stroke();
+
+    ctx.fillStyle = '#888';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const val = Math.round(minVal + (range * i / 4));
+      const y = h - padding - ((i / 4) * (h - padding * 2));
+      ctx.fillText(val, padding - 5, y + 4);
+    }
+
+    const step = (w - padding * 2) / Math.max(1, values.length - 1);
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = padding + i * step;
+      const y = h - padding - ((v - minVal) / range * (h - padding * 2));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = '#3b82f6';
+    values.forEach((v, i) => {
+      const x = padding + i * step;
+      const y = h - padding - ((v - minVal) / range * (h - padding * 2));
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function renderRaceResults(results, myUsername) {
+    const list = document.getElementById('race-results-list');
+    if (!list) return;
+    let html = '';
+    for (const r of results) {
+      const isMe = r.username === myUsername;
+      const placeText = r.finished ? `#${r.place}` : 'DNF';
+      const botBadge = r.isBot ? ' <span class="race-bot-badge">BOT</span>' : '';
+      html += `<div class="race-result-row${isMe ? ' race-result-me' : ''}">
+        <span class="race-result-place">${placeText}</span>
+        <span class="race-result-name">${escapeHtml(r.username)}${botBadge}</span>
+        <span class="race-result-wpm">${r.wpm} WPM</span>
+      </div>`;
+    }
+    list.innerHTML = html;
+  }
+
+  function renderClanInfo(clan, members) {
+    const infoEl = document.getElementById('clan-header-info');
+    const membersEl = document.getElementById('clan-members-list');
+    const noClan = document.getElementById('clan-no-clan');
+    const clanInfo = document.getElementById('clan-info');
+    if (!clan) {
+      if (noClan) noClan.style.display = '';
+      if (clanInfo) clanInfo.style.display = 'none';
+      return;
+    }
+    if (noClan) noClan.style.display = 'none';
+    if (clanInfo) clanInfo.style.display = '';
+    if (infoEl) {
+      infoEl.innerHTML = `<div class="clan-name">${escapeHtml(clan.name)}</div>
+        <div class="clan-code">Code: <strong>${escapeHtml(clan.code)}</strong></div>
+        <div class="clan-member-count">${(members || []).length} / 50 members</div>`;
+    }
+    if (membersEl && members) {
+      let html = '';
+      for (const m of members) {
+        html += `<div class="clan-member-row">
+          <span class="clan-member-name">${escapeHtml(m.username)}</span>
+          <span class="clan-member-role">${m.role || 'member'}</span>
+        </div>`;
+      }
+      membersEl.innerHTML = html;
+    }
+  }
+
+  function showLoginStreak(streak, reward) {
+    const overlay = document.getElementById('login-streak-overlay');
+    const textEl = document.getElementById('login-streak-text');
+    const rewardEl = document.getElementById('login-streak-reward');
+    if (!overlay || !textEl) return;
+    textEl.textContent = streak + ' day streak!';
+    if (rewardEl && reward) rewardEl.textContent = '+$' + reward.toLocaleString();
+    overlay.style.display = 'flex';
+    setTimeout(() => { overlay.style.display = 'none'; }, 3000);
+  }
+
   return {
     screens, els, showScreen, showWelcomeStep,
     setHomeUser, renderSentence, renderOpponentSentence, updatePlayerStats,
@@ -1525,6 +1736,8 @@ const UI = (() => {
     getEquippedColor, getEquippedCursorSkin, getEquippedBadge, getEquippedBadgeAnimated,
     getEquippedTitle, getEquippedEmotes, getEquippedNameEffect, getEquippedGradient,
     BADGE_SVGS, escapeHtml, applyUsernameStyleInline,
-    CHAR_VALUE_UPGRADES
+    CHAR_VALUE_UPGRADES,
+    renderAchievements, showAchievementToast, renderFriendsList,
+    renderAnalytics, renderRaceResults, renderClanInfo, showLoginStreak
   };
 })();

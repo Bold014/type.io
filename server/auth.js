@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const {
-  supabase, findUserById, findUserByUsername, findUserBySteamId,
+  supabase, supabaseDb, findUserById, findUserByUsername, findUserBySteamId,
   updateProfileSteamId, updateProfileUsername, checkUsernameExists, updateEmail,
   getLeaderboard, getMatchHistory, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats, xpToLevel,
@@ -9,8 +9,9 @@ const {
   getUserDailyChallenges, updateChallengeProgress,
   getUserWeeklyChallenges, updateWeeklyChallengeProgress,
   saveTowerDefenseRun, getTowerDefenseLeaderboard,
-  upgradeCharValue, CHAR_VALUE_UPGRADES
+  upgradeCharValue, CHAR_VALUE_UPGRADES, addCoins
 } = require('./db');
+const { getAllAchievements, getProfileStats, checkAchievements } = require('./achievements');
 const { pickSentencesForDuration, getWordBank } = require('./sentences');
 
 const FACEPUNCH_AUTH_URL = 'https://services.facepunch.com/sbox/auth/token';
@@ -458,6 +459,62 @@ function setupAuthRoutes(app) {
     }
   });
 
+  // --- ZEN MODE RESULT ---
+
+  app.post('/api/zen/result', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const profile = await findUserById(user.id);
+      if (!profile) {
+        return res.status(401).json({ error: 'Profile not found' });
+      }
+
+      const { charactersTyped } = req.body;
+      if (!charactersTyped || charactersTyped <= 0) {
+        return res.json({ success: true, coinsGained: 0 });
+      }
+
+      const { computeMoneyFromChars } = require('./db');
+      const charLevel = profile.char_value_level || 0;
+      const coinsGained = computeMoneyFromChars(charactersTyped, charLevel);
+      const newCoins = (profile.coins || 0) + coinsGained;
+      const newTotalChars = (profile.total_chars_typed || 0) + charactersTyped;
+
+      const { supabaseDb } = require('./db');
+      await supabaseDb.from('profiles').update({
+        coins: newCoins,
+        total_chars_typed: newTotalChars
+      }).eq('id', user.id);
+
+      if (charactersTyped) {
+        updateChallengeProgress(user.id, 'type_chars', charactersTyped).catch(() => {});
+        updateWeeklyChallengeProgress(user.id, 'type_chars', charactersTyped).catch(() => {});
+      }
+
+      res.json({
+        success: true,
+        coinsGained,
+        newCoins,
+        newTotalChars,
+        charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value,
+        charsTyped: charactersTyped
+      });
+    } catch (err) {
+      console.error('Zen result error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // --- TOWER DEFENSE ROUTES ---
 
   app.get('/api/tower-defense/words', (req, res) => {
@@ -664,6 +721,395 @@ function setupAuthRoutes(app) {
       console.error('Unequip error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
+  });
+
+  // --- FRIENDS ROUTES ---
+
+  app.get('/api/friends', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: friends } = await supabaseDb.from('friendships')
+        .select('friend_id, profiles!friendships_friend_id_fkey(username)')
+        .eq('user_id', user.id).eq('status', 'accepted');
+
+      const { data: friends2 } = await supabaseDb.from('friendships')
+        .select('user_id, profiles!friendships_user_id_fkey(username)')
+        .eq('friend_id', user.id).eq('status', 'accepted');
+
+      const { data: requests } = await supabaseDb.from('friendships')
+        .select('user_id, profiles!friendships_user_id_fkey(username)')
+        .eq('friend_id', user.id).eq('status', 'pending');
+
+      const friendList = [
+        ...((friends || []).map(f => ({ id: f.friend_id, username: f.profiles?.username || 'Unknown', online: false }))),
+        ...((friends2 || []).map(f => ({ id: f.user_id, username: f.profiles?.username || 'Unknown', online: false })))
+      ];
+
+      const requestList = (requests || []).map(r => ({ id: r.user_id, username: r.profiles?.username || 'Unknown' }));
+
+      res.json({ friends: friendList, requests: requestList });
+    } catch (err) { console.error('Friends error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/friends/request', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ error: 'Username required' });
+
+      const target = await findUserByUsername(username);
+      if (!target) return res.status(404).json({ error: 'User not found' });
+      if (target.id === user.id) return res.status(400).json({ error: 'Cannot add yourself' });
+
+      const { data: existing } = await supabaseDb.from('friendships')
+        .select('id').or(`and(user_id.eq.${user.id},friend_id.eq.${target.id}),and(user_id.eq.${target.id},friend_id.eq.${user.id})`).limit(1);
+      if (existing && existing.length > 0) return res.status(400).json({ error: 'Request already exists' });
+
+      await supabaseDb.from('friendships').insert({ user_id: user.id, friend_id: target.id, status: 'pending' });
+      res.json({ success: true });
+    } catch (err) { console.error('Friend request error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/friends/accept', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { friendId } = req.body;
+      await supabaseDb.from('friendships').update({ status: 'accepted' })
+        .eq('user_id', friendId).eq('friend_id', user.id).eq('status', 'pending');
+      res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/friends/decline', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { friendId } = req.body;
+      await supabaseDb.from('friendships').delete()
+        .eq('user_id', friendId).eq('friend_id', user.id).eq('status', 'pending');
+      res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/friends/remove', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { friendId } = req.body;
+      await supabaseDb.from('friendships').delete()
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`);
+      res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  // --- ACHIEVEMENTS ROUTE ---
+
+  app.get('/api/achievements', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const profile = await findUserById(user.id);
+      if (!profile) return res.status(401).json({ error: 'Profile not found' });
+
+      const { data: userAchievements } = await supabaseDb.from('user_achievements')
+        .select('achievement_id, unlocked_at').eq('user_id', user.id);
+
+      const existingIds = new Set((userAchievements || []).map(a => a.achievement_id));
+      const stats = getProfileStats(profile);
+      const newlyUnlocked = checkAchievements(stats, existingIds);
+
+      if (newlyUnlocked.length > 0) {
+        const rows = newlyUnlocked.map(a => ({ user_id: user.id, achievement_id: a.id, unlocked_at: new Date().toISOString() }));
+        await supabaseDb.from('user_achievements').insert(rows);
+      }
+
+      const all = getAllAchievements();
+      const updatedUserAchievements = [...(userAchievements || []), ...newlyUnlocked.map(a => ({ achievement_id: a.id }))];
+      res.json({ all, user: updatedUserAchievements, newlyUnlocked: newlyUnlocked.map(a => ({ id: a.id, name: a.name })) });
+    } catch (err) { console.error('Achievements error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  // --- ANALYTICS ROUTE ---
+
+  app.get('/api/analytics', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const today = new Date().toISOString().slice(0, 10);
+
+      const { data: matches } = await supabaseDb.from('match_history')
+        .select('user_wpm, created_at, won').eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgo).order('created_at');
+
+      const { data: ttRuns } = await supabaseDb.from('time_trial_runs')
+        .select('wpm, accuracy, created_at').eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgo).order('created_at');
+
+      const allWpms = [
+        ...((matches || []).map(m => ({ wpm: Number(m.user_wpm), date: m.created_at }))),
+        ...((ttRuns || []).map(r => ({ wpm: Number(r.wpm), date: r.created_at })))
+      ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const totalGames = allWpms.length;
+      const avgWpm = totalGames > 0 ? Math.round(allWpms.reduce((s, w) => s + w.wpm, 0) / totalGames) : 0;
+      const bestWpm = totalGames > 0 ? Math.round(Math.max(...allWpms.map(w => w.wpm))) : 0;
+
+      const accuracies = (ttRuns || []).map(r => Number(r.accuracy));
+      const avgAccuracy = accuracies.length > 0 ? Math.round(accuracies.reduce((s, a) => s + a, 0) / accuracies.length) : 0;
+
+      const todayMatches = allWpms.filter(w => w.date.startsWith(today));
+      const todayGames = todayMatches.length;
+      const todayAvgWpm = todayGames > 0 ? Math.round(todayMatches.reduce((s, w) => s + w.wpm, 0) / todayGames) : 0;
+
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const weekMatches = allWpms.filter(w => w.date >= weekAgo);
+      const weekAvgWpm = weekMatches.length > 0 ? Math.round(weekMatches.reduce((s, w) => s + w.wpm, 0) / weekMatches.length) : 0;
+
+      const wpmHistory = [];
+      const dayMap = {};
+      for (const w of allWpms) {
+        const day = w.date.slice(0, 10);
+        if (!dayMap[day]) dayMap[day] = [];
+        dayMap[day].push(w.wpm);
+      }
+      for (const [day, wpms] of Object.entries(dayMap)) {
+        wpmHistory.push({ date: day, wpm: Math.round(wpms.reduce((s, w) => s + w, 0) / wpms.length) });
+      }
+
+      res.json({ avgWpm, bestWpm, totalGames, avgAccuracy, todayGames, todayAvgWpm, weekAvgWpm, wpmHistory });
+    } catch (err) { console.error('Analytics error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  // --- LOGIN STREAK ROUTE ---
+
+  app.post('/api/login-streak', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: profile } = await supabaseDb.from('profiles')
+        .select('login_streak, last_login_date, longest_streak').eq('id', user.id).single();
+
+      if (!profile) return res.json({ streak: 0, reward: 0 });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const lastLogin = profile.last_login_date;
+
+      if (lastLogin === today) return res.json({ streak: profile.login_streak || 1, reward: 0, alreadyLoggedIn: true });
+
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      let newStreak;
+      if (lastLogin === yesterday) {
+        newStreak = (profile.login_streak || 0) + 1;
+      } else {
+        newStreak = 1;
+      }
+
+      const longestStreak = Math.max(newStreak, profile.longest_streak || 0);
+
+      const STREAK_REWARDS = { 1: 50, 2: 75, 3: 100, 7: 250, 14: 500, 30: 1000 };
+      let reward = STREAK_REWARDS[newStreak] || (newStreak > 1 ? 50 : 25);
+
+      await supabaseDb.from('profiles').update({
+        login_streak: newStreak,
+        last_login_date: today,
+        longest_streak: longestStreak
+      }).eq('id', user.id);
+
+      if (reward > 0) await addCoins(user.id, reward);
+
+      res.json({ streak: newStreak, reward, longestStreak });
+    } catch (err) { console.error('Login streak error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  // --- CLAN ROUTES ---
+
+  app.get('/api/clan', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: membership } = await supabaseDb.from('clan_members')
+        .select('clan_id, role').eq('user_id', user.id).single();
+
+      if (!membership) return res.status(404).json({ error: 'Not in a clan' });
+
+      const { data: clan } = await supabaseDb.from('clans')
+        .select('*').eq('id', membership.clan_id).single();
+
+      const { data: members } = await supabaseDb.from('clan_members')
+        .select('user_id, role, profiles(username)').eq('clan_id', membership.clan_id);
+
+      const memberList = (members || []).map(m => ({
+        userId: m.user_id,
+        username: m.profiles?.username || 'Unknown',
+        role: m.role
+      }));
+
+      res.json({ clan, members: memberList });
+    } catch (err) { console.error('Clan error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/clan/create', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { name } = req.body;
+      if (!name || name.length < 2 || name.length > 20) return res.status(400).json({ error: 'Name must be 2-20 characters' });
+
+      const { data: existing } = await supabaseDb.from('clan_members').select('id').eq('user_id', user.id).limit(1);
+      if (existing && existing.length > 0) return res.status(400).json({ error: 'Already in a clan' });
+
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { data: clan, error: createErr } = await supabaseDb.from('clans')
+        .insert({ name, code, owner_id: user.id, created_at: new Date().toISOString() }).select().single();
+      if (createErr) return res.status(500).json({ error: 'Failed to create clan' });
+
+      await supabaseDb.from('clan_members').insert({ clan_id: clan.id, user_id: user.id, role: 'owner' });
+      res.json({ success: true, clan });
+    } catch (err) { console.error('Create clan error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/clan/join', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ error: 'Code required' });
+
+      const { data: existing } = await supabaseDb.from('clan_members').select('id').eq('user_id', user.id).limit(1);
+      if (existing && existing.length > 0) return res.status(400).json({ error: 'Already in a clan' });
+
+      const { data: clan } = await supabaseDb.from('clans').select('*').ilike('code', code).single();
+      if (!clan) return res.status(404).json({ error: 'Clan not found' });
+
+      const { data: members } = await supabaseDb.from('clan_members').select('id').eq('clan_id', clan.id);
+      if ((members || []).length >= 50) return res.status(400).json({ error: 'Clan is full' });
+
+      await supabaseDb.from('clan_members').insert({ clan_id: clan.id, user_id: user.id, role: 'member' });
+      res.json({ success: true });
+    } catch (err) { console.error('Join clan error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.post('/api/clan/leave', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      await supabaseDb.from('clan_members').delete().eq('user_id', user.id);
+      res.json({ success: true });
+    } catch (err) { console.error('Leave clan error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  // --- REPLAY ROUTES ---
+
+  app.post('/api/replay/save', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { matchId, sentence, keystrokes, wpm, durationMs } = req.body;
+      if (!sentence || !keystrokes) return res.status(400).json({ error: 'Missing data' });
+
+      const { error: insertErr } = await supabaseDb.from('match_replays').insert({
+        match_id: matchId || null,
+        user_id: user.id,
+        sentence,
+        keystrokes,
+        wpm: wpm || 0,
+        duration_ms: durationMs || 0,
+        created_at: new Date().toISOString()
+      });
+
+      if (insertErr) return res.status(500).json({ error: 'Failed to save replay' });
+      res.json({ success: true });
+    } catch (err) { console.error('Replay save error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.get('/api/replays', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: replays } = await supabaseDb.from('match_replays')
+        .select('id, sentence, wpm, duration_ms, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      res.json(replays || []);
+    } catch (err) { console.error('Replays list error:', err); res.status(500).json({ error: 'Internal server error' }); }
+  });
+
+  app.get('/api/replay/:id', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
+      const token = authHeader.slice(7);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+      const { data: replay } = await supabaseDb.from('match_replays')
+        .select('*').eq('id', req.params.id).eq('user_id', user.id).single();
+
+      if (!replay) return res.status(404).json({ error: 'Replay not found' });
+      res.json(replay);
+    } catch (err) { console.error('Replay get error:', err); res.status(500).json({ error: 'Internal server error' }); }
   });
 
   // --- CHALLENGES ROUTE ---

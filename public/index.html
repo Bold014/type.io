@@ -148,6 +148,7 @@
           <span class="home-badge" id="home-badge">GUEST</span>
           <span class="home-title" id="home-title"></span>
         </span>
+        <button id="btn-home-friends" class="btn btn-small btn-icon" style="display:none" title="Friends">&#9819;</button>
         <button id="btn-home-auth" class="btn btn-small">Log In</button>
         <button id="btn-home-logout" class="btn btn-small" style="display:none">Log Out</button>
       </div>
@@ -318,6 +319,16 @@
           <span class="home-row-soon" id="ranked-lock" style="display:none">LOCKED</span>
           <span class="home-row-hint">press R</span>
         </button>
+        <button type="button" class="home-row home-row-race" id="card-race">
+          <div class="home-row-body">
+            <div class="home-row-primary">
+              <div class="home-row-key" style="color:#4ade80; border-color:rgba(74,222,128,0.35); box-shadow:0 6px 0 0 rgba(74,222,128,0.5)">R</div>
+              <span class="home-row-title" style="color:#4ade80">ACE</span>
+            </div>
+            <span class="home-row-sub">Race 2-8 players — pure speed</span>
+          </div>
+          <span class="home-row-hint">press A</span>
+        </button>
         <div class="wager-hint-card" id="wager-hint-card">
           <div class="wager-hint-icon">$</div>
           <div class="wager-hint-body">
@@ -357,26 +368,26 @@
           </div>
           <span class="home-row-hint">press D</span>
         </button>
-        <div class="home-row disabled">
+        <button type="button" class="home-row home-row-zen" id="card-zen">
           <div class="home-row-body">
             <div class="home-row-primary">
-              <div class="home-row-key">Z</div>
-              <span class="home-row-title">EN MODE</span>
+              <div class="home-row-key" style="color:#a78bfa; border-color:rgba(167,139,250,0.35); box-shadow:0 6px 0 0 rgba(167,139,250,0.5)">Z</div>
+              <span class="home-row-title" style="color:#a78bfa">EN MODE</span>
             </div>
-            <span class="home-row-sub">No timer, no pressure</span>
+            <span class="home-row-sub">No timer, no pressure — just type</span>
           </div>
-          <span class="home-row-soon">SOON</span>
-        </div>
-        <div class="home-row disabled">
+          <span class="home-row-hint">press Z</span>
+        </button>
+        <button type="button" class="home-row home-row-custom" id="card-custom">
           <div class="home-row-body">
             <div class="home-row-primary">
-              <div class="home-row-key">C</div>
-              <span class="home-row-title">USTOM</span>
+              <div class="home-row-key" style="color:#f472b6; border-color:rgba(244,114,182,0.35); box-shadow:0 6px 0 0 rgba(244,114,182,0.5)">C</div>
+              <span class="home-row-title" style="color:#f472b6">USTOM</span>
             </div>
-            <span class="home-row-sub">Your own duration &amp; settings</span>
+            <span class="home-row-sub">Your own duration &amp; text</span>
           </div>
-          <span class="home-row-soon">SOON</span>
-        </div>
+          <span class="home-row-hint">press C</span>
+        </button>
       </div>
     </div>
   </div>
@@ -458,6 +469,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="profile-action-row">
+        <button id="btn-profile-achievements" class="btn btn-small">ACHIEVEMENTS</button>
+        <button id="btn-profile-analytics" class="btn btn-small">ANALYTICS</button>
       </div>
 
       <div class="profile-grid">
@@ -1300,6 +1316,248 @@
     </div>
   </div>
 
+  <!-- ZEN MODE SCREEN -->
+  <div id="screen-zen" class="screen">
+    <div class="tt-layout zen-layout">
+      <header class="tt-header">
+        <button id="btn-zen-back" class="home-header-left home-header-back">HOME</button>
+        <span class="tt-mode-label">ZEN MODE</span>
+        <span class="tt-timer" id="zen-timer">0:00</span>
+      </header>
+      <div class="tt-game-area" id="zen-game-area" style="display:flex">
+        <div class="tt-stats-bar">
+          <div class="stat">
+            <span class="stat-value" id="zen-wpm">0</span>
+            <span class="stat-label">WPM</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="zen-accuracy">100%</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="zen-chars">0</span>
+            <span class="stat-label">Chars</span>
+          </div>
+        </div>
+        <div class="typing-area" id="zen-typing-area">
+          <div class="typing-area-frame">
+            <div class="sentence-display" id="zen-sentence-display"></div>
+            <div class="quote-source" id="zen-quote-source"></div>
+          </div>
+          <input type="text" id="zen-typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM MODE SCREEN -->
+  <div id="screen-custom" class="screen">
+    <div class="tt-layout">
+      <header class="tt-header">
+        <button id="btn-custom-back" class="home-header-left home-header-back">HOME</button>
+        <span class="tt-mode-label">CUSTOM MODE</span>
+        <span class="tt-timer" id="custom-timer"></span>
+      </header>
+      <div class="custom-settings" id="custom-settings">
+        <h2 class="tt-select-heading">CUSTOM SETTINGS</h2>
+        <div class="custom-option">
+          <label class="custom-label">Duration</label>
+          <div class="tt-duration-buttons">
+            <button class="tt-dur-btn" data-custom-dur="30">30s</button>
+            <button class="tt-dur-btn active" data-custom-dur="60">60s</button>
+            <button class="tt-dur-btn" data-custom-dur="120">120s</button>
+            <button class="tt-dur-btn" data-custom-dur="0">None</button>
+          </div>
+        </div>
+        <div class="custom-option">
+          <label class="custom-label">Text Source</label>
+          <div class="tt-duration-buttons">
+            <button class="tt-dur-btn active" data-custom-src="quotes">Quotes</button>
+            <button class="tt-dur-btn" data-custom-src="custom">Custom Text</button>
+          </div>
+        </div>
+        <div class="custom-text-area" id="custom-text-area" style="display:none">
+          <textarea id="custom-text-input" class="custom-textarea" placeholder="Paste your own text here..." rows="4" maxlength="5000"></textarea>
+        </div>
+        <button id="btn-custom-start" class="btn btn-primary tt-start-btn">START</button>
+      </div>
+      <div class="tt-game-area" id="custom-game-area" style="display:none">
+        <div class="tt-stats-bar">
+          <div class="stat"><span class="stat-value" id="custom-wpm">0</span><span class="stat-label">WPM</span></div>
+          <div class="stat"><span class="stat-value" id="custom-accuracy">100%</span><span class="stat-label">Accuracy</span></div>
+          <div class="stat"><span class="stat-value" id="custom-chars">0</span><span class="stat-label">Chars</span></div>
+        </div>
+        <div class="typing-area" id="custom-typing-area">
+          <div class="typing-area-frame">
+            <div class="sentence-display" id="custom-sentence-display"></div>
+          </div>
+          <input type="text" id="custom-typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="countdown-overlay" id="custom-countdown-overlay" style="display:none">
+        <div class="countdown-rings"><span id="custom-countdown-number"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACE MODE SCREEN -->
+  <div id="screen-race" class="screen">
+    <div class="race-layout">
+      <header class="tt-header">
+        <button id="btn-race-back" class="home-header-left home-header-back">HOME</button>
+        <span class="tt-mode-label">RACE</span>
+        <span class="tt-timer" id="race-timer"></span>
+        <span class="race-player-count" id="race-player-count"></span>
+      </header>
+      <div class="race-track-area" id="race-track-area"></div>
+      <div class="tt-game-area">
+        <div class="tt-stats-bar">
+          <div class="stat"><span class="stat-value" id="race-wpm">0</span><span class="stat-label">WPM</span></div>
+          <div class="stat"><span class="stat-value" id="race-accuracy">100%</span><span class="stat-label">Accuracy</span></div>
+        </div>
+        <div class="typing-area" id="race-typing-area">
+          <div class="typing-area-frame">
+            <div class="sentence-display" id="race-sentence-display"></div>
+            <div class="quote-source" id="race-quote-source"></div>
+          </div>
+          <input type="text" id="race-typing-input" class="typing-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" disabled>
+        </div>
+      </div>
+      <div class="countdown-overlay" id="race-countdown-overlay" style="display:none">
+        <div class="countdown-rings"><span id="race-countdown-number"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACE RESULT SCREEN -->
+  <div id="screen-race-result" class="screen">
+    <div class="result-container">
+      <h2 class="match-result-title">RACE COMPLETE</h2>
+      <div class="race-results-list" id="race-results-list"></div>
+      <div class="match-result-buttons">
+        <button id="btn-race-again" class="btn btn-primary">Race Again</button>
+        <button id="btn-race-quit" class="btn btn-small">Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRIENDS PANEL (overlay) -->
+  <div id="friends-panel" class="friends-panel" style="display:none">
+    <div class="friends-panel-header">
+      <span class="friends-panel-title">FRIENDS</span>
+      <button id="btn-friends-close" class="btn btn-small">X</button>
+    </div>
+    <div class="friends-search">
+      <input type="text" id="friends-search-input" placeholder="Add friend by username..." maxlength="20" autocomplete="off">
+      <button id="btn-friends-add" class="btn btn-small">ADD</button>
+    </div>
+    <div class="friends-requests" id="friends-requests"></div>
+    <div class="friends-list" id="friends-list"></div>
+  </div>
+
+  <!-- ACHIEVEMENTS PANEL (screen) -->
+  <div id="screen-achievements" class="screen">
+    <header class="home-header">
+      <button id="btn-achievements-back" class="home-header-left home-header-back">PROFILE</button>
+      <span class="home-header-left" style="margin-left:auto">ACHIEVEMENTS</span>
+      <span class="achievement-points-pill" id="achievement-points-pill">0 pts</span>
+    </header>
+    <div class="achievements-wrapper">
+      <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS SCREEN -->
+  <div id="screen-analytics" class="screen">
+    <header class="home-header">
+      <button id="btn-analytics-back" class="home-header-left home-header-back">PROFILE</button>
+      <span class="home-header-left" style="margin-left:auto">ANALYTICS</span>
+    </header>
+    <div class="analytics-wrapper">
+      <div class="analytics-summary" id="analytics-summary"></div>
+      <div class="analytics-chart-container">
+        <h3 class="analytics-section-title">WPM HISTORY</h3>
+        <canvas id="analytics-wpm-chart" width="600" height="250"></canvas>
+      </div>
+      <div class="analytics-heatmap-container">
+        <h3 class="analytics-section-title">SESSION STATS</h3>
+        <div class="analytics-session-stats" id="analytics-session-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLAN SCREEN -->
+  <div id="screen-clan" class="screen">
+    <header class="home-header">
+      <button id="btn-clan-back" class="home-header-left home-header-back">HOME</button>
+      <span class="home-header-left" style="margin-left:auto">CLAN</span>
+    </header>
+    <div class="clan-wrapper">
+      <div class="clan-no-clan" id="clan-no-clan">
+        <h2>JOIN OR CREATE A CLAN</h2>
+        <div class="clan-actions">
+          <input type="text" id="clan-name-input" placeholder="Clan name..." maxlength="20" class="welcome-input" autocomplete="off">
+          <button id="btn-clan-create" class="btn btn-join">CREATE CLAN</button>
+        </div>
+        <div class="clan-join-area">
+          <input type="text" id="clan-join-input" placeholder="Clan code..." maxlength="10" class="welcome-input" autocomplete="off">
+          <button id="btn-clan-join" class="btn btn-small">JOIN</button>
+        </div>
+      </div>
+      <div class="clan-info" id="clan-info" style="display:none">
+        <div class="clan-header-info" id="clan-header-info"></div>
+        <div class="clan-members-list" id="clan-members-list"></div>
+        <div class="clan-actions-bottom">
+          <button id="btn-clan-leave" class="btn btn-small">LEAVE CLAN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPLAY SCREEN -->
+  <div id="screen-replay" class="screen">
+    <header class="home-header">
+      <button id="btn-replay-back" class="home-header-left home-header-back">PROFILE</button>
+      <span class="home-header-left" style="margin-left:auto">REPLAY</span>
+    </header>
+    <div class="replay-wrapper">
+      <div class="replay-controls" id="replay-controls">
+        <button id="btn-replay-play" class="btn btn-small">PLAY</button>
+        <button id="btn-replay-pause" class="btn btn-small">PAUSE</button>
+        <div class="replay-progress-bar">
+          <div class="replay-progress-fill" id="replay-progress-fill"></div>
+        </div>
+        <span class="replay-time" id="replay-time">0:00</span>
+      </div>
+      <div class="replay-typing-area">
+        <div class="typing-area-frame">
+          <div class="sentence-display" id="replay-sentence-display"></div>
+        </div>
+      </div>
+      <div class="replay-stats">
+        <div class="stat"><span class="stat-value" id="replay-wpm">0</span><span class="stat-label">WPM</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENT TOAST -->
+  <div id="achievement-toast" class="achievement-toast" style="display:none">
+    <div class="achievement-toast-icon">&#9733;</div>
+    <div class="achievement-toast-body">
+      <div class="achievement-toast-title" id="achievement-toast-title">ACHIEVEMENT UNLOCKED</div>
+      <div class="achievement-toast-name" id="achievement-toast-name"></div>
+    </div>
+  </div>
+
+  <!-- LOGIN STREAK DISPLAY -->
+  <div id="login-streak-overlay" class="login-streak-overlay" style="display:none">
+    <div class="login-streak-content">
+      <div class="login-streak-fire">&#128293;</div>
+      <div class="login-streak-text" id="login-streak-text"></div>
+      <div class="login-streak-reward" id="login-streak-reward"></div>
+    </div>
+  </div>
+
   <!-- LEVEL UP OVERLAY -->
   <div id="levelup-overlay" class="levelup-overlay" style="display:none">
     <div class="levelup-content">
@@ -1319,9 +1577,12 @@
   <script src="/js/socket.js"></script>
   <script src="/js/typing.js"></script>
   <script src="/js/ui.js"></script>
+  <script src="/js/audio.js"></script>
   <script src="/js/ascend.js"></script>
   <script src="/js/timetrial.js"></script>
   <script src="/js/towerdefense.js"></script>
+  <script src="/js/zen.js"></script>
+  <script src="/js/race.js"></script>
   <script src="/js/main.js"></script>
   <script>
     if (window.location.hostname.includes('sbox')) {

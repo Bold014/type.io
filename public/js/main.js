@@ -149,6 +149,9 @@
       if (name === 'game') applyCursorSkinToContainer('typing-area');
       if (name === 'timetrial') applyCursorSkinToContainer('tt-typing-area');
       if (name === 'ascend') applyCursorSkinToContainer('ascend-typing-area');
+      if (name === 'zen') applyCursorSkinToContainer('zen-typing-area');
+      if (name === 'custom') applyCursorSkinToContainer('custom-typing-area');
+      if (name === 'race') applyCursorSkinToContainer('race-typing-area');
       _lastScreen = name;
     };
 
@@ -161,6 +164,16 @@
     bindSocketEvents();
     bindShopEvents();
     TimeTrial.init();
+    ZenMode.init();
+    RaceClient.init();
+    bindZenEvents();
+    bindCustomEvents();
+    bindRaceEvents();
+    bindFriendsEvents();
+    bindAchievementEvents();
+    bindAnalyticsEvents();
+    bindClanEvents();
+    bindReplayEvents();
 
     window.addEventListener('money:earned', (e) => {
       if (!currentUser) return;
@@ -858,7 +871,8 @@
       const map = {
         c: 'card-ascend',
         d: 'card-quickplay',
-        r: 'card-ranked'
+        r: 'card-ranked',
+        a: 'card-race'
       };
       const id = map[e.key.toLowerCase()];
       if (!id) return;
@@ -901,6 +915,20 @@
       UI.showScreen('matchmaking');
       GameSocket.joinQueue('ranked');
     });
+
+    const cardRace = document.getElementById('card-race');
+    if (cardRace) {
+      cardRace.addEventListener('click', () => {
+        const name = getUsername();
+        if (!name) return;
+        currentMode = 'race';
+        GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
+        RaceClient.setMyUsername(name);
+        setMatchmakingText('Waiting for racers', 'RACE');
+        UI.showScreen('matchmaking');
+        GameSocket.emit('race:join');
+      });
+    }
   }
 
   // --- SINGLEPLAYER MENU ---
@@ -919,25 +947,34 @@
       UI.showScreen('towerdefenseLobby');
     });
 
+    const cardZen = document.getElementById('card-zen');
+    if (cardZen) {
+      cardZen.addEventListener('click', () => {
+        UI.showScreen('zen');
+        ZenMode.startGame();
+      });
+    }
+
+    const cardCustom = document.getElementById('card-custom');
+    if (cardCustom) {
+      cardCustom.addEventListener('click', () => {
+        UI.showScreen('custom');
+      });
+    }
+
     document.addEventListener('keydown', (e) => {
       if (!UI.screens.singleplayer.classList.contains('active')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const key = e.key.toLowerCase();
-      if (key === 't') {
-        e.preventDefault();
-        const row = document.getElementById('card-timetrial');
-        if (!row) return;
-        row.classList.add('key-active');
-        setTimeout(() => row.classList.remove('key-active'), 180);
-        row.click();
-      } else if (key === 'd') {
-        e.preventDefault();
-        const row = document.getElementById('card-towerdefense');
-        if (!row) return;
-        row.classList.add('key-active');
-        setTimeout(() => row.classList.remove('key-active'), 180);
-        row.click();
-      }
+      const map = { t: 'card-timetrial', d: 'card-towerdefense', z: 'card-zen', c: 'card-custom' };
+      const id = map[key];
+      if (!id) return;
+      e.preventDefault();
+      const row = document.getElementById(id);
+      if (!row) return;
+      row.classList.add('key-active');
+      setTimeout(() => row.classList.remove('key-active'), 180);
+      row.click();
     });
   }
 
@@ -1762,5 +1799,576 @@
     }
   }
 
+  // --- ZEN MODE ---
+
+  function bindZenEvents() {
+    const btnBack = document.getElementById('btn-zen-back');
+    if (btnBack) {
+      btnBack.addEventListener('click', async () => {
+        const stats = ZenMode.exitGame();
+        UI.showScreen('home');
+        if (stats && stats.totalCharsTyped > 0 && currentUser && sb) {
+          try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) return;
+            const res = await fetch('/api/zen/result', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ charactersTyped: stats.totalCharsTyped })
+            });
+            const data = await res.json();
+            if (data.coinsGained > 0) {
+              currentUser.coins = data.newCoins;
+              currentUser.total_chars_typed = data.newTotalChars;
+              UI.updateMoneyDisplay(currentUser.coins);
+              refreshHomeUpgrade();
+              window.dispatchEvent(new CustomEvent('money:earned', {
+                detail: { newCoins: data.newCoins, newTotalChars: data.newTotalChars }
+              }));
+            }
+          } catch (_) {}
+        }
+      });
+    }
+  }
+
+  // --- CUSTOM MODE ---
+
+  let customDuration = 60;
+  let customSource = 'quotes';
+  let customActive = false;
+  let customSentence = '';
+  let customTyped = '';
+  let customStartTime = null;
+  let customTimerInterval = null;
+  let customStatsInterval = null;
+  let customCorrections = 0;
+  let customTotalErrors = 0;
+
+  function bindCustomEvents() {
+    const btnBack = document.getElementById('btn-custom-back');
+    if (btnBack) btnBack.addEventListener('click', async () => {
+      const charsTyped = customTyped.length;
+      cleanupCustom();
+      UI.showScreen('home');
+      if (charsTyped > 0 && currentUser && sb) {
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          if (!session) return;
+          const res = await fetch('/api/zen/result', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ charactersTyped: charsTyped })
+          });
+          const data = await res.json();
+          if (data.coinsGained > 0) {
+            currentUser.coins = data.newCoins;
+            currentUser.total_chars_typed = data.newTotalChars;
+            UI.updateMoneyDisplay(currentUser.coins);
+            refreshHomeUpgrade();
+            window.dispatchEvent(new CustomEvent('money:earned', {
+              detail: { newCoins: data.newCoins, newTotalChars: data.newTotalChars }
+            }));
+          }
+        } catch (_) {}
+      }
+    });
+
+    document.querySelectorAll('[data-custom-dur]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-custom-dur]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        customDuration = parseInt(btn.dataset.customDur);
+      });
+    });
+
+    document.querySelectorAll('[data-custom-src]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-custom-src]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        customSource = btn.dataset.customSrc;
+        const textArea = document.getElementById('custom-text-area');
+        if (textArea) textArea.style.display = customSource === 'custom' ? '' : 'none';
+      });
+    });
+
+    const btnStart = document.getElementById('btn-custom-start');
+    if (btnStart) btnStart.addEventListener('click', startCustomGame);
+
+    const input = document.getElementById('custom-typing-input');
+    if (input) {
+      input.addEventListener('input', handleCustomInput);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey || e.altKey)) {
+          e.preventDefault();
+          const pos = input.selectionStart;
+          const text = input.value;
+          if (pos === 0) return;
+          let i = pos - 1;
+          while (i > 0 && text[i - 1] === ' ') i--;
+          while (i > 0 && text[i - 1] !== ' ') i--;
+          input.value = text.slice(0, i) + text.slice(pos);
+          input.selectionStart = input.selectionEnd = i;
+          input.dispatchEvent(new Event('input'));
+        }
+      });
+    }
+  }
+
+  async function startCustomGame() {
+    if (customSource === 'custom') {
+      const textInput = document.getElementById('custom-text-input');
+      customSentence = textInput ? textInput.value.trim() : '';
+      if (!customSentence) { alert('Enter some text first'); return; }
+    } else {
+      try {
+        const dur = customDuration || 60;
+        const res = await fetch(`/api/time-trial/sentences?duration=${dur}`);
+        const data = await res.json();
+        customSentence = data.text;
+      } catch (_) {
+        customSentence = 'The quick brown fox jumps over the lazy dog.';
+      }
+    }
+
+    const settings = document.getElementById('custom-settings');
+    const gameArea = document.getElementById('custom-game-area');
+    if (settings) settings.style.display = 'none';
+    if (gameArea) gameArea.style.display = '';
+
+    customTyped = '';
+    customCorrections = 0;
+    customTotalErrors = 0;
+    customActive = true;
+    customStartTime = Date.now();
+
+    const input = document.getElementById('custom-typing-input');
+    if (input) { input.value = ''; input.disabled = false; input.focus(); }
+    renderCustomSentence();
+
+    if (customDuration > 0) {
+      customTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - customStartTime) / 1000);
+        const remaining = Math.max(0, customDuration - elapsed);
+        const timerEl = document.getElementById('custom-timer');
+        if (timerEl) {
+          const m = Math.floor(remaining / 60);
+          const s = remaining % 60;
+          timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        }
+        if (remaining <= 0) endCustomGame();
+      }, 100);
+    }
+
+    customStatsInterval = setInterval(updateCustomStats, 400);
+  }
+
+  function handleCustomInput() {
+    if (!customActive) return;
+    const input = document.getElementById('custom-typing-input');
+    if (!input) return;
+    const val = input.value;
+    const prevLen = customTyped.length;
+    if (val.length < prevLen) customCorrections += prevLen - val.length;
+    if (val.length > prevLen) {
+      for (let i = prevLen; i < val.length && i < customSentence.length; i++) {
+        if (val[i] !== customSentence[i]) customTotalErrors++;
+      }
+    }
+    customTyped = val;
+    renderCustomSentence();
+    if (customTyped.length >= customSentence.length) endCustomGame();
+  }
+
+  function renderCustomSentence() {
+    const display = document.getElementById('custom-sentence-display');
+    if (!display) return;
+    let html = '';
+    for (let i = 0; i < customSentence.length; i++) {
+      let cls;
+      if (i < customTyped.length) cls = customTyped[i] === customSentence[i] ? 'correct' : 'error';
+      else if (i === customTyped.length) cls = 'current';
+      else cls = 'pending';
+      const isSpace = customSentence[i] === ' ';
+      const ch = isSpace ? ' ' : UI.escapeHtml(customSentence[i]);
+      html += `<span class="char ${cls}${isSpace ? ' space' : ''}">${ch}</span>`;
+    }
+    display.innerHTML = html;
+  }
+
+  function updateCustomStats() {
+    const elapsed = customStartTime ? (Date.now() - customStartTime) / 60000 : 0;
+    let correct = 0;
+    for (let i = 0; i < customTyped.length && i < customSentence.length; i++) {
+      if (customTyped[i] === customSentence[i]) correct++;
+    }
+    const wpm = elapsed > 0 ? Math.round((correct / 5) / elapsed) : 0;
+    const acc = customTyped.length > 0 ? Math.round((correct / customTyped.length) * 100) : 100;
+    const wpmEl = document.getElementById('custom-wpm');
+    const accEl = document.getElementById('custom-accuracy');
+    const charsEl = document.getElementById('custom-chars');
+    if (wpmEl) wpmEl.textContent = wpm;
+    if (accEl) accEl.textContent = acc + '%';
+    if (charsEl) charsEl.textContent = customTyped.length;
+  }
+
+  function endCustomGame() {
+    customActive = false;
+    if (customTimerInterval) { clearInterval(customTimerInterval); customTimerInterval = null; }
+    if (customStatsInterval) { clearInterval(customStatsInterval); customStatsInterval = null; }
+    const input = document.getElementById('custom-typing-input');
+    if (input) input.disabled = true;
+    updateCustomStats();
+  }
+
+  function cleanupCustom() {
+    customActive = false;
+    if (customTimerInterval) { clearInterval(customTimerInterval); customTimerInterval = null; }
+    if (customStatsInterval) { clearInterval(customStatsInterval); customStatsInterval = null; }
+    const settings = document.getElementById('custom-settings');
+    const gameArea = document.getElementById('custom-game-area');
+    if (settings) settings.style.display = '';
+    if (gameArea) gameArea.style.display = 'none';
+  }
+
+  // --- RACE MODE ---
+
+  function bindRaceEvents() {
+    GameSocket.on('race:lobby_update', (data) => {
+      RaceClient.handleLobbyUpdate(data);
+      UI.showScreen('race');
+    });
+
+    GameSocket.on('race:joined', (data) => {
+      RaceClient.handleJoined(data);
+      UI.showScreen('race');
+      AudioManager.matchFound();
+    });
+
+    GameSocket.on('race:countdown', (data) => {
+      RaceClient.handleCountdown(data);
+    });
+
+    GameSocket.on('race:start', () => {
+      RaceClient.handleStart();
+    });
+
+    GameSocket.on('race:update', (data) => {
+      RaceClient.handleUpdate(data);
+    });
+
+    GameSocket.on('race:finish', async (data) => {
+      RaceClient.handleFinish(data);
+      UI.renderRaceResults(data.results, getUsername());
+      UI.showScreen('raceResult');
+      if (currentUser && sb) {
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          if (session) {
+            const profile = await fetchProfile(session.access_token);
+            if (profile) {
+              currentUser.coins = profile.coins;
+              currentUser.total_chars_typed = profile.total_chars_typed;
+              UI.updateMoneyDisplay(currentUser.coins);
+              refreshHomeUpgrade();
+            }
+          }
+        } catch (_) {}
+      }
+    });
+
+    const btnRaceBack = document.getElementById('btn-race-back');
+    if (btnRaceBack) btnRaceBack.addEventListener('click', () => {
+      GameSocket.emit('race:leave');
+      RaceClient.reset();
+      UI.showScreen('home');
+    });
+
+    const btnRaceAgain = document.getElementById('btn-race-again');
+    if (btnRaceAgain) btnRaceAgain.addEventListener('click', () => {
+      RaceClient.reset();
+      const name = getUsername();
+      RaceClient.setMyUsername(name);
+      setMatchmakingText('Waiting for racers', 'RACE');
+      UI.showScreen('matchmaking');
+      GameSocket.emit('race:join');
+    });
+
+    const btnRaceQuit = document.getElementById('btn-race-quit');
+    if (btnRaceQuit) btnRaceQuit.addEventListener('click', () => {
+      RaceClient.reset();
+      UI.showScreen('home');
+    });
+  }
+
+  // --- FRIENDS ---
+
+  function bindFriendsEvents() {
+    const btnFriends = document.getElementById('btn-home-friends');
+    const panel = document.getElementById('friends-panel');
+    const btnClose = document.getElementById('btn-friends-close');
+    const btnAdd = document.getElementById('btn-friends-add');
+
+    if (btnFriends) btnFriends.addEventListener('click', () => {
+      if (panel) panel.style.display = panel.style.display === 'none' ? '' : 'none';
+      if (currentUser) loadFriends();
+    });
+
+    if (btnClose) btnClose.addEventListener('click', () => {
+      if (panel) panel.style.display = 'none';
+    });
+
+    if (btnAdd) btnAdd.addEventListener('click', async () => {
+      const input = document.getElementById('friends-search-input');
+      if (!input || !input.value.trim() || !currentUser || !sb) return;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/friends/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ username: input.value.trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) alert(data.error || 'Failed');
+        else { input.value = ''; loadFriends(); }
+      } catch (_) {}
+    });
+
+    const friendsList = document.getElementById('friends-list');
+    if (friendsList) friendsList.addEventListener('click', async (e) => {
+      const removeBtn = e.target.closest('.friend-remove-btn');
+      if (removeBtn && currentUser && sb) {
+        try {
+          const { data: { session } } = await sb.auth.getSession();
+          if (!session) return;
+          await fetch('/api/friends/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({ friendId: removeBtn.dataset.friendId })
+          });
+          loadFriends();
+        } catch (_) {}
+      }
+    });
+
+    const requestsEl = document.getElementById('friends-requests');
+    if (requestsEl) requestsEl.addEventListener('click', async (e) => {
+      const acceptBtn = e.target.closest('.friend-accept-btn');
+      const declineBtn = e.target.closest('.friend-decline-btn');
+      const btn = acceptBtn || declineBtn;
+      if (!btn || !currentUser || !sb) return;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const action = acceptBtn ? 'accept' : 'decline';
+        await fetch(`/api/friends/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ friendId: btn.dataset.friendId })
+        });
+        loadFriends();
+      } catch (_) {}
+    });
+  }
+
+  async function loadFriends() {
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/friends', { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        UI.renderFriendsList(data.friends, data.requests);
+      }
+    } catch (_) {}
+  }
+
+  // --- ACHIEVEMENTS ---
+
+  function bindAchievementEvents() {
+    const btn = document.getElementById('btn-profile-achievements');
+    if (btn) btn.addEventListener('click', () => openAchievements());
+
+    const back = document.getElementById('btn-achievements-back');
+    if (back) back.addEventListener('click', () => openProfile());
+
+    GameSocket.on('achievement:unlocked', (data) => {
+      UI.showAchievementToast(data.name);
+      AudioManager.levelUp();
+    });
+  }
+
+  async function openAchievements() {
+    UI.showScreen('achievements');
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/achievements', { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        UI.renderAchievements(data.all, data.user);
+      }
+    } catch (_) {}
+  }
+
+  // --- ANALYTICS ---
+
+  function bindAnalyticsEvents() {
+    const btn = document.getElementById('btn-profile-analytics');
+    if (btn) btn.addEventListener('click', () => openAnalytics());
+
+    const back = document.getElementById('btn-analytics-back');
+    if (back) back.addEventListener('click', () => openProfile());
+  }
+
+  async function openAnalytics() {
+    UI.showScreen('analytics');
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/analytics', { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        UI.renderAnalytics(data);
+      }
+    } catch (_) {}
+  }
+
+  // --- CLAN ---
+
+  function bindClanEvents() {
+    const back = document.getElementById('btn-clan-back');
+    if (back) back.addEventListener('click', () => UI.showScreen('home'));
+
+    const btnCreate = document.getElementById('btn-clan-create');
+    if (btnCreate) btnCreate.addEventListener('click', async () => {
+      const nameInput = document.getElementById('clan-name-input');
+      if (!nameInput || !nameInput.value.trim() || !currentUser || !sb) return;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/clan/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ name: nameInput.value.trim() })
+        });
+        if (res.ok) loadClan();
+        else { const d = await res.json(); alert(d.error || 'Failed'); }
+      } catch (_) {}
+    });
+
+    const btnJoin = document.getElementById('btn-clan-join');
+    if (btnJoin) btnJoin.addEventListener('click', async () => {
+      const codeInput = document.getElementById('clan-join-input');
+      if (!codeInput || !codeInput.value.trim() || !currentUser || !sb) return;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/clan/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ code: codeInput.value.trim() })
+        });
+        if (res.ok) loadClan();
+        else { const d = await res.json(); alert(d.error || 'Failed'); }
+      } catch (_) {}
+    });
+
+    const btnLeave = document.getElementById('btn-clan-leave');
+    if (btnLeave) btnLeave.addEventListener('click', async () => {
+      if (!currentUser || !sb) return;
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        await fetch('/api/clan/leave', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        loadClan();
+      } catch (_) {}
+    });
+  }
+
+  async function loadClan() {
+    if (!currentUser || !sb) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const res = await fetch('/api/clan', { headers: { 'Authorization': `Bearer ${session.access_token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        UI.renderClanInfo(data.clan, data.members);
+      } else {
+        UI.renderClanInfo(null, []);
+      }
+    } catch (_) { UI.renderClanInfo(null, []); }
+  }
+
+  // --- REPLAY ---
+
+  function bindReplayEvents() {
+    const back = document.getElementById('btn-replay-back');
+    if (back) back.addEventListener('click', () => openProfile());
+  }
+
+  // --- LOGIN STREAK ---
+
+  function handleLoginStreak(data) {
+    if (data && data.streak > 1 && data.reward > 0) {
+      UI.showLoginStreak(data.streak, data.reward);
+      AudioManager.coinEarned();
+    }
+  }
+
+  // --- SOUND HOOKS ---
+
+  function hookAudioToEvents() {
+    const origShowCountdown = UI.showCountdown;
+    UI.showCountdown = function(seconds) {
+      origShowCountdown(seconds);
+      if (seconds === 1) AudioManager.countdownGo();
+      else AudioManager.countdownBeep();
+    };
+  }
+  hookAudioToEvents();
+
+  // --- HOME FRIENDS BUTTON VISIBILITY ---
+
+  function updateFriendsButtonVisibility() {
+    const btn = document.getElementById('btn-home-friends');
+    if (btn) btn.style.display = currentUser ? '' : 'none';
+  }
+
+  const origLoginSuccess = loginSuccess;
+  loginSuccess = function(profile, accessToken) {
+    origLoginSuccess(profile, accessToken);
+    updateFriendsButtonVisibility();
+    checkLoginStreak(accessToken);
+  };
+
+  async function checkLoginStreak(token) {
+    try {
+      const res = await fetch('/api/login-streak', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        handleLoginStreak(data);
+      }
+    } catch (_) {}
+  }
+
   init();
 })();
+
