@@ -1657,6 +1657,19 @@
       });
       var dc = document.getElementById('btn-landing-discord');
       if (dc) dc.remove();
+
+      document.title = document.title.replace('TypeDuel.io', 'TypeDuel');
+
+      document.querySelectorAll('.logo').forEach(function(el) {
+        el.innerHTML = 'Type<span class="logo-dot">Duel</span>';
+      });
+
+      var wh = document.getElementById('welcome-heading');
+      if (wh) wh.textContent = wh.textContent.replace('TYPEDUEL.IO', 'TYPEDUEL');
+
+      document.querySelectorAll('.welcome-footer, .home-footer').forEach(function(el) {
+        el.innerHTML = el.innerHTML.replace('typeduel.io', 'TypeDuel');
+      });
     }
   </script>
 </body>
