@@ -60,6 +60,10 @@ const RaceClient = (() => {
     renderTrack();
     if (els.playerCount) els.playerCount.textContent = players.length + ' / 8';
     if (els.timer) els.timer.textContent = 'Waiting for players...';
+    if (els.sentenceDisplay) {
+      els.sentenceDisplay.innerHTML = '<span class="char pending" style="visibility:hidden">The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.</span>';
+    }
+    if (els.quoteSource) els.quoteSource.textContent = '\u00a0';
   }
 
   function handleJoined(data) {
