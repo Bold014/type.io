@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const {
-  supabase, findUserById, findUserByUsername, checkUsernameExists, updateEmail,
+  supabase, findUserById, findUserByUsername, findUserBySteamId,
+  updateProfileSteamId, updateProfileUsername, checkUsernameExists, updateEmail,
   getLeaderboard, getMatchHistory, getUserAscendStats,
   saveTimeTrialRun, getTimeTrialLeaderboard, getUserTimeTrialStats, xpToLevel,
   getShopItems, getUserInventory, getUserEquipped, getUserEquippedWithItems,
@@ -10,6 +12,18 @@ const {
   upgradeCharValue, CHAR_VALUE_UPGRADES
 } = require('./db');
 const { pickSentencesForDuration, getWordBank } = require('./sentences');
+
+const FACEPUNCH_AUTH_URL = 'https://services.facepunch.com/sbox/auth/token';
+const FACEPUNCH_PLAYER_URL = 'https://services.facepunch.com/sbox/player';
+
+function deriveSteamPassword(steamId) {
+  const secret = process.env.STEAM_AUTH_SECRET || 'default-dev-secret';
+  return crypto.createHmac('sha256', secret).update(String(steamId)).digest('hex');
+}
+
+function sanitizeUsername(name) {
+  return name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'Player';
+}
 
 function setupAuthRoutes(app) {
   app.post('/api/check-username', async (req, res) => {
@@ -56,6 +70,132 @@ function setupAuthRoutes(app) {
       });
     } catch (err) {
       console.error('Login error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/auth/steam', async (req, res) => {
+    try {
+      const { steamid, token } = req.body;
+      if (!steamid || !token) {
+        return res.status(400).json({ error: 'steamid and token required' });
+      }
+
+      const steamIdStr = String(steamid);
+
+      const validateRes = await fetch(FACEPUNCH_AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ steamid: Number(steamid), token })
+      });
+
+      if (!validateRes.ok) {
+        return res.status(401).json({ error: 'Token validation failed' });
+      }
+
+      const validateData = await validateRes.json();
+      if (validateData.Status !== 'ok' || String(validateData.SteamId) !== steamIdStr) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      let playerName = null;
+      try {
+        const playerRes = await fetch(`${FACEPUNCH_PLAYER_URL}/${steamIdStr}`);
+        if (playerRes.ok) {
+          const playerData = await playerRes.json();
+          playerName = playerData.Name || null;
+        }
+      } catch (_) {}
+
+      const email = `steam_${steamIdStr}@steam.typeduel.io`;
+      const password = deriveSteamPassword(steamIdStr);
+
+      let profile = await findUserBySteamId(steamIdStr);
+
+      if (!profile) {
+        let username = sanitizeUsername(playerName || 'Player');
+        const existing = await checkUsernameExists(username);
+        if (existing.exists) {
+          username = username.slice(0, 14) + '_' + Math.floor(Math.random() * 99999);
+        }
+
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { username }
+        });
+
+        if (createError) {
+          if (createError.message?.includes('already been registered')) {
+            const signIn = await supabase.auth.signInWithPassword({ email, password });
+            if (signIn.error) {
+              return res.status(500).json({ error: 'Steam account exists but sign-in failed' });
+            }
+
+            const existingProfile = await findUserById(signIn.data.user.id);
+            if (existingProfile && !existingProfile.steam_id) {
+              await updateProfileSteamId(signIn.data.user.id, steamIdStr);
+            }
+
+            profile = await findUserById(signIn.data.user.id);
+            if (!profile) {
+              return res.status(500).json({ error: 'Profile not found' });
+            }
+
+            const equipped = await getUserEquippedWithItems(profile.id);
+            return res.json({
+              access_token: signIn.data.session.access_token,
+              refresh_token: signIn.data.session.refresh_token,
+              profile: { ...profile, equipped }
+            });
+          }
+          console.error('Steam createUser error:', createError);
+          return res.status(500).json({ error: 'Failed to create account' });
+        }
+
+        for (let i = 0; i < 10; i++) {
+          profile = await findUserById(newUser.user.id);
+          if (profile) break;
+          await new Promise(r => setTimeout(r, 300));
+        }
+
+        if (!profile) {
+          return res.status(500).json({ error: 'Profile creation timed out' });
+        }
+
+        await updateProfileSteamId(newUser.user.id, steamIdStr);
+        if (playerName) {
+          const sanitized = sanitizeUsername(playerName);
+          if (sanitized && sanitized !== profile.username) {
+            const taken = await checkUsernameExists(sanitized);
+            if (!taken.exists) {
+              await updateProfileUsername(newUser.user.id, sanitized);
+              profile.username = sanitized;
+            }
+          }
+        }
+      }
+
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (signInError) {
+        return res.status(500).json({ error: 'Authentication failed' });
+      }
+
+      profile = await findUserById(signInData.user.id);
+      const equipped = await getUserEquippedWithItems(profile.id);
+
+      res.json({
+        access_token: signInData.session.access_token,
+        refresh_token: signInData.session.refresh_token,
+        profile: { ...profile, equipped }
+      });
+    } catch (err) {
+      console.error('Steam auth error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

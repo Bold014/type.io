@@ -176,6 +176,33 @@
       if (!document.hidden && currentUser) loadChallenges();
     });
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const sboxToken = urlParams.get('token');
+    const sboxSteamId = urlParams.get('steamid');
+
+    if (sboxToken && sboxSteamId) {
+      try {
+        const steamRes = await fetch('/api/auth/steam', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ steamid: sboxSteamId, token: sboxToken })
+        });
+        if (steamRes.ok) {
+          const steamData = await steamRes.json();
+          if (sb) {
+            await sb.auth.setSession({
+              access_token: steamData.access_token,
+              refresh_token: steamData.refresh_token
+            });
+          }
+          loginSuccess(steamData.profile, steamData.access_token);
+        }
+      } catch (err) {
+        console.warn('Steam auth error:', err);
+      }
+      window.history.replaceState({}, '', '/');
+    }
+
     if (sb) {
       try {
         const { data: { session } } = await sb.auth.getSession();

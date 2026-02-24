@@ -367,3 +367,10 @@ CREATE POLICY "Service role full access on user_equipped"
   ON user_equipped FOR ALL
   TO service_role
   USING (true);
+
+-- ============================================================
+-- Steam Authentication for s&box
+-- ============================================================
+
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS steam_id text UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_profiles_steam_id ON profiles(steam_id);

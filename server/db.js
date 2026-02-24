@@ -61,8 +61,8 @@ function computeMoneyFromChars(charsTyped, charValueLevel) {
 
 const PLACEMENT_GAMES = 5;
 
-const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level';
-const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level';
+const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
+const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
 
 async function findUserById(id) {
   const { data, error } = await supabase
@@ -89,6 +89,43 @@ async function findUserByUsername(username) {
     return null;
   }
   return data;
+}
+
+async function findUserBySteamId(steamId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_COLS_EMAIL)
+    .eq('steam_id', steamId)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+async function updateProfileSteamId(userId, steamId) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ steam_id: steamId })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('updateProfileSteamId error:', error);
+    return false;
+  }
+  return true;
+}
+
+async function updateProfileUsername(userId, username) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ username })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('updateProfileUsername error:', error);
+    return false;
+  }
+  return true;
 }
 
 async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs, charsTyped) {
@@ -895,7 +932,8 @@ async function upgradeCharValue(userId) {
 }
 
 module.exports = {
-  supabase, findUserById, findUserByUsername, checkUsernameExists,
+  supabase, findUserById, findUserByUsername, findUserBySteamId,
+  updateProfileSteamId, updateProfileUsername, checkUsernameExists,
   updateStats, updateXpOnly, updateEmail, xpToLevel, PLACEMENT_GAMES,
   saveAscendRun, getWeeklyLeaderboard, getUserBestHeight,
   saveMatchResult, getMatchHistory, getLeaderboard, getUserAscendStats,
