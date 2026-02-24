@@ -956,8 +956,7 @@
         currentMode = 'race';
         GameSocket.setAuth({ username: name, userId: currentUser?.id || null, rating: currentUser?.rating || 1000 });
         RaceClient.setMyUsername(name);
-        setMatchmakingText('Waiting for racers', 'RACE');
-        UI.showScreen('matchmaking');
+        UI.showScreen('race');
         GameSocket.emit('race:join');
       });
     }
@@ -2161,8 +2160,7 @@
       RaceClient.reset();
       const name = getUsername();
       RaceClient.setMyUsername(name);
-      setMatchmakingText('Waiting for racers', 'RACE');
-      UI.showScreen('matchmaking');
+      UI.showScreen('race');
       GameSocket.emit('race:join');
     });
 

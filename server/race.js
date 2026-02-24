@@ -1,6 +1,5 @@
 const { pickSentencesForDuration } = require('./sentences');
-const { findUserById, computeMoneyFromChars, CHAR_VALUE_UPGRADES, addCoins } = require('./db');
-const { supabaseDb } = require('./db');
+const { findUserById, computeMoneyFromChars, CHAR_VALUE_UPGRADES, addCoins, addCharsTyped } = require('./db');
 
 const RACE_MAX_PLAYERS = 8;
 const RACE_WAIT_TIME_MS = 10000;
@@ -463,13 +462,11 @@ async function awardRaceCoins(userId, charsTyped) {
     if (!user) return;
     const charLevel = user.char_value_level || 0;
     const coinsGained = computeMoneyFromChars(charsTyped, charLevel);
-    if (coinsGained <= 0) return;
-    const newCoins = (user.coins || 0) + coinsGained;
-    const newTotalChars = (user.total_chars_typed || 0) + charsTyped;
-    await supabaseDb.from('profiles').update({
-      coins: newCoins,
-      total_chars_typed: newTotalChars
-    }).eq('id', userId);
+    if (coinsGained <= 0 && !charsTyped) return;
+    await Promise.all([
+      coinsGained > 0 ? addCoins(userId, coinsGained) : Promise.resolve(),
+      charsTyped > 0 ? addCharsTyped(userId, charsTyped) : Promise.resolve()
+    ]);
   } catch (err) {
     console.error('awardRaceCoins error:', err);
   }

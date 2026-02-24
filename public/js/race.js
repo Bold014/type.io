@@ -49,9 +49,10 @@ const RaceClient = (() => {
   function handleLobbyUpdate(data) {
     inLobby = true;
     players = data.players || [];
-    if (els.trackArea) els.trackArea.style.display = 'none';
-    if (els.playerCount) els.playerCount.textContent = '';
-    if (els.timer) els.timer.textContent = '';
+    if (els.trackArea) els.trackArea.style.display = '';
+    renderTrack();
+    if (els.playerCount) els.playerCount.textContent = players.length + ' / 8';
+    if (els.timer) els.timer.textContent = 'Waiting for players...';
   }
 
   function handleJoined(data) {
@@ -60,6 +61,7 @@ const RaceClient = (() => {
     if (els.trackArea) els.trackArea.style.display = '';
     renderTrack();
     if (els.playerCount) els.playerCount.textContent = players.length + ' / 8';
+    if (els.timer) els.timer.textContent = '';
   }
 
   function handleCountdown(data) {
