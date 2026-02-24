@@ -26,6 +26,12 @@ function sanitizeUsername(name) {
   return name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'Player';
 }
 
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
+  return req.query.token || null;
+}
+
 function setupAuthRoutes(app) {
   app.post('/api/check-username', async (req, res) => {
     try {
@@ -249,12 +255,10 @@ function setupAuthRoutes(app) {
   app.get('/api/me', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -275,12 +279,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/update-email', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -343,12 +345,10 @@ function setupAuthRoutes(app) {
 
   app.get('/api/match-history', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -365,12 +365,10 @@ function setupAuthRoutes(app) {
 
   app.get('/api/ascend-stats', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -399,12 +397,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/time-trial/result', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -440,12 +436,10 @@ function setupAuthRoutes(app) {
 
   app.get('/api/time-trial-stats', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -463,12 +457,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/zen/result', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -529,12 +521,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/tower-defense/result', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -568,12 +558,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/upgrade/char-value', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -608,13 +596,12 @@ function setupAuthRoutes(app) {
     try {
       const items = await getShopItems();
 
-      const authHeader = req.headers.authorization;
       let inventory = [];
       let equipped = [];
       let coins = 0;
-
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.slice(7);
+      const optToken = extractToken(req);
+      if (optToken) {
+        const token = optToken;
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (!error && user) {
           const profile = await findUserById(user.id);
@@ -635,12 +622,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/shop/purchase', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -665,12 +650,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/shop/equip', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -695,12 +678,10 @@ function setupAuthRoutes(app) {
 
   app.post('/api/shop/unequip', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
@@ -727,9 +708,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/friends', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -758,9 +738,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/friends/request', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -782,9 +761,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/friends/accept', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -797,9 +775,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/friends/decline', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -812,9 +789,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/friends/remove', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -829,9 +805,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/achievements', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -860,9 +835,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/analytics', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -916,9 +890,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/login-streak', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -961,9 +934,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/clan', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -990,9 +962,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/clan/create', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1014,9 +985,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/clan/join', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1039,9 +1009,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/clan/leave', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1054,9 +1023,8 @@ function setupAuthRoutes(app) {
 
   app.post('/api/replay/save', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1080,9 +1048,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/replays', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1098,9 +1065,8 @@ function setupAuthRoutes(app) {
 
   app.get('/api/replay/:id', async (req, res) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not logged in' });
-      const token = authHeader.slice(7);
+      const token = extractToken(req);
+      if (!token) return res.status(401).json({ error: 'Not logged in' });
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
@@ -1117,12 +1083,10 @@ function setupAuthRoutes(app) {
   app.get('/api/challenges', async (req, res) => {
     res.set('Cache-Control', 'no-store');
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
+      const token = extractToken(req);
+      if (!token) {
         return res.status(401).json({ error: 'Not logged in' });
       }
-
-      const token = authHeader.slice(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
         return res.status(401).json({ error: 'Invalid token' });
