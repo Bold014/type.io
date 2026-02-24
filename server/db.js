@@ -1,8 +1,20 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Auth client: used for supabase.auth.* operations (signIn, getUser, admin).
+// signInWithPassword sets a user session on this client, switching its
+// Authorization header from service-role to the user's JWT.
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// DB client: used for all .from() queries. This is a separate instance that
+// never has signInWithPassword called on it, so it always uses the service-role
+// key and bypasses RLS.
+const supabaseDb = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
 function xpToLevel(xp) {
@@ -65,7 +77,7 @@ const PROFILE_COLS = 'id, username, rating, wins, losses, avg_wpm, games_played,
 const PROFILE_COLS_EMAIL = 'id, username, email, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, best_tt_wpm, best_td_wave, last_pb_at, ranked_games_played, coins, last_daily_win, total_chars_typed, char_value_level, steam_id';
 
 async function findUserById(id) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .select(PROFILE_COLS_EMAIL)
     .eq('id', id)
@@ -76,7 +88,7 @@ async function findUserById(id) {
 }
 
 async function findUserByUsername(username) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .select(PROFILE_COLS_EMAIL)
     .ilike('username', username)
@@ -92,7 +104,7 @@ async function findUserByUsername(username) {
 }
 
 async function findUserBySteamId(steamId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .select(PROFILE_COLS_EMAIL)
     .eq('steam_id', steamId)
@@ -105,7 +117,7 @@ async function findUserBySteamId(steamId) {
 async function updateProfileSteamId(userId, steamId) {
   console.log('[DB] updateProfileSteamId called | userId:', userId, '| steamId:', steamId);
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .update({ steam_id: steamId })
     .eq('id', userId)
@@ -119,7 +131,7 @@ async function updateProfileSteamId(userId, steamId) {
   if (!data || data.length === 0) {
     console.error('[DB] updateProfileSteamId matched 0 rows | userId:', userId, '| steamId:', steamId);
 
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseDb
       .from('profiles')
       .select('id, steam_id')
       .eq('id', userId)
@@ -149,7 +161,7 @@ async function updateProfileSteamId(userId, steamId) {
 }
 
 async function updateProfileUsername(userId, username) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('profiles')
     .update({ username })
     .eq('id', userId);
@@ -209,7 +221,7 @@ async function updateStats(userId, won, wpm, opponentRating, mode, totalTimeMs, 
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('profiles')
     .update(updatePayload)
     .eq('id', userId);
@@ -262,7 +274,7 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, charsTyped) {
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('profiles')
     .update(updatePayload)
     .eq('id', userId);
@@ -276,7 +288,7 @@ async function updateXpOnly(userId, won, wpm, mode, totalTimeMs, charsTyped) {
 }
 
 async function updateEmail(userId, email) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('profiles')
     .update({ email })
     .eq('id', userId);
@@ -289,7 +301,7 @@ async function updateEmail(userId, email) {
 }
 
 async function saveAscendRun(userId, username, height, tier, durationMs) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('ascend_runs')
     .insert({
       user_id: userId,
@@ -312,7 +324,7 @@ async function getWeeklyLeaderboard(limit = 20) {
   monday.setUTCDate(now.getUTCDate() - ((day + 6) % 7));
   monday.setUTCHours(0, 0, 0, 0);
 
-  const { data, error } = await supabase.rpc('get_weekly_ascend_leaderboard', {
+  const { data, error } = await supabaseDb.rpc('get_weekly_ascend_leaderboard', {
     p_monday: monday.toISOString(),
     p_limit: limit
   });
@@ -326,7 +338,7 @@ async function getWeeklyLeaderboard(limit = 20) {
 }
 
 async function getUserBestHeight(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('ascend_runs')
     .select('height, tier')
     .eq('user_id', userId)
@@ -338,7 +350,7 @@ async function getUserBestHeight(userId) {
 }
 
 async function saveMatchResult(userId, data) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('match_history')
     .insert({
       user_id: userId,
@@ -360,7 +372,7 @@ async function saveMatchResult(userId, data) {
 }
 
 async function getMatchHistory(userId, limit = 10) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('match_history')
     .select('id, opponent_username, mode, won, user_wpm, opponent_wpm, rounds_won, rounds_lost, rating_change, xp_gained, created_at')
     .eq('user_id', userId)
@@ -375,7 +387,7 @@ async function getMatchHistory(userId, limit = 10) {
 }
 
 async function getAscendLeaderboard(limit = 50) {
-  const { data, error } = await supabase.rpc('get_ascend_leaderboard', {
+  const { data, error } = await supabaseDb.rpc('get_ascend_leaderboard', {
     p_limit: limit
   });
 
@@ -402,7 +414,7 @@ async function getLeaderboard(category = 'rating', limit = 50) {
 
   const config = validCategories[category] || validCategories.rating;
 
-  let query = supabase
+  let query = supabaseDb
     .from('profiles')
     .select('id, username, rating, wins, losses, avg_wpm, games_played, xp, best_wpm, ranked_games_played, coins');
 
@@ -430,7 +442,7 @@ async function getLeaderboard(category = 'rating', limit = 50) {
 }
 
 async function getUserAscendStats(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('ascend_runs')
     .select('height, tier, duration_ms')
     .eq('user_id', userId)
@@ -449,7 +461,7 @@ async function getUserAscendStats(userId) {
 }
 
 async function saveTimeTrialRun(userId, username, data) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('time_trial_runs')
     .insert({
       user_id: userId,
@@ -503,13 +515,13 @@ async function saveTimeTrialRun(userId, username, data) {
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
-  await supabase.from('profiles').update(updatePayload).eq('id', userId);
+  await supabaseDb.from('profiles').update(updatePayload).eq('id', userId);
 
   return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value, newTotalChars };
 }
 
 async function getTimeTrialLeaderboard(duration, limit = 50) {
-  const { data, error } = await supabase.rpc('get_time_trial_leaderboard', {
+  const { data, error } = await supabaseDb.rpc('get_time_trial_leaderboard', {
     p_duration: duration,
     p_limit: limit
   });
@@ -523,7 +535,7 @@ async function getTimeTrialLeaderboard(duration, limit = 50) {
 }
 
 async function getUserTimeTrialStats(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('time_trial_runs')
     .select('duration, wpm, accuracy')
     .eq('user_id', userId)
@@ -548,7 +560,7 @@ async function getUserTimeTrialStats(userId) {
 }
 
 async function checkUsernameExists(username) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .select('id')
     .ilike('username', username)
@@ -564,7 +576,7 @@ async function checkUsernameExists(username) {
 // --- SHOP & INVENTORY ---
 
 async function getShopItems() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('shop_items')
     .select('*')
     .order('category')
@@ -574,7 +586,7 @@ async function getShopItems() {
 }
 
 async function getUserInventory(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('user_inventory')
     .select('item_id, purchased_at')
     .eq('user_id', userId);
@@ -583,7 +595,7 @@ async function getUserInventory(userId) {
 }
 
 async function getUserEquipped(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('user_equipped')
     .select('category, item_id')
     .eq('user_id', userId);
@@ -595,7 +607,7 @@ async function getUserEquippedWithItems(userId) {
   const equipped = await getUserEquipped(userId);
   if (!equipped.length) return [];
   const itemIds = equipped.map(e => e.item_id);
-  const { data: items, error } = await supabase
+  const { data: items, error } = await supabaseDb
     .from('shop_items')
     .select('id, category, name, data')
     .in('id', itemIds);
@@ -609,7 +621,7 @@ async function getUserEquippedWithItems(userId) {
 }
 
 async function purchaseItem(userId, itemId) {
-  const { data, error } = await supabase.rpc('purchase_shop_item', {
+  const { data, error } = await supabaseDb.rpc('purchase_shop_item', {
     p_user_id: userId,
     p_item_id: itemId
   });
@@ -621,7 +633,7 @@ async function purchaseItem(userId, itemId) {
 }
 
 async function equipItem(userId, itemId, category) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('user_equipped')
     .upsert({ user_id: userId, category, item_id: itemId }, { onConflict: 'user_id,category' });
   if (error) {
@@ -632,7 +644,7 @@ async function equipItem(userId, itemId, category) {
 }
 
 async function unequipItem(userId, category) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('user_equipped')
     .delete()
     .eq('user_id', userId)
@@ -645,7 +657,7 @@ async function unequipItem(userId, category) {
 }
 
 async function addCoins(userId, amount) {
-  const { data, error } = await supabase.rpc('add_coins', {
+  const { data, error } = await supabaseDb.rpc('add_coins', {
     p_user_id: userId,
     p_amount: amount
   });
@@ -654,7 +666,7 @@ async function addCoins(userId, amount) {
 }
 
 async function deductCoinsSafe(userId, amount) {
-  const { data, error } = await supabase.rpc('deduct_coins_safe', {
+  const { data, error } = await supabaseDb.rpc('deduct_coins_safe', {
     p_user_id: userId,
     p_amount: amount
   });
@@ -663,7 +675,7 @@ async function deductCoinsSafe(userId, amount) {
 }
 
 async function getUserBalance(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseDb
     .from('profiles')
     .select('coins')
     .eq('id', userId)
@@ -706,7 +718,7 @@ function generateDailyChallenges(dateStr) {
 async function getUserDailyChallenges(userId) {
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: existing, error } = await supabase
+  const { data: existing, error } = await supabaseDb
     .from('daily_challenges')
     .select('*')
     .eq('user_id', userId)
@@ -726,14 +738,14 @@ async function getUserDailyChallenges(userId) {
     date: today
   }));
 
-  const { data: inserted, error: insertError } = await supabase
+  const { data: inserted, error: insertError } = await supabaseDb
     .from('daily_challenges')
     .insert(rows)
     .select('*');
 
   if (insertError) {
     console.error('generateDailyChallenges insert error:', insertError);
-    const { data: retry } = await supabase
+    const { data: retry } = await supabaseDb
       .from('daily_challenges')
       .select('*')
       .eq('user_id', userId)
@@ -747,7 +759,7 @@ async function updateChallengeProgress(userId, challengeType, incrementBy) {
   if (!userId) return null;
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: challenge, error } = await supabase
+  const { data: challenge, error } = await supabaseDb
     .from('daily_challenges')
     .select('*')
     .eq('user_id', userId)
@@ -760,7 +772,7 @@ async function updateChallengeProgress(userId, challengeType, incrementBy) {
   const newProgress = Math.min(challenge.target, challenge.progress + incrementBy);
   const nowComplete = newProgress >= challenge.target;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseDb
     .from('daily_challenges')
     .update({ progress: newProgress, completed: nowComplete })
     .eq('id', challenge.id);
@@ -812,7 +824,7 @@ async function getUserWeeklyChallenges(userId) {
   const today = new Date().toISOString().slice(0, 10);
   const weekStart = getWeekStart(today);
 
-  const { data: existing, error } = await supabase
+  const { data: existing, error } = await supabaseDb
     .from('weekly_challenges')
     .select('*')
     .eq('user_id', userId)
@@ -832,14 +844,14 @@ async function getUserWeeklyChallenges(userId) {
     week_start: weekStart
   }));
 
-  const { data: inserted, error: insertError } = await supabase
+  const { data: inserted, error: insertError } = await supabaseDb
     .from('weekly_challenges')
     .insert(rows)
     .select('*');
 
   if (insertError) {
     console.error('getUserWeeklyChallenges insert error:', insertError);
-    const { data: retry } = await supabase
+    const { data: retry } = await supabaseDb
       .from('weekly_challenges')
       .select('*')
       .eq('user_id', userId)
@@ -854,7 +866,7 @@ async function updateWeeklyChallengeProgress(userId, challengeType, incrementBy)
   const today = new Date().toISOString().slice(0, 10);
   const weekStart = getWeekStart(today);
 
-  const { data: challenge, error } = await supabase
+  const { data: challenge, error } = await supabaseDb
     .from('weekly_challenges')
     .select('*')
     .eq('user_id', userId)
@@ -867,7 +879,7 @@ async function updateWeeklyChallengeProgress(userId, challengeType, incrementBy)
   const newProgress = Math.min(challenge.target, challenge.progress + incrementBy);
   const nowComplete = newProgress >= challenge.target;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseDb
     .from('weekly_challenges')
     .update({ progress: newProgress, completed: nowComplete })
     .eq('id', challenge.id);
@@ -884,7 +896,7 @@ async function updateWeeklyChallengeProgress(userId, challengeType, incrementBy)
 // --- TOWER DEFENSE ---
 
 async function saveTowerDefenseRun(userId, username, data) {
-  const { error } = await supabase
+  const { error } = await supabaseDb
     .from('tower_defense_runs')
     .insert({
       user_id: userId,
@@ -935,13 +947,13 @@ async function saveTowerDefenseRun(userId, username, data) {
     updatePayload.last_pb_at = new Date().toISOString();
   }
 
-  await supabase.from('profiles').update(updatePayload).eq('id', userId);
+  await supabaseDb.from('profiles').update(updatePayload).eq('id', userId);
 
   return { xpGained, newXp, oldLevel, newLevel, isPb, coinsGained, newCoins, charsTyped, charValue: (CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0]).value, newTotalChars };
 }
 
 async function getTowerDefenseLeaderboard(limit = 50) {
-  const { data, error } = await supabase.rpc('get_td_leaderboard', {
+  const { data, error } = await supabaseDb.rpc('get_td_leaderboard', {
     p_limit: limit
   });
 
@@ -954,7 +966,7 @@ async function getTowerDefenseLeaderboard(limit = 50) {
 }
 
 async function upgradeCharValue(userId) {
-  const { data, error } = await supabase.rpc('upgrade_char_value', {
+  const { data, error } = await supabaseDb.rpc('upgrade_char_value', {
     p_user_id: userId
   });
   if (error) {
