@@ -138,10 +138,15 @@
     UI.showScreen = function(name) {
       if (_lastScreen === 'home' && name !== 'home') {
         GameSocket.emit('globalchat:leave');
+        stopMiniLbPolling();
+      }
+      if (_lastScreen === 'leaderboard' && name !== 'leaderboard') {
+        stopLbPolling();
       }
       _origShowScreen(name);
       if (name === 'home') {
-        loadHomeMiniLeaderboard();
+        loadHomeMiniLeaderboard(null, true);
+        startMiniLbPolling();
         if (currentUser) loadChallenges();
         GameSocket.emit('globalchat:join');
         updateGlobalChatInputVisibility();
@@ -186,7 +191,19 @@
 
     scheduleChallengeRefresh();
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && currentUser) loadChallenges();
+      if (document.hidden) {
+        stopMiniLbPolling();
+        stopLbPolling();
+      } else {
+        if (currentUser) loadChallenges();
+        if (_lastScreen === 'home') {
+          loadHomeMiniLeaderboard(null, true);
+          startMiniLbPolling();
+        } else if (_lastScreen === 'leaderboard') {
+          fetchLeaderboard(true);
+          startLbPolling();
+        }
+      }
     });
 
     if (window.APP_CONFIG && window.APP_CONFIG.platform === 'sbox') {
@@ -423,10 +440,11 @@
   // --- HOME MINI LEADERBOARD ---
 
   const miniLbCache = {};
-  const MINI_LB_TTL = 60000;
+  const MINI_LB_TTL = 30000;
   let miniLbCategory = 'coins';
+  let miniLbInterval = null;
 
-  async function loadHomeMiniLeaderboard(category) {
+  async function loadHomeMiniLeaderboard(category, forceRefresh) {
     if (category) miniLbCategory = category;
     const cat = miniLbCategory;
 
@@ -435,13 +453,13 @@
     );
 
     const cached = miniLbCache[cat];
-    if (cached && (Date.now() - cached.time) < MINI_LB_TTL) {
+    if (!forceRefresh && cached && (Date.now() - cached.time) < MINI_LB_TTL) {
       UI.renderHomeMiniLeaderboard(cached.data, cat);
       return;
     }
 
     const body = document.getElementById('mini-lb-body');
-    if (body) body.innerHTML = '<div class="mini-lb-loading">Loading...</div>';
+    if (!cached && body) body.innerHTML = '<div class="mini-lb-loading">Loading...</div>';
 
     try {
       const res = await fetch(`/api/leaderboard?category=${cat}&limit=10`);
@@ -449,7 +467,21 @@
       miniLbCache[cat] = { data, time: Date.now() };
       if (miniLbCategory === cat) UI.renderHomeMiniLeaderboard(data, cat);
     } catch {
-      if (body && miniLbCategory === cat) body.innerHTML = '<div class="mini-lb-empty">Failed to load</div>';
+      if (!cached && body && miniLbCategory === cat) body.innerHTML = '<div class="mini-lb-empty">Failed to load</div>';
+    }
+  }
+
+  function startMiniLbPolling() {
+    stopMiniLbPolling();
+    miniLbInterval = setInterval(() => {
+      loadHomeMiniLeaderboard(null, true);
+    }, MINI_LB_TTL);
+  }
+
+  function stopMiniLbPolling() {
+    if (miniLbInterval) {
+      clearInterval(miniLbInterval);
+      miniLbInterval = null;
     }
   }
 
@@ -995,12 +1027,13 @@
 
   let currentLbCategory = 'rating';
   let currentLbDuration = 15;
+  let lbRefreshInterval = null;
+  const LB_REFRESH_MS = 30000;
 
-  async function openLeaderboard(category, duration) {
-    currentLbCategory = category || 'rating';
-    if (duration !== undefined) currentLbDuration = duration;
-    UI.showScreen('leaderboard');
-    UI.els.lbTableBody.innerHTML = '<div class="lb-loading">Loading...</div>';
+  async function fetchLeaderboard(isAutoRefresh) {
+    if (!isAutoRefresh) {
+      UI.els.lbTableBody.innerHTML = '<div class="lb-loading">Loading...</div>';
+    }
 
     document.querySelectorAll('.lb-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.category === currentLbCategory);
@@ -1019,12 +1052,37 @@
       const data = await res.json();
       UI.showLeaderboard(data, currentLbCategory);
     } catch (err) {
-      UI.els.lbTableBody.innerHTML = '<div class="lb-empty">Failed to load</div>';
+      if (!isAutoRefresh) {
+        UI.els.lbTableBody.innerHTML = '<div class="lb-empty">Failed to load</div>';
+      }
+    }
+  }
+
+  async function openLeaderboard(category, duration) {
+    currentLbCategory = category || 'rating';
+    if (duration !== undefined) currentLbDuration = duration;
+    UI.showScreen('leaderboard');
+    await fetchLeaderboard(false);
+    startLbPolling();
+  }
+
+  function startLbPolling() {
+    stopLbPolling();
+    lbRefreshInterval = setInterval(() => {
+      fetchLeaderboard(true);
+    }, LB_REFRESH_MS);
+  }
+
+  function stopLbPolling() {
+    if (lbRefreshInterval) {
+      clearInterval(lbRefreshInterval);
+      lbRefreshInterval = null;
     }
   }
 
   function bindLeaderboardEvents() {
     UI.els.btnLeaderboardBack.addEventListener('click', () => {
+      stopLbPolling();
       UI.showScreen('home');
     });
 
