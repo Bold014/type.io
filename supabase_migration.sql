@@ -368,6 +368,22 @@ CREATE POLICY "Service role full access on user_equipped"
   TO service_role
   USING (true);
 
+-- 18. RPC: Atomic total_chars_typed increment
+CREATE OR REPLACE FUNCTION add_chars_typed(p_user_id uuid, p_amount bigint)
+RETURNS bigint
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_new_total bigint;
+BEGIN
+  UPDATE profiles
+  SET total_chars_typed = COALESCE(total_chars_typed, 0) + p_amount
+  WHERE id = p_user_id
+  RETURNING total_chars_typed INTO v_new_total;
+  RETURN COALESCE(v_new_total, 0);
+END;
+$$;
+
 -- ============================================================
 -- Steam Authentication for s&box
 -- ============================================================
