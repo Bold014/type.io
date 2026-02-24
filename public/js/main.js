@@ -182,6 +182,7 @@
 
     if (sboxToken && sboxSteamId) {
       try {
+        console.log('[STEAM AUTH] Attempting auth with steamid:', sboxSteamId);
         const steamRes = await fetch('/api/auth/steam', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -189,6 +190,7 @@
         });
         if (steamRes.ok) {
           const steamData = await steamRes.json();
+          console.log('[STEAM AUTH] Success, username:', steamData.profile?.username);
           if (sb) {
             await sb.auth.setSession({
               access_token: steamData.access_token,
@@ -196,9 +198,12 @@
             });
           }
           loginSuccess(steamData.profile, steamData.access_token);
+        } else {
+          const errBody = await steamRes.text();
+          console.error('[STEAM AUTH] Server returned', steamRes.status, errBody);
         }
       } catch (err) {
-        console.warn('Steam auth error:', err);
+        console.error('[STEAM AUTH] Error:', err);
       }
       window.history.replaceState({}, '', '/');
     }

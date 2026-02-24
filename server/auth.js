@@ -82,6 +82,7 @@ function setupAuthRoutes(app) {
       }
 
       const steamIdStr = String(steamid);
+      console.log('[STEAM AUTH] Validating token for steamid:', steamIdStr);
 
       const validateRes = await fetch(FACEPUNCH_AUTH_URL, {
         method: 'POST',
@@ -90,11 +91,14 @@ function setupAuthRoutes(app) {
       });
 
       if (!validateRes.ok) {
+        console.error('[STEAM AUTH] Facepunch validation HTTP error:', validateRes.status);
         return res.status(401).json({ error: 'Token validation failed' });
       }
 
       const validateData = await validateRes.json();
+      console.log('[STEAM AUTH] Facepunch response:', JSON.stringify(validateData));
       if (validateData.Status !== 'ok' || String(validateData.SteamId) !== steamIdStr) {
+        console.error('[STEAM AUTH] Token invalid. Status:', validateData.Status, 'SteamId match:', String(validateData.SteamId) === steamIdStr);
         return res.status(401).json({ error: 'Invalid token' });
       }
 
