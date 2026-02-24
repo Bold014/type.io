@@ -86,9 +86,6 @@ const RaceClient = (() => {
     active = false;
 
     renderSentence();
-    if (els.sentenceDisplay) {
-      els.sentenceDisplay.style.visibility = 'visible';
-    }
     if (els.quoteSource) els.quoteSource.textContent = data.source ? `— ${data.source}` : '';
 
     if (els.countdownOverlay) {
