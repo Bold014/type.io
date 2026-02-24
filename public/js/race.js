@@ -24,6 +24,13 @@ const RaceClient = (() => {
     els.quoteSource = document.getElementById('race-quote-source');
     els.playerCount = document.getElementById('race-player-count');
 
+    if (els.sentenceDisplay) {
+      sentence = 'This is placeholder race text to reserve space before the race starts.';
+      typed = '';
+      renderSentence();
+      els.sentenceDisplay.style.visibility = 'hidden';
+    }
+
     if (!els.typingInput) return;
 
     els.typingInput.addEventListener('keydown', (e) => {
@@ -75,6 +82,9 @@ const RaceClient = (() => {
     active = false;
 
     renderSentence();
+    if (els.sentenceDisplay) {
+      els.sentenceDisplay.style.visibility = 'visible';
+    }
     if (els.quoteSource) els.quoteSource.textContent = data.source ? `— ${data.source}` : '';
 
     if (els.countdownOverlay) {
