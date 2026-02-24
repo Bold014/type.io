@@ -255,6 +255,14 @@ const UI = (() => {
     profileHomeBadge: document.getElementById('profile-home-badge'),
     profileHomeBadgeIcon: document.getElementById('profile-home-badge-icon'),
     profileHomeTitle: document.getElementById('profile-home-title'),
+    profileRecord: document.getElementById('profile-record'),
+    profileRankedGames: document.getElementById('profile-ranked-games'),
+    profileTotalWins: document.getElementById('profile-total-wins'),
+    profileTotalChars: document.getElementById('profile-total-chars'),
+    profileLoginStreak: document.getElementById('profile-login-streak'),
+    profileLongestStreak: document.getElementById('profile-longest-streak'),
+    profileCoins: document.getElementById('profile-coins'),
+    profileUserId: document.getElementById('profile-user-id'),
     profileAscendHeight: document.getElementById('profile-ascend-height'),
     profileAscendTier: document.getElementById('profile-ascend-tier'),
     profileAscendRuns: document.getElementById('profile-ascend-runs'),
@@ -361,7 +369,9 @@ const UI = (() => {
     ttCoinGainDisplay: document.getElementById('tt-coin-gain-display'),
     ttCoinGainAmount: document.getElementById('tt-coin-gain-amount'),
     tdCoinGainDisplay: document.getElementById('td-coin-gain-display'),
-    tdCoinGainAmount: document.getElementById('td-coin-gain-amount')
+    tdCoinGainAmount: document.getElementById('td-coin-gain-amount'),
+    raceCoinGainDisplay: document.getElementById('race-coin-gain-display'),
+    raceCoinGainAmount: document.getElementById('race-coin-gain-amount')
   };
 
   function showScreen(name) {
@@ -945,22 +955,45 @@ const UI = (() => {
     const progressPct = Math.max(0, Math.min(100, levelProgress * 100));
     const badge = getLevelBadge(level);
 
-    els.profileXpBadgeIcon.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor, 28);
+    els.profileXpBadgeIcon.innerHTML = buildBadgeSvg(badge.shape, badge.shapeColor, 24);
     els.profileXpLevelNum.textContent = level;
     els.profileXpLevelNum.style.color = badge.tagColor;
     els.profileXpPct.textContent = `${Math.round(progressPct)}%`;
     els.profileXpBarFill.style.width = `${progressPct}%`;
     els.profileXpTotal.textContent = xp.toLocaleString();
-    els.profileXpCurrent.textContent = `${(xp - currentLevelXp).toLocaleString()} / ${(nextLevelXp - currentLevelXp).toLocaleString()}`;
-    els.profileXpRemaining.textContent = (nextLevelXp - xp).toLocaleString();
+
+    const wins = profile.wins || 0;
+    const losses = profile.losses || 0;
+    const total = wins + losses;
+    const winPct = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
 
     els.profileBestWpm.textContent = Math.round(profile.best_wpm || 0);
-    els.profileWins.textContent = profile.wins || 0;
-    els.profileLosses.textContent = profile.losses || 0;
-    const total = (profile.wins || 0) + (profile.losses || 0);
-    els.profileWinRate.textContent = total > 0 ? Math.round((profile.wins / total) * 100) + '%' : '—';
+    els.profileWins.textContent = wins;
+    els.profileLosses.textContent = losses;
+    els.profileWinRate.textContent = total > 0 ? Math.round(winPct) + '%' : '—';
     els.profileAvgWpm.textContent = Math.round(profile.avg_wpm || 0);
     els.profileGamesPlayed.textContent = profile.games_played || 0;
+
+    if (els.profileRecord) {
+      els.profileRecord.textContent = total > 0
+        ? `${wins}/${total} (${winPct}%)`
+        : 'No games played';
+    }
+    if (els.profileRankedGames) {
+      els.profileRankedGames.textContent = rgp;
+    }
+
+    if (els.profileTotalWins) els.profileTotalWins.textContent = wins;
+    if (els.profileTotalChars) {
+      const chars = profile.total_chars_typed || 0;
+      els.profileTotalChars.textContent = chars >= 1000000
+        ? (chars / 1000000).toFixed(1) + 'M'
+        : chars >= 1000 ? (chars / 1000).toFixed(1) + 'K' : chars;
+    }
+    if (els.profileLoginStreak) els.profileLoginStreak.textContent = (profile.login_streak || 0) + ' days';
+    if (els.profileLongestStreak) els.profileLongestStreak.textContent = (profile.longest_streak || 0) + ' days';
+    if (els.profileCoins) els.profileCoins.textContent = '$' + (profile.coins || 0).toLocaleString();
+    if (els.profileUserId) els.profileUserId.textContent = 'ID: ' + (profile.id || '').substring(0, 12) + '...';
 
     if (ascendStats) {
       els.profileAscendHeight.textContent = ascendStats.bestHeight ? ascendStats.bestHeight.toFixed(1) + 'm' : '0';
@@ -1408,15 +1441,18 @@ const UI = (() => {
     const displayEl = target === 'ascend' ? els.ascendCoinGainDisplay
       : target === 'tt' ? els.ttCoinGainDisplay
       : target === 'td' ? els.tdCoinGainDisplay
+      : target === 'race' ? els.raceCoinGainDisplay
       : els.coinGainDisplay;
     const amountEl = target === 'ascend' ? els.ascendCoinGainAmount
       : target === 'tt' ? els.ttCoinGainAmount
       : target === 'td' ? els.tdCoinGainAmount
+      : target === 'race' ? els.raceCoinGainAmount
       : els.coinGainAmount;
 
     const breakdownElId = target === 'ascend' ? 'ascend-coin-gain-breakdown'
       : target === 'tt' ? 'tt-coin-gain-breakdown'
       : target === 'td' ? 'td-coin-gain-breakdown'
+      : target === 'race' ? 'race-coin-gain-breakdown'
       : 'coin-gain-breakdown';
     const breakdownEl = document.getElementById(breakdownElId);
 
@@ -1549,6 +1585,22 @@ const UI = (() => {
     setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }
 
+  function showEarningsToast(coinsGained, charsTyped, charValue) {
+    const toast = document.getElementById('earnings-toast');
+    const amountEl = document.getElementById('earnings-toast-amount');
+    const breakdownEl = document.getElementById('earnings-toast-breakdown');
+    if (!toast || !amountEl || !coinsGained || coinsGained <= 0) return;
+    amountEl.textContent = `+$${coinsGained.toLocaleString()}`;
+    if (breakdownEl && charsTyped && charValue) {
+      breakdownEl.textContent = `${charsTyped.toLocaleString()} chars \u00d7 $${charValue}`;
+    } else if (breakdownEl) {
+      breakdownEl.textContent = '';
+    }
+    toast.style.display = 'flex';
+    clearTimeout(showEarningsToast._tid);
+    showEarningsToast._tid = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+  }
+
   function renderFriendsList(friends, requests) {
     const listEl = document.getElementById('friends-list');
     const reqEl = document.getElementById('friends-requests');
@@ -1670,10 +1722,9 @@ const UI = (() => {
     for (const r of results) {
       const isMe = r.username === myUsername;
       const placeText = r.finished ? `#${r.place}` : 'DNF';
-      const botBadge = r.isBot ? ' <span class="race-bot-badge">BOT</span>' : '';
       html += `<div class="race-result-row${isMe ? ' race-result-me' : ''}">
         <span class="race-result-place">${placeText}</span>
-        <span class="race-result-name">${escapeHtml(r.username)}${botBadge}</span>
+        <span class="race-result-name">${escapeHtml(r.username)}</span>
         <span class="race-result-wpm">${r.wpm} WPM</span>
       </div>`;
     }
@@ -1737,7 +1788,7 @@ const UI = (() => {
     getEquippedTitle, getEquippedEmotes, getEquippedNameEffect, getEquippedGradient,
     BADGE_SVGS, escapeHtml, applyUsernameStyleInline,
     CHAR_VALUE_UPGRADES,
-    renderAchievements, showAchievementToast, renderFriendsList,
+    renderAchievements, showAchievementToast, showEarningsToast, renderFriendsList,
     renderAnalytics, renderRaceResults, renderClanInfo, showLoginStreak
   };
 })();

@@ -1825,6 +1825,7 @@
               currentUser.total_chars_typed = data.newTotalChars;
               UI.updateMoneyDisplay(currentUser.coins);
               refreshHomeUpgrade();
+              UI.showEarningsToast(data.coinsGained, data.charsTyped, data.charValue);
               window.dispatchEvent(new CustomEvent('money:earned', {
                 detail: { newCoins: data.newCoins, newTotalChars: data.newTotalChars }
               }));
@@ -1872,6 +1873,7 @@
             currentUser.total_chars_typed = data.newTotalChars;
             UI.updateMoneyDisplay(currentUser.coins);
             refreshHomeUpgrade();
+            UI.showEarningsToast(data.coinsGained, data.charsTyped, data.charValue);
             window.dispatchEvent(new CustomEvent('money:earned', {
               detail: { newCoins: data.newCoins, newTotalChars: data.newTotalChars }
             }));
@@ -2067,6 +2069,12 @@
       RaceClient.handleFinish(data);
       UI.renderRaceResults(data.results, getUsername());
       UI.showScreen('raceResult');
+
+      const rewards = data.rewards;
+      if (rewards && rewards.coinsGained > 0) {
+        UI.showMoneyGain(rewards.coinsGained, 'race', rewards.charsTyped, rewards.charValue);
+      }
+
       if (currentUser && sb) {
         try {
           const { data: { session } } = await sb.auth.getSession();

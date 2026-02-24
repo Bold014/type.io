@@ -182,9 +182,8 @@ const RaceClient = (() => {
       const pct = Math.min(100, Math.round((p.progress || 0) * 100));
       const isMe = p.username === myUsername;
       const place = p.finished ? `#${p.place}` : '';
-      const botBadge = p.isBot ? ' <span class="race-bot-badge">BOT</span>' : '';
-      html += `<div class="race-lane${isMe ? ' race-lane-me' : ''}${p.finished ? ' race-lane-done' : ''}${p.isBot ? ' race-lane-bot' : ''}">
-        <span class="race-lane-name">${UI.escapeHtml(p.username)}${botBadge}${place ? ' <span class="race-place">' + place + '</span>' : ''}</span>
+      html += `<div class="race-lane${isMe ? ' race-lane-me' : ''}${p.finished ? ' race-lane-done' : ''}">
+        <span class="race-lane-name">${UI.escapeHtml(p.username)}${place ? ' <span class="race-place">' + place + '</span>' : ''}</span>
         <div class="race-lane-bar"><div class="race-lane-fill" style="width:${pct}%"></div></div>
         <span class="race-lane-wpm">${p.wpm || 0} WPM</span>
       </div>`;

@@ -6,7 +6,7 @@ const RACE_MAX_PLAYERS = 8;
 const RACE_WAIT_TIME_MS = 10000;
 const RACE_COUNTDOWN_SEC = 3;
 const BOT_TICK_MS = 200;
-const DEFAULT_WPM = 45;
+const DEFAULT_WPM = 60;
 
 const BOT_NAMES = [
   'SwiftTyper', 'KeyMaster', 'QuickFingers', 'TypeStorm', 'FlashKeys',
@@ -28,22 +28,22 @@ let activeLobby = null;
 // ---------------------------------------------------------------------------
 
 function getAvgWpmForPlayers(players) {
-  const wpms = players.map(p => p.avgWpm || 0).filter(w => w > 0);
+  const wpms = players.map(p => Math.max(p.avgWpm || 0, p.bestWpm || 0)).filter(w => w > 0);
   return wpms.length > 0 ? wpms.reduce((a, b) => a + b, 0) / wpms.length : DEFAULT_WPM;
 }
 
 function generateBots(count, avgWpm, usedNameSet) {
   let low, high;
-  if (avgWpm < 40)       { low = 0.7;  high = 1.1; }
-  else if (avgWpm < 80)  { low = 0.8;  high = 1.2; }
-  else                   { low = 0.85; high = 1.3; }
+  if (avgWpm < 40)       { low = 0.8;  high = 1.2; }
+  else if (avgWpm < 80)  { low = 0.85; high = 1.35; }
+  else                   { low = 0.9;  high = 1.4; }
 
   const used = new Set(usedNameSet || []);
   const bots = [];
 
   for (let i = 0; i < count; i++) {
     const multiplier = low + Math.random() * (high - low);
-    const targetWpm = Math.max(15, Math.round(avgWpm * multiplier));
+    const targetWpm = Math.max(20, Math.round(avgWpm * multiplier));
 
     let name;
     let tries = 0;
@@ -58,7 +58,7 @@ function generateBots(count, avgWpm, usedNameSet) {
       botId: `bot_${botIdCounter}`,
       username: name,
       targetWpm,
-      pauseChance: targetWpm > avgWpm ? 0.03 : 0.08
+      pauseChance: targetWpm > avgWpm ? 0.02 : 0.05
     });
   }
   return bots;
@@ -78,10 +78,10 @@ function collectUsedNames(lobby) {
 function emitLobbyUpdate(io, lobby) {
   const players = [
     ...lobby.realPlayers.map(p => ({
-      username: p.username, progress: 0, wpm: 0, finished: false, isBot: false
+      username: p.username, progress: 0, wpm: 0, finished: false
     })),
     ...lobby.bots.map(b => ({
-      username: b.username, progress: 0, wpm: 0, finished: false, isBot: true
+      username: b.username, progress: 0, wpm: 0, finished: false
     }))
   ];
   io.to(lobby.roomId).emit('race:lobby_update', { players });
@@ -97,7 +97,8 @@ function joinQueue(io, socket) {
     userId: socket.data.userId,
     rating: socket.data.rating,
     avgWpm: socket.data.avgWpm || 0,
-    bestWpm: socket.data.bestWpm || 0
+    bestWpm: socket.data.bestWpm || 0,
+    charValueLevel: socket.data.charValueLevel || 0
   };
 
   if (!activeLobby) {
@@ -207,13 +208,15 @@ function startRace(io, lobby) {
       socketId: p.socket.id,
       username: p.username,
       userId: p.userId,
+      charValueLevel: p.charValueLevel || 0,
       isBot: false,
       progress: 0,
       wpm: 0,
       finished: false,
       place: 0,
       finishTime: 0,
-      charsTyped: 0
+      charsTyped: 0,
+      rewards: null
     })),
     ...lobby.bots.map(b => ({
       socketId: null,
@@ -254,7 +257,7 @@ function startRace(io, lobby) {
   io.to(roomId).emit('race:joined', {
     raceId,
     players: race.players.map(p => ({
-      username: p.username, progress: 0, wpm: 0, finished: false, isBot: p.isBot
+      username: p.username, progress: 0, wpm: 0, finished: false
     }))
   });
 
@@ -294,7 +297,7 @@ function startBotSimulation(io, race) {
       if (Math.random() < p.pauseChance) continue;
 
       const charsPerTick = (p.targetWpm * 5 / 60) * (BOT_TICK_MS / 1000);
-      const jitter = 0.7 + Math.random() * 0.6;
+      const jitter = 0.85 + Math.random() * 0.3;
       p._typedChars += charsPerTick * jitter;
 
       p.progress = Math.min(1, p._typedChars / race.sentence.length);
@@ -356,6 +359,10 @@ function handleComplete(io, socketId, data) {
   player.finishTime = Date.now() - race.startTime;
 
   if (player.userId && player.charsTyped > 0) {
+    const charLevel = player.charValueLevel || 0;
+    const upgrade = CHAR_VALUE_UPGRADES[charLevel] || CHAR_VALUE_UPGRADES[0];
+    const coinsGained = computeMoneyFromChars(player.charsTyped, charLevel);
+    player.rewards = { coinsGained, charsTyped: player.charsTyped, charValue: upgrade.value };
     awardRaceCoins(player.userId, player.charsTyped).catch(() => {});
   }
 
@@ -377,8 +384,7 @@ function broadcastUpdate(io, race) {
       progress: p.progress,
       wpm: p.wpm,
       finished: p.finished,
-      place: p.place,
-      isBot: p.isBot
+      place: p.place
     }))
   });
 }
@@ -402,11 +408,15 @@ function endRace(io, race) {
       place: p.finished ? p.place : race.players.length,
       wpm: p.wpm,
       finishTime: p.finishTime,
-      finished: p.finished,
-      isBot: p.isBot
+      finished: p.finished
     }));
 
-  io.to(race.roomId).emit('race:finish', { results });
+  race.players.forEach(p => {
+    if (!p.socketId) return;
+    const sock = io.sockets.sockets.get(p.socketId);
+    if (!sock) return;
+    sock.emit('race:finish', { results, rewards: p.rewards || null });
+  });
 
   setTimeout(() => {
     race.players.forEach(p => {

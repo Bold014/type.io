@@ -435,130 +435,173 @@
     </header>
     <div class="profile-wrapper">
 
-      <div class="profile-hero">
-        <div class="profile-hero-left">
+      <div class="profile-main">
+        <!-- LEFT SIDEBAR -->
+        <div class="profile-sidebar">
           <div class="profile-username" id="profile-username">USERNAME</div>
-          <div class="profile-rank-display">
-            <span class="account-rank-badge" id="profile-rank-badge">BRONZE</span>
-            <span class="account-sr-value"><span id="profile-sr">1000</span> SR</span>
-          </div>
-        </div>
-        <div class="profile-hero-right">
-          <div class="profile-xp-card">
+
+          <div class="profile-sidebar-divider"></div>
+
+          <div class="profile-xp-section">
             <div class="profile-xp-header">
               <span class="profile-xp-badge-icon" id="profile-xp-badge-icon"></span>
-              <span class="profile-xp-level-label">LEVEL <span id="profile-xp-level-num">1</span></span>
+              <span class="profile-xp-level-label">LV. <span id="profile-xp-level-num">1</span></span>
               <span class="profile-xp-pct" id="profile-xp-pct">0%</span>
             </div>
             <div class="profile-xp-bar-track">
               <div class="profile-xp-bar-fill" id="profile-xp-bar-fill"></div>
             </div>
-            <div class="profile-xp-details">
-              <div class="profile-xp-detail-row">
-                <span class="profile-xp-detail-label">Total XP</span>
-                <span class="profile-xp-detail-value" id="profile-xp-total">0</span>
-              </div>
-              <div class="profile-xp-detail-row">
-                <span class="profile-xp-detail-label">Current Level XP</span>
-                <span class="profile-xp-detail-value" id="profile-xp-current">0 / 0</span>
-              </div>
-              <div class="profile-xp-detail-row">
-                <span class="profile-xp-detail-label">XP to Next Level</span>
-                <span class="profile-xp-detail-value" id="profile-xp-remaining">0</span>
-              </div>
+            <div class="profile-xp-total-label"><span id="profile-xp-total">0</span> XP</div>
+          </div>
+
+          <div class="profile-sidebar-divider"></div>
+
+          <div class="profile-meta-stats">
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">GAMES PLAYED</span>
+              <span class="profile-meta-value" id="profile-games-played">0</span>
+            </div>
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">TOTAL WINS</span>
+              <span class="profile-meta-value" id="profile-total-wins">0</span>
+            </div>
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">CHARACTERS TYPED</span>
+              <span class="profile-meta-value" id="profile-total-chars">0</span>
+            </div>
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">LOGIN STREAK</span>
+              <span class="profile-meta-value" id="profile-login-streak">0</span>
+            </div>
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">LONGEST STREAK</span>
+              <span class="profile-meta-value" id="profile-longest-streak">0</span>
+            </div>
+            <div class="profile-meta-stat">
+              <span class="profile-meta-label">COINS</span>
+              <span class="profile-meta-value" id="profile-coins">0</span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="profile-action-row">
-        <button id="btn-profile-achievements" class="btn btn-small">ACHIEVEMENTS</button>
-        <button id="btn-profile-analytics" class="btn btn-small">ANALYTICS</button>
-      </div>
+          <div class="profile-sidebar-divider"></div>
+          <div class="profile-sidebar-id" id="profile-user-id"></div>
 
-      <div class="profile-grid">
-        <div class="profile-section profile-section-stats">
-          <h3 class="profile-section-title">DUEL STATS</h3>
-          <div class="profile-stat-grid">
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-best-wpm">0</span>
-              <span class="profile-stat-card-label">Best WPM</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-avg-wpm">0</span>
-              <span class="profile-stat-card-label">Avg WPM</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-wins">0</span>
-              <span class="profile-stat-card-label">Wins</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-losses">0</span>
-              <span class="profile-stat-card-label">Losses</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-winrate">&mdash;</span>
-              <span class="profile-stat-card-label">Win Rate</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-games-played">0</span>
-              <span class="profile-stat-card-label">Games Played</span>
-            </div>
+          <div class="profile-sidebar-actions">
+            <button id="btn-profile-achievements" class="btn btn-small">ACHIEVEMENTS</button>
+            <button id="btn-profile-analytics" class="btn btn-small">ANALYTICS</button>
           </div>
         </div>
 
-        <div class="profile-section profile-section-ascend">
-          <h3 class="profile-section-title">CLIMB</h3>
-          <div class="profile-stat-grid profile-stat-grid-4">
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-ascend-height">0</span>
-              <span class="profile-stat-card-label">Best Height</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-ascend-tier">0</span>
-              <span class="profile-stat-card-label">Best Tier</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-ascend-runs">0</span>
-              <span class="profile-stat-card-label">Total Runs</span>
-            </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-ascend-avg">0</span>
-              <span class="profile-stat-card-label">Avg Height</span>
-            </div>
-          </div>
-        </div>
+        <!-- RIGHT CONTENT -->
+        <div class="profile-content">
 
-        <div class="profile-section profile-section-timetrial">
-          <h3 class="profile-section-title">TIME TRIAL</h3>
-          <div class="profile-stat-grid profile-stat-grid-4">
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-best-15">—</span>
-              <span class="profile-stat-card-label">Best 15s</span>
+          <!-- DUEL SECTION -->
+          <div class="profile-mode-section profile-mode-duel">
+            <div class="profile-mode-header">
+              <span class="profile-mode-tag profile-mode-tag-duel">DL</span>
+              <span class="profile-mode-title">DUEL</span>
             </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-best-30">—</span>
-              <span class="profile-stat-card-label">Best 30s</span>
+            <div class="profile-mode-body">
+              <div class="profile-mode-primary">
+                <span class="profile-mode-big-value"><span id="profile-sr">1000</span><span class="profile-mode-big-unit"> SR</span></span>
+                <span class="account-rank-badge" id="profile-rank-badge">BRONZE</span>
+              </div>
+              <div class="profile-mode-stats">
+                <div class="profile-mode-stat-row">
+                  <span class="profile-mode-stat-label">RECORD</span>
+                  <span class="profile-mode-stat-value" id="profile-record">0/0 (0%)</span>
+                </div>
+                <div class="profile-mode-stat-row">
+                  <span class="profile-mode-stat-label">RANKED GAMES</span>
+                  <span class="profile-mode-stat-value" id="profile-ranked-games">0</span>
+                </div>
+              </div>
+              <div class="profile-mode-inline-stats">
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">BEST WPM</span>
+                  <span class="profile-mode-inline-value" id="profile-best-wpm">0</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">AVG WPM</span>
+                  <span class="profile-mode-inline-value" id="profile-avg-wpm">0</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">WIN RATE</span>
+                  <span class="profile-mode-inline-value" id="profile-winrate">&mdash;</span>
+                </div>
+              </div>
             </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-best-60">—</span>
-              <span class="profile-stat-card-label">Best 60s</span>
+            <!-- Hidden elements to keep JS references alive -->
+            <span id="profile-wins" style="display:none">0</span>
+            <span id="profile-losses" style="display:none">0</span>
+          </div>
+
+          <!-- TIME TRIAL SECTION -->
+          <div class="profile-mode-section profile-mode-tt">
+            <div class="profile-mode-header">
+              <span class="profile-mode-tag profile-mode-tag-tt">TT</span>
+              <span class="profile-mode-title">TIME TRIAL</span>
             </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-best-120">—</span>
-              <span class="profile-stat-card-label">Best 120s</span>
+            <div class="profile-mode-body">
+              <div class="profile-mode-inline-stats profile-mode-inline-stats-grid">
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">15s</span>
+                  <span class="profile-mode-inline-value" id="profile-tt-best-15">—</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">30s</span>
+                  <span class="profile-mode-inline-value" id="profile-tt-best-30">—</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">60s</span>
+                  <span class="profile-mode-inline-value" id="profile-tt-best-60">—</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">120s</span>
+                  <span class="profile-mode-inline-value" id="profile-tt-best-120">—</span>
+                </div>
+              </div>
+              <div class="profile-mode-stats">
+                <div class="profile-mode-stat-row">
+                  <span class="profile-mode-stat-label">TOTAL RUNS</span>
+                  <span class="profile-mode-stat-value" id="profile-tt-runs">0</span>
+                </div>
+                <div class="profile-mode-stat-row">
+                  <span class="profile-mode-stat-label">AVG WPM</span>
+                  <span class="profile-mode-stat-value" id="profile-tt-avg">0</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="profile-stat-grid profile-stat-grid-2" style="margin-top:8px">
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-runs">0</span>
-              <span class="profile-stat-card-label">Total Runs</span>
+
+          <!-- CLIMB SECTION -->
+          <div class="profile-mode-section profile-mode-climb">
+            <div class="profile-mode-header">
+              <span class="profile-mode-tag profile-mode-tag-climb">CL</span>
+              <span class="profile-mode-title">CLIMB</span>
             </div>
-            <div class="profile-stat-card">
-              <span class="profile-stat-card-value" id="profile-tt-avg">0</span>
-              <span class="profile-stat-card-label">Avg WPM</span>
+            <div class="profile-mode-body">
+              <div class="profile-mode-inline-stats">
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">BEST HEIGHT</span>
+                  <span class="profile-mode-inline-value" id="profile-ascend-height">0</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">BEST TIER</span>
+                  <span class="profile-mode-inline-value" id="profile-ascend-tier">0</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">TOTAL RUNS</span>
+                  <span class="profile-mode-inline-value" id="profile-ascend-runs">0</span>
+                </div>
+                <div class="profile-mode-inline-stat">
+                  <span class="profile-mode-inline-label">AVG HEIGHT</span>
+                  <span class="profile-mode-inline-value" id="profile-ascend-avg">0</span>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -571,8 +614,11 @@
              data-full-width-responsive="true"></ins>
       </div>
 
-      <div class="profile-section profile-section-history">
-        <h3 class="profile-section-title">RECENT MATCHES</h3>
+      <div class="profile-mode-section profile-mode-history">
+        <div class="profile-mode-header">
+          <span class="profile-mode-tag profile-mode-tag-history">MH</span>
+          <span class="profile-mode-title">RECENT MATCHES</span>
+        </div>
         <div class="profile-history-table-wrap">
           <div class="profile-history-header">
             <span class="ph-col-result">RESULT</span>
@@ -588,8 +634,11 @@
         </div>
       </div>
 
-      <div class="profile-section profile-section-email">
-        <h3 class="profile-section-title">EMAIL</h3>
+      <div class="profile-mode-section profile-mode-email">
+        <div class="profile-mode-header">
+          <span class="profile-mode-tag profile-mode-tag-email">EM</span>
+          <span class="profile-mode-title">EMAIL</span>
+        </div>
         <div class="profile-email-row">
           <div class="profile-email-info">
             <p class="profile-email-current" id="profile-email-current">No email set</p>
@@ -1403,15 +1452,21 @@
   <!-- RACE MODE SCREEN -->
   <div id="screen-race" class="screen">
     <div class="race-layout">
-      <header class="tt-header">
-        <button id="btn-race-back" class="home-header-left home-header-back">HOME</button>
-        <span class="tt-mode-label">RACE</span>
-        <span class="tt-timer" id="race-timer"></span>
-        <span class="race-player-count" id="race-player-count"></span>
+      <header class="race-header">
+        <div class="race-header-left">
+          <button id="btn-race-back" class="race-exit-btn">HOME</button>
+        </div>
+        <div class="race-header-center">
+          <span class="race-mode-label">RACE</span>
+          <span class="race-status" id="race-timer"></span>
+        </div>
+        <div class="race-header-right">
+          <span class="race-player-count" id="race-player-count"></span>
+        </div>
       </header>
       <div class="race-track-area" id="race-track-area"></div>
-      <div class="tt-game-area">
-        <div class="tt-stats-bar">
+      <div class="race-game-area">
+        <div class="race-stats-bar">
           <div class="stat"><span class="stat-value" id="race-wpm">0</span><span class="stat-label">WPM</span></div>
           <div class="stat"><span class="stat-value" id="race-accuracy">100%</span><span class="stat-label">Accuracy</span></div>
         </div>
@@ -1434,6 +1489,10 @@
     <div class="result-container">
       <h2 class="match-result-title">RACE COMPLETE</h2>
       <div class="race-results-list" id="race-results-list"></div>
+      <div class="money-gain-display" id="race-coin-gain-display" style="display:none">
+        <span class="money-gain-amount" id="race-coin-gain-amount">+$0</span>
+        <span class="money-gain-breakdown" id="race-coin-gain-breakdown"></span>
+      </div>
       <div class="match-result-buttons">
         <button id="btn-race-again" class="btn btn-primary">Race Again</button>
         <button id="btn-race-quit" class="btn btn-small">Quit</button>
@@ -1538,6 +1597,12 @@
         <div class="stat"><span class="stat-value" id="replay-wpm">0</span><span class="stat-label">WPM</span></div>
       </div>
     </div>
+  </div>
+
+  <!-- EARNINGS TOAST -->
+  <div id="earnings-toast" class="earnings-toast" style="display:none">
+    <div class="earnings-toast-amount" id="earnings-toast-amount">+$0</div>
+    <div class="earnings-toast-breakdown" id="earnings-toast-breakdown"></div>
   </div>
 
   <!-- ACHIEVEMENT TOAST -->

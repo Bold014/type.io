@@ -46,6 +46,7 @@ function setupSocketHandlers(io) {
             socket.data.rating = profile.rating;
             socket.data.avgWpm = profile.avg_wpm || 0;
             socket.data.bestWpm = profile.best_wpm || 0;
+            socket.data.charValueLevel = profile.char_value_level || 0;
             console.log('[SOCKET AUTH] Authenticated:', profile.username, '| userId:', profile.id, '| steam_id:', profile.steam_id || 'none');
           } else {
             console.warn('[SOCKET AUTH] Valid token but profile not found for user:', user.id);
@@ -67,6 +68,7 @@ function setupSocketHandlers(io) {
       socket.data.rating = 1000;
       socket.data.avgWpm = 0;
       socket.data.bestWpm = 0;
+      socket.data.charValueLevel = 0;
     }
 
     socket.on('auth:set', (data) => {
