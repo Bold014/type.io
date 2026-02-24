@@ -34,8 +34,13 @@ function setupSocketHandlers(io) {
   });
 
   io.use(async (socket, next) => {
-    const token = socket.handshake.auth?.token;
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
     if (token) {
+      const segments = String(token).split('.').length;
+      if (segments !== 3) {
+        console.warn('[SOCKET AUTH] Malformed token received (segments:', segments, ') – skipping auth. Source:', socket.handshake.auth?.token ? 'auth.token' : 'query.token');
+        return next();
+      }
       try {
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (!error && user) {
