@@ -126,12 +126,18 @@ function setupAuthRoutes(app) {
 
       let profile = await findUserBySteamId(steamIdStr);
 
+      if (profile) {
+        console.log('[STEAM AUTH] Found existing profile by steam_id:', profile.username, '| userId:', profile.id);
+      }
+
       if (!profile) {
         let username = sanitizeUsername(playerName || 'Player');
         const existing = await checkUsernameExists(username);
         if (existing.exists) {
           username = username.slice(0, 14) + '_' + Math.floor(Math.random() * 99999);
         }
+
+        console.log('[STEAM AUTH] No profile with steam_id, creating user with email:', email, '| username:', username);
 
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email,
@@ -142,16 +148,22 @@ function setupAuthRoutes(app) {
 
         if (createError) {
           if (createError.message?.includes('already been registered')) {
+            console.log('[STEAM AUTH] Email already registered, signing in existing account');
             const signIn = await supabase.auth.signInWithPassword({ email, password });
             if (signIn.error) {
+              console.error('[STEAM AUTH] Sign-in failed for existing email:', signIn.error.message);
               return res.status(500).json({ error: 'Steam account exists but sign-in failed' });
             }
 
             const existingProfile = await findUserById(signIn.data.user.id);
+            console.log('[STEAM AUTH] Existing profile:', existingProfile?.username, '| userId:', existingProfile?.id, '| current steam_id:', existingProfile?.steam_id || 'none');
+
             if (existingProfile && !existingProfile.steam_id) {
               const linked = await updateProfileSteamId(signIn.data.user.id, steamIdStr);
               if (!linked) {
                 console.error('[STEAM AUTH] Failed to link steam_id for existing user:', signIn.data.user.id);
+              } else {
+                console.log('[STEAM AUTH] Successfully linked steam_id for existing user:', signIn.data.user.id);
               }
             }
 
@@ -160,6 +172,7 @@ function setupAuthRoutes(app) {
               return res.status(500).json({ error: 'Profile not found' });
             }
 
+            console.log('[STEAM AUTH] Returning existing profile | username:', profile.username, '| steam_id:', profile.steam_id || 'none');
             const equipped = await getUserEquippedWithItems(profile.id);
             return res.json({
               access_token: signIn.data.session.access_token,
@@ -167,9 +180,11 @@ function setupAuthRoutes(app) {
               profile: { ...profile, equipped }
             });
           }
-          console.error('Steam createUser error:', createError);
+          console.error('[STEAM AUTH] createUser error:', createError);
           return res.status(500).json({ error: 'Failed to create account' });
         }
+
+        console.log('[STEAM AUTH] New auth user created:', newUser.user.id, '| waiting for profile...');
 
         for (let i = 0; i < 10; i++) {
           profile = await findUserById(newUser.user.id);
@@ -181,13 +196,15 @@ function setupAuthRoutes(app) {
           return res.status(500).json({ error: 'Profile creation timed out' });
         }
 
-        const steamIdSaved = await updateProfileSteamId(newUser.user.id, steamIdStr);
+        console.log('[STEAM AUTH] Profile found after', 'polling | username:', profile.username, '| saving steam_id...');
+
+        let steamIdSaved = await updateProfileSteamId(newUser.user.id, steamIdStr);
         if (!steamIdSaved) {
-          console.error('[STEAM AUTH] First steam_id save failed, retrying...');
-          await new Promise(r => setTimeout(r, 500));
-          const retry = await updateProfileSteamId(newUser.user.id, steamIdStr);
-          if (!retry) {
-            console.error('[STEAM AUTH] Steam ID save failed after retry for user:', newUser.user.id, 'steamId:', steamIdStr);
+          console.error('[STEAM AUTH] First steam_id save failed for new user, retrying after delay...');
+          await new Promise(r => setTimeout(r, 1000));
+          steamIdSaved = await updateProfileSteamId(newUser.user.id, steamIdStr);
+          if (!steamIdSaved) {
+            console.error('[STEAM AUTH] Steam ID save FAILED after retry for user:', newUser.user.id, 'steamId:', steamIdStr);
           }
         }
         if (playerName) {
@@ -208,11 +225,14 @@ function setupAuthRoutes(app) {
       });
 
       if (signInError) {
+        console.error('[STEAM AUTH] Final sign-in failed:', signInError.message);
         return res.status(500).json({ error: 'Authentication failed' });
       }
 
       profile = await findUserById(signInData.user.id);
       const equipped = await getUserEquippedWithItems(profile.id);
+
+      console.log('[STEAM AUTH] Auth complete | username:', profile.username, '| steam_id:', profile.steam_id || 'MISSING');
 
       res.json({
         access_token: signInData.session.access_token,

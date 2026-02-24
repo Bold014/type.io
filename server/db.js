@@ -103,15 +103,48 @@ async function findUserBySteamId(steamId) {
 }
 
 async function updateProfileSteamId(userId, steamId) {
-  const { error } = await supabase
+  console.log('[DB] updateProfileSteamId called | userId:', userId, '| steamId:', steamId);
+
+  const { data, error } = await supabase
     .from('profiles')
     .update({ steam_id: steamId })
-    .eq('id', userId);
+    .eq('id', userId)
+    .select('id, steam_id');
 
   if (error) {
-    console.error('updateProfileSteamId error:', error);
+    console.error('[DB] updateProfileSteamId update error:', error);
     return false;
   }
+
+  if (!data || data.length === 0) {
+    console.error('[DB] updateProfileSteamId matched 0 rows | userId:', userId, '| steamId:', steamId);
+
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id, steam_id')
+      .eq('id', userId)
+      .single();
+
+    if (!existing) {
+      console.error('[DB] updateProfileSteamId: profile does not exist for userId:', userId);
+      return false;
+    }
+
+    if (existing.steam_id === steamId) {
+      console.log('[DB] updateProfileSteamId: steam_id already set correctly');
+      return true;
+    }
+
+    console.error('[DB] updateProfileSteamId: profile exists but update had no effect | current steam_id:', existing.steam_id);
+    return false;
+  }
+
+  if (data[0].steam_id !== steamId) {
+    console.error('[DB] updateProfileSteamId: update returned but steam_id mismatch | expected:', steamId, '| got:', data[0].steam_id);
+    return false;
+  }
+
+  console.log('[DB] updateProfileSteamId success | userId:', userId, '| steamId:', steamId);
   return true;
 }
 
